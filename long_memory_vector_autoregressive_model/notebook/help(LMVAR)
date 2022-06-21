@@ -1,0 +1,1119 @@
+>>> help(LMVAR)
+
+Help on class LMVAR in module LMVAR:
+
+class LMVAR(builtins.object)
+ |  LMVAR(len_learn_window=0, var_order=1, num_factors=1, ar_order=0, num_pcs=1, alt_ar_order={}, alt_num_pcs={}, shock_list={}, max_forecast_step=1, max_response_step=10, target_type='Original', fwd_cumsum=False)
+ |  
+ |  Long-Memory Vector Autoregressive Model (LMVAR)
+ |  
+ |  Factor- and PCA-based VAR Framework
+ |  -----------------------------------
+ |  
+ |  Aacronyms
+ |      AR : autoregressive (AR) model of univariate time-series
+ |      YWpcAR : Yule-Walker-PCA autoregressive (YWpcAR) model of
+ |               univariate time-series
+ |  
+ |  Aacronyms
+ |      VAR : vector autoregressive (VAR) model of multiple time-series
+ |      DFM : dynamic factor model (DFM) of multiple time-series
+ |  
+ |  Notations
+ |      y(t) : data time-series of n-by-1 vector y with time index t
+ |      z(t) : time-series of DFM-based common components of data y(t)
+ |      u(t) : time-series of DFM-based idiosyncratic components of y(t)
+ |      v(t) : time-series of PCA-based unobserved components of u(t)
+ |      e(t) : time-series of residual components of idiosyncratic u(t)
+ |  
+ |  Time-series decomposition
+ |      y(t) = z(t) + u(t)
+ |      u(t) = v(t) + e(t)
+ |  
+ |  Notations
+ |      n : number of time-series
+ |      m : number of dynamic factors in DFM model estimation
+ |      l : number of PCs in univariate YWpcAR model estimation
+ |  
+ |  Notations
+ |      B(j) : n-by-n matrix of VAR coefficients, estimated by DFM
+ |      D(k) : n-by-n diagonal matrix of AR coefficients by YWpcAR
+ |  
+ |  Values
+ |      c = 0 : assuming y(t) are zero-mean time-series
+ |      t = 0, 1, 2, ..., T
+ |      T : last time stamp
+ |  
+ |  Values
+ |      1 <= m < n
+ |      1 <= l < q
+ |      j = 1, 2, ..., p
+ |      k = 1, 2, ..., q
+ |      p : VAR (vector autoregressive) order
+ |      q : AR (univariate autoregressive) order
+ |  
+ |  Simple VAR model
+ |      y(t) = B(1) y(t-1) + B(2) y(t-2) + ... + B(p) y(t-p) + u(t)
+ |      y(t) = sum[B(k) y(t-k); for k=1:p] + u(t)
+ |      u(t) = y(t) - sum[B(k) y(t-k); for k=1:p]
+ |  
+ |  Simple VAR model estimated by DFM
+ |      B(k) = BL BR(k), k=1,2,...,p
+ |      BL : n-by-m matrix of left multiplier
+ |      BR(k) : m-by-n matrix of right multiplier
+ |  
+ |  Simple VAR model estimated by DFM
+ |      z(t) = B(1) z(t-1) + B(2) z(t-2) + ... + B(p) z(t-p)
+ |      u(t) = y(t) - z(t)
+ |  
+ |  Simple idiosyncratic AR model
+ |      u(t) = D(1) u(t-1) + D(2) u(t-2) + ... + D(q) u(t-q) + e(t)
+ |      u(t) = sum[D(k) u(t-k); for k=1:q] + e(t)
+ |  
+ |  Simple idiosyncratic AR model estimated by YWpcAR
+ |      v(t) = D(1) v(t-1) + D(2) v(t-2) + ... + D(q) v(t-q)
+ |      e(t) = u(t) - v(t)
+ |  
+ |  Implied VAR model implied by DFM-based VAR plus YWpcAR-based AR
+ |      y(t) =   sum[B(k) y(t-k); for k=1:p]
+ |             + sum[D(k) u(t-k); for k=1:q] + e(t)
+ |      u(t) = y(t) - sum[B(k) y(t-k); for k=1:p]
+ |  
+ |  Implied VAR model implied by DFM-based VAR plus YWpcAR-based AR
+ |      y(t) = C(1) y(t-1) + C(2) y(t-2) + ... + C(p+q) y(t-p-q) + e(t)
+ |  
+ |  Implied VAR coefficient matrix    
+ |      C(k) = B(k) + D(k) – sum[D(j) B(k-j); for j=1:(k-1)]
+ |      Notes:
+ |          B(k) = 0, for k = 0 and k > p
+ |          D(k) = 0, for k = 0 and k > q
+ |  
+ |  Long-memory
+ |  -----------
+ |  
+ |  Long-memory VAR
+ |      VAR order p >> 1, and
+ |      AR order q >> 1
+ |  
+ |  Notes:
+ |      In this LMVAR algorithm, q = p >> 1
+ |  
+ |  Forecasts by LMVAR
+ |  ------------------
+ |  
+ |  DFM-based VAR forecasts
+ |      z(t+s) = B(1) z(t+s-1) + B(2) z(t+s-2) + ... + B(p) z(t+s-p)
+ |      u(t) = y(t) - z(t)
+ |  
+ |  PCA-based AR forecasts
+ |      v(t+s) = D(1) v(t+s-1) + D(2) v(t+s-2) + ... + D(q) v(t+s-q)
+ |      e(t) = u(t) - v(t)
+ |  
+ |  "Residual forecasts"
+ |      e(t+s) = 0
+ |  
+ |  DFM- plus PCA-based VAR forecasts
+ |      y(t+s|t) = z(t+s|t) + v(t+s|t)
+ |  
+ |  Note:
+ |      Using realized/estimated data when k >= s, i.e. s-k <= 0
+ |          y(t+s-k|t) = y(t+s-k)
+ |          z(t+s-k|t) = z(t+s-k)
+ |          u(t+s-k|t) = u(t+s-k)
+ |          v(t+s-k|t) = v(t+s-k)
+ |  
+ |  Shock response
+ |  --------------
+ |  
+ |  Notations
+ |      h(t) : n-by-1 shock vector, h, at time t
+ |      r(t+s) : time-series of n-by-1 response vector r(t+s)
+ |  
+ |  Values
+ |      h(t) : one element = 1, primary shock
+ |             other element(s) < 1, if any, correlated shock(s)
+ |      h(t-k) = 0 for k >= 1
+ |  
+ |  Values
+ |      r(t) = h(t)
+ |      r(t-k) = 0 for k >= 0
+ |  
+ |  Impulse/shock response by DFM- plus PCA-based VAR model
+ |      r(t+s) = C(1) r(t+s-1) + C(2) r(t+s-2) + ... + C(2p) r(t+s-2p)
+ |  
+ |  Note:
+ |      Using realized data when k >= s, i.e. s-k <= 0
+ |          r(t|t) = h(t)
+ |          r(t+s-k|t) = r(t+s-k)
+ |  
+ |  References
+ |  ----------
+ |  
+ |  J. Stock and M. Watson (2016). "Chapter 9 Factor Models and
+ |  Structural Vector Autoregressions in Macroeconomics", in Handbook
+ |  of Macroeconomics, Volume 2A. Elsevier, 2016.
+ |  https://scholar.harvard.edu/files/stock/files/stock_watson_dfm_hom_030916.pdf
+ |  
+ |  Data (vector time-series)
+ |  -------------------------
+ |  
+ |  VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |      Vector time-series: row time-series of column vector
+ |          First column as the oldest, last column as the latest
+ |      Required, for DFM learning, and for inference
+ |  
+ |  VTS_infer : pandas.DataFrame, shape (num_ts, len_ts_infer)
+ |      Vector time-series: row time-series of column vector
+ |          First column as the oldest, last column as the latest
+ |      Optional, for inference only
+ |  
+ |  num_ts : int > 1
+ |      Number of time-series
+ |  
+ |  len_ts and len_ts_infer : int > 1
+ |      Length of time-series
+ |  
+ |  Notes on VTS and VTS_infer:
+ |      VTS_infer.index = VTS.index, i.e. same set of time-series
+ |      if VTS_infer not applied, VTS is assumed for inference
+ |  
+ |  Learning parameters
+ |  -------------------
+ |  
+ |  len_learn_window : int >> 1
+ |      Length of trailing time window for model learning
+ |  
+ |  var_order : int >= 1
+ |      Vector autoregressive (VAR) order, p, of dynamic factor
+ |          model (DFM) for common components of vector time-series
+ |      Notes:
+ |          var_order <= len_learn_window
+ |          len_ts >= len_learn_window + (3 var_order)
+ |          len_ts_infer >= (3 var_order) + 1
+ |  
+ |  num_factors : int >= 1
+ |      Number of factors of dynamic factor model (DFM) for common
+ |          components of vector time-series
+ |      Notes:
+ |          num_factors < min(len_learn_window, num_ts)
+ |  
+ |  ar_order : int >= 1
+ |      Autoregressive (AR) order, q, of AR model for idiosyncratic
+ |          components of time-series, here q applied to all time-
+ |          series other than those specified, if any, in alt_ar_order
+ |      Notes:
+ |          ar_order <= len_learn_window
+ |          len_ts >= len_learn_window + (2 ar_order)
+ |          len_ts_infer >= (2 ar_order) + 1
+ |  
+ |  num_pcs : int >= 1
+ |      Number of principal components (PCs), m, of YWpcAR model for
+ |          idiosyncratic components of time-series, here m applied
+ |          to all time-series other than those specified, if any, in
+ |          alt_num_pcs
+ |      Notes:
+ |          num_pcs < ar_order
+ |  
+ |  alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |      Autoregressive (AR) orders, q1, q2, ..., applied to specified
+ |          time-series ts1, ts2, ...
+ |      Notes:
+ |          ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |          as key of alternative AR order value applied to the
+ |          specified time-series
+ |  
+ |  alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |      Numbers of principal components (PCs), m1, m2, ..., applied
+ |          to specified time-series ts1, ts2, ...
+ |      Notes:
+ |          ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |          as key of alternative number of PCs applied to the
+ |          specified time-series
+ |  
+ |  Inference parameters
+ |  --------------------
+ |  
+ |  shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |      List of shock(s) specified as shock_list = {
+ |          ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |  
+ |  max_forecast_step : int >= 1
+ |      Maximum number of forward steps of time-series forecasts
+ |  
+ |  max_response_step : int >= 1
+ |      Maximum number of forward steps of shock-response time-series
+ |  
+ |  target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                     'z', 'Z', 'original', 'o', 'O'}
+ |      Type of vector time-series data to be forecasted
+ |      If 's', 'S' or 'standardized':
+ |          forecasting standardized vector time-series
+ |      If 'z', 'S' or 'zero-mean':
+ |          forecasting zero-mean, i.e. de-meaned, vector time-series
+ |      If 'o', 'O' or 'origional':
+ |          forecasting original vector time-series
+ |  
+ |  fwd_cumsum : bool {True, False}
+ |      Whether or not to make cum-sum forecast
+ |  
+ |  Attributes
+ |  ----------
+ |  
+ |  mean_vec : pandas.Series, shape (num_ts,)
+ |      Sample mean vector of vector time-series of
+ |          last len_learn_window data points
+ |      mean_vec.name: T, last time stamp of data in learning window
+ |      Vector c in VAR model expression
+ |  
+ |  stdev_vec : pandas.Series, shape (num_ts,)
+ |      Sample standard deviation of time-series of
+ |          last len_learn_window data points
+ |      stdev_vec.name: T, last time stamp of data in learning window
+ |  
+ |  var_left : pandas.DataFrame, shape (num_ts, num_factors)
+ |      Left multiplier of VAR coefficient matrixes, estimated by DFM
+ |      Matrix BL of VAR coefficients B(k) in VAR model expression
+ |  
+ |  var_right : dict, keys  (1, 2, ..., var_order, 'asof')
+ |      var_right[k] : Right mulitplier of VAR coefficient matrix of
+ |          k-th lag, estimated by DFM
+ |      Matrix BR(k) of VAR coefficients B(k) in VAR model expression
+ |  
+ |  ar_coefs : pandas.DataFrame, shape (num_ts, (max_ar_order + 1))
+ |      ar_coefs.loc[ts] : AR coefficients of idiosyncratic components
+ |          of time-series ts
+ |      columns (1, 2, max_ar_order, TL), TL: last time-stamp of VTS
+ |      Elements of diagonal matrix D(k) in VAR model expression
+ |  
+ |  var_implied : dict, keys (1, 2, ..., (var_ord + max_ar_ord), 'asof')
+ |      var_implied[k] : implied VAR coefficient matrix expressed by
+ |          var_left, var_right[j], and ar_coefs[j]
+ |      VAR coefficients C(k) in implied VAR model expression
+ |  
+ |  vts_standard : dict, keys ('Learning', 'Inference')
+ |      vts_standard[k] : pandas.DataFrame, shape (num_ts, len_ts[k])
+ |          Standardized vector time-series for factor model learning
+ |              and for inference
+ |  
+ |  vts_common : dict, keys ('Learning', 'Inference')
+ |      vts_common[k] : pandas.DataFrame, shape (num_ts, len_factors[k])
+ |          Common components of Standardized vector time-series
+ |          Estimated by DFM factor scores
+ |  
+ |  vts_idiosync : dict, keys ('Learning', 'Inference')
+ |      vts_idiosync[k] : DataFrame, shape (num_ts, len_factors[k])
+ |          Idiosyncratic components of Standardized vector time-series
+ |          Estimated by DFM factor scores
+ |  
+ |  Notes:
+ |      vts_idiosync[k] = vts_standard[k].sub(vts_common[k])
+ |  
+ |  vts_unobs : dict, keys ('Learning', 'Inference')
+ |      vts_unobs[k] : pd.DataFrame, shape (num_ts, len_unobs[k])
+ |      Unobserved components of idiosyncratic components of
+ |          vector time-series
+ |  
+ |  vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |      Out-of-sample s-step forecasts of vector time-series,
+ |          with two specifications, target_type and fwd_cumsum
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |  
+ |  comm_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |      Out-of-sample s-step forecasts of common components
+ |          of vector time-series, with two specifications,
+ |          target_type and fwd_cumsum
+ |  
+ |  idio_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |      Out-of-sample s-step forecasts of idiosyncratic components
+ |          of vector time-series, with two specifications,
+ |          target_type and fwd_cumsum
+ |  
+ |  Notes:
+ |      vts_forecast = comm_forecast.add(idio_forecast)
+ |  
+ |  vts_response : DataFrame, shape (num_ts, (max_response_step + 1))
+ |      s-Step response to impulse or shock vector at time t = Tfi
+ |          with two specifications, target_type and fwd_cumsum
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_response_step
+ |          Tfi = time stamp of impulse or shock vector
+ |                (last time stamp of VTS or VTS_infer for inference)
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |  
+ |  asof_time : dict, keys ('Learning', 'Inference')
+ |          asof_time['Learning']: last time stamp of VTS for
+ |              learning
+ |          asof_time['Inference']: last time stamp of VTS or
+ |              VTS_infer for inference
+ |          asof_time['Inference'] = asof_time['Learning'] if
+ |              VTS_infer not applied
+ |      As-of times of learning and of inference
+ |  
+ |  Examples
+ |  --------
+ |  
+ |  Sample codes:
+ |      demo.jpynb
+ |      demo.py
+ |  
+ |  Methods
+ |  -------
+ |  
+ |  For model initiation
+ |      LMVAR(len_learn_window, var_order, num_factors, ar_order,
+ |          num_pcs, alt_ar_order, alt_num_pcs, shock_list,
+ |          max_forecast_step, max_response_step, target_type,
+ |          fwd_cumsum)
+ |      LMVAR_obj.set_param(len_learn_window, var_order, num_factors,
+ |          ar_order, num_pcs, alt_ar_order, alt_num_pcs, shock_list,
+ |          max_forecast_step, max_response_step, target_type,
+ |          fwd_cumsum)
+ |      LMVAR_obj.get_param(param_name_list)
+ |      LMVAR_obj.get_target_type_list()
+ |      LMVAR_obj.min_ts_len()
+ |  
+ |  For model learning
+ |      LMVAR_obj.fit(VTS)
+ |      LMVAR_obj.get_mean()
+ |      LMVAR_obj.get_stdev()
+ |      LMVAR_obj.get_VARcoefs()
+ |      LMVAR_obj.get_VARimplied(target_type)
+ |  
+ |  For model inference
+ |      LMVAR_obj.apply(VTS)
+ |      LMVAR_obj.get_standard()
+ |      LMVAR_obj.get_common()
+ |      LMVAR_obj.get_idiosync()
+ |      LMVAR_obj.get_unobs()
+ |      LMVAR_obj.forecast(target_type, fwd_cumsum)
+ |      LMVAR_obj.predict(...) = LMVAR_obj.forecast(...)
+ |      LMVAR_obj.response(shock_list, target_type, fwd_cumsum)
+ |  
+ |  For time stamp of model estimates
+ |      LMVAR_obj.get_asof()
+ |  
+ |  Notes on data
+ |  -------------
+ |  
+ |  * VTS, for learning and for inference, input of method fit(VTS)
+ |  * VTS_infer, for inference only, input of optional method apply()
+ |  * if VTS_infer not applied, VTS is assumed for inference
+ |  
+ |  Class LMDFM
+ |  -----------
+ |  
+ |  This class, class LMVAR, initiates instances of "long-memory dynamic
+ |      factor model" class, class LMDFM, to analyze and forecast common
+ |      components of vector time-series.
+ |  
+ |  Setting methods of LMDFM object:
+ |      LMDFM(len_learn_window, var_order, num_factors,
+ |          forecast_type, shock_list, max_forecast_step,
+ |          max_response_step, target_type, fwd_cumsum)
+ |      LMDFM_obj.set_param(param1, param2, ...)
+ |      LMDFM_obj.get_param(param_name_list)
+ |      LMDFM_obj.get_target_type_list()
+ |      LMDFM_obj.min_ts_len()
+ |      LMDFM_obj.check(VTS)
+ |  
+ |  Learning methods of LMDFM object:
+ |      LMDFM_obj.fit(VTS)
+ |      LMDFM_obj.get_mean()
+ |      LMDFM_obj.get_stdev()
+ |      LMDFM_obj.get_mtsVAR(target_type)
+ |  
+ |  Inference methods of LMDFM object:
+ |      LMDFM_obj.apply(VTS)
+ |      LMDFM_obj.get_standard()
+ |      LMDFM_obj.get_common()
+ |      LMDFM_obj.get_idiosync()
+ |      LMDFM_obj.forecast(target_type, fwd_cumsum)
+ |  
+ |  Info method of LMDFM object:
+ |      LMDFM_obj.get_asof()
+ |  
+ |  Additional details can be obtained from help(LMDFM)
+ |  
+ |  Class YWpcAR
+ |  ------------
+ |  
+ |  This class, class LMVAR, initiates instances of "Yule-Walker-PCA
+ |      autoregressive model" class, class YWpcAR, to analyze and
+ |      forecast idiosyncratic components of individual time-series.
+ |  
+ |  Setting methods of YWpcAR object:
+ |      YWpcAR(len_learn_window, ar_order, num_pcs, alt_ar_order,
+ |          alt_num_pcs, max_forecast_step, target_type, fwd_cumsum)
+ |      YWpcAR_obj.set_param(param1, param2, ...)
+ |      YWpcAR_obj.get_param(param_name_list)
+ |  
+ |  Learning methods of YWpcAR object:
+ |      YWpcAR_obj.fit(VTS)
+ |      YWpcAR_obj.get_mean()
+ |      YWpcAR_obj.get_ARcoefs()
+ |      YWpcAR_obj.get_filter()
+ |  
+ |  Inference methods of YWpcAR object:
+ |      YWpcAR_obj.apply(VTS)
+ |      YWpcAR_obj.get_unobs()
+ |      YWpcAR_obj.forecast(target_type, fwd_cumsum)
+ |  
+ |  Info method of YWpcAR object:
+ |      YWpcAR_obj.get_asof()
+ |  
+ |  Additional details can be obtained from help(YWpcAR)
+ |  
+ |  Methods defined here:
+ |  
+ |  __common_forecast__(self)
+ |      Forecasting factor-based common components of vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      comm_forecast = self.__common_forecast__()
+ |  
+ |  __data_holder__(self)
+ |      Initialize or reset data and related items
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__data_holder__()
+ |  
+ |  __idiosyncratic_forecast__(self)
+ |      Forecasting idiosyncratic components of vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      idio_forecast = self.__idiosyncratic_forecast__()
+ |  
+ |  __init__(self, len_learn_window=0, var_order=1, num_factors=1, ar_order=0, num_pcs=1, alt_ar_order={}, alt_num_pcs={}, shock_list={}, max_forecast_step=1, max_response_step=10, target_type='Original', fwd_cumsum=False)
+ |      Initialize object self
+ |      
+ |      Learning parameters
+ |      -------------------
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic factor
+ |              model (DFM) for common components of vector time-series
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model (DFM) for common
+ |              components of vector time-series
+ |          Notes:
+ |              num_factors < min(len_learn_window, num_ts)
+ |      
+ |      ar_order : int >= 1
+ |          Autoregressive (AR) order, q, of AR model for idiosyncratic
+ |              components of time-series, here q applied to all time-
+ |              series other than those specified, if any, in alt_ar_order
+ |      
+ |      num_pcs : int >= 1
+ |          Number of principal components (PCs), m, of YWpcAR model for
+ |              idiosyncratic components of time-series, here m applied
+ |              to all time-series other than those specified, if any, in
+ |              alt_num_pcs
+ |      
+ |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |          Autoregressive (AR) orders, q1, q2, ..., applied to specified
+ |              time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |      
+ |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2, ..., applied
+ |              to specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |      
+ |      Inference parameters
+ |      --------------------
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      max_response_step : int >= 1
+ |          Maximum number of forward steps of shock-responses
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      self : object
+ |          Instance itself
+ |      
+ |      Class initiation call
+ |      ---------------------
+ |      
+ |      LMVAR_obj = LMVAR(param_name=param_value)
+ |      
+ |      LMVAR_obj = LMVAR(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |      
+ |      LMVAR_obj = LMVAR(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          ar_order=ar_order,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          shock_list=shock_list,
+ |          max_forecast_step=max_forecast_step,
+ |          max_response_step=max_response_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  __is_fit__(self)
+ |      Raise Exception if model not learned with .fit(VTS)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__is_fit__()
+ |  
+ |  __lmdfm_ywpcar_object__(self)
+ |      Initialize LMDFM and YWpcAR objects
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__lmdfm_ywpcar_object__()
+ |  
+ |  __param_check__(self)
+ |      Check inference parameters
+ |      
+ |      Raises
+ |      ------
+ |      
+ |      TypeError
+ |          If data type of a parameter not as specified
+ |          
+ |      ValueError
+ |          If value of integer parameters not positive
+ |          If value of string parameters not valid
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__param_check__()
+ |  
+ |  __shock_response__(self)
+ |      Generate vector time-series response to impulse or shock
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_response : DataFrame, shape (num_ts, (max_resp_step + 1))
+ |          s-Step response to impulse or shock vector at time t = Tfi
+ |              with two specifications, target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_response_step
+ |          Tfi = time stamp of impulse or shock vector
+ |                (last time stamp of VTS or VTS_infer for inference)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_response = self.__shock_response__()
+ |  
+ |  apply(self, VTS)
+ |      Apply data, VTS = VTS_infer, for inference only
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS (= VTS_infer) : pandas.DataFrame, shape (num_ts, len_ts_infer)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |      
+ |      Notes:
+ |          VTS data for inference only (i.e. VTS_infer)
+ |          VTS_infer.index = VTS.index, i.e. same set of time-series
+ |          if VTS_infer not applied, VTS is assumed for inference
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      LMVAR_obj.apply(VTS)
+ |  
+ |  fit(self, VTS)
+ |      Fit model with data VTS
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |      
+ |      num_ts : int > 1
+ |          Number of time-series
+ |          num_ts > num_factors
+ |      
+ |      len_ts : int > 1
+ |          Length of time-series
+ |          len_ts >= len_learn_window + (3 var_order)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      LMVAR_obj.fit(VTS)
+ |  
+ |  forecast(self, target_type=None, fwd_cumsum=None)
+ |      Make forecasts of vector time-series by estimates of LMVAR
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of vector time-series,
+ |              with two specifications, target_type and fwd_cumsum
+ |      
+ |      comm_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of common components
+ |              of vector time-series, with two specifications,
+ |              target_type and fwd_cumsum
+ |      
+ |      idio_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of idiosyncratic components
+ |              of vector time-series, with two specifications,
+ |              target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |      
+ |      Notes:
+ |          vts_forecast = comm_forecast.add(idio_forecast)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          self.forecast())
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          self.forecast(target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum))
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          LMVAR_obj.forecast())
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          LMVAR_obj.forecast(target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum))
+ |  
+ |  get_VARcoefs(self, target_type=None)
+ |      Get vector autoressive coefficient matrices of dynamic factors
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      var_left : pandas.DataFrame, shape (num_ts, num_factors)
+ |          Left multiplier of VAR coefficient matrixes, estimated
+ |          by DFM
+ |      
+ |      var_right : dict(), keys  (1, 2, ..., var_order, 'asof')
+ |          var_right[k] : Right mulitplier of VAR coefficient matrix
+ |              of k-th lag, estimated by DFM
+ |      
+ |      ar_coefs : pandas.DataFrame, shape (num_ts, (max_ar_order + 1))
+ |          ar_coefs.loc[ts] : AR coefficients of idiosyncratic
+ |              components of time-series ts
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      var_left, var_right, ar_coefs = LMVAR_obj.get_VARcoefs()
+ |      
+ |      var_left, var_right, ar_coefs = (
+ |          LMVAR_obj.get_VARcoefs(target_type=target_type))
+ |  
+ |  get_VARimplied(self, target_type=None)
+ |      Generate implied VAR coefficient matrixes
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      var_implied : dict, keys (1, 2, ..., (var_ord + max_ar_ord), 'asof')
+ |          var_implied[k] : implied VAR coefficient matrix expressed
+ |              by var_left, var_right[j], and ar_coefs[j]
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      var_implied = LMVAR_obj.get_VARimplied()
+ |      
+ |      var_implied = LMVAR_obj.get_VARimplied(
+ |          target_type=target_type)
+ |  
+ |  get_asof(self)
+ |      Get as-of times of estimates
+ |          by model learning and for model inference
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      asof_time : dict, keys ('Learning', 'Inference')
+ |              asof_time['Learning']: last time stamp of VTS for
+ |                  learning
+ |              asof_time['Inference']: last time stamp of VTS or
+ |                  VTS_infer for inference
+ |              asof_time['Inference'] = asof_time['Learning'] if
+ |                  VTS_infer not applied
+ |          As-of times of learning and of inference
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      asof_time = LMVAR_obj.get_asof()
+ |  
+ |  get_common(self)
+ |      Get common components of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_common : dict(), keys ('Learning', 'Inference')
+ |          vts_common[k] : DataFrame, shape (num_ts, len_factors[k])
+ |              Common components of Standardized vector time-series
+ |              Estimated by DFM factor scores
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_common = LMVAR_obj.get_common()
+ |  
+ |  get_idiosync(self)
+ |      Get idiosyncratic components of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_idiosync : dict(), keys ('Learning', 'Inference')
+ |          vts_idiosync[k] : DataFrame, shape (num_ts, len_factors[k])
+ |              Idiosyncratic components of Standardized vector ts
+ |              Estimated by DFM factor scores
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_idiosync = LMVAR_obj.get_idiosync()
+ |  
+ |  get_mean(self)
+ |      Get sample mean vector of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      mean_vec : pandas.Series, shape (num_ts,)
+ |          Sample mean vector of vector time-series of
+ |              last len_learn_window data points
+ |          mean_vec.name: last time stamp of data in learning window
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      mean_vec = LMVAR_obj.get_mean()
+ |  
+ |  get_param(self, param_name_list)
+ |      Get values of specified parameters
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      param_name_list : list [str]
+ |          list of names of parameters
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      param_dict : dict {str: obj}
+ |          dict of name and value of specified parameters
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      param_dict = LMVAR_obj.get_param(param_name_list)
+ |  
+ |  get_standard(self)
+ |      Get standardized vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_standard : dict(), keys ('Learning', 'Inference')
+ |          vts_standard[k] : pandas.DataFrame, shape (num_ts, len_ts[k])
+ |              Standardized vector time-series for factor model learning
+ |                  and for inference
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_standard = LMVAR_obj.get_standard()
+ |  
+ |  get_stdev(self)
+ |      Get sample standard deviation vector of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      stdev_vec : pandas.Series, shape (num_ts,)
+ |          Sample standard deviation of time-series of
+ |              last len_learn_window data points
+ |          stdev_vec.name: last time stamp of data in learning window
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      stdev_vec = LMVAR_obj.get_stdev()
+ |  
+ |  get_target_type_list(self)
+ |      Get list of valid parameter target_type
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      target_type_list = [
+ |          'original', 'Original', 'o', 'O',
+ |          'zero-mean', 'Zero-mean', 'z', 'Z',
+ |          'standardized', 'Standardized', 's', 'S']
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      target_type_list = LMVAR_obj.get_target_type_list()
+ |  
+ |  get_unobs(self)
+ |      Get unobserved components of idiosyncratic components of
+ |          vector time-series for idiosyncratic components AR
+ |          model inference
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_unobs : dict(), keys ('Learning', 'Inference')
+ |          vts_unobs[k] : pd.DataFrame, shape (num_ts, len_unobs[k])
+ |          Unobserved components of idiosyncratic components of
+ |              vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_unobs = LMVAR_obj.get_unobs()
+ |  
+ |  min_ts_len(self)
+ |      Get minimum length of time-series to satisfy parameters
+ |          of vector autoregressive model analysis
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      min_len_ts : int
+ |          Minimum length of time-series for VAR analysis
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      min_len_ts = LMVAR_obj.min_ts_len()
+ |  
+ |  predict(self, target_type=None, fwd_cumsum=None)
+ |      Make forecasts of vector time-series by estimates of LMVAR
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          self.forecast())
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          self.forecast(target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum))
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          LMVAR_obj.predict())
+ |      
+ |      vts_forecast, comm_forecast, idio_forecast = (
+ |          LMVAR_obj.predict(target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum))
+ |  
+ |  response(self, shock_list=None, target_type=None, fwd_cumsum=None)
+ |      Generate response to impulse or shock by vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_response : DataFrame, shape (num_ts, (max_resp_step + 1))
+ |          s-Step response to impulse or shock vector at time t = Tfi
+ |              with two specifications, target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_response_step
+ |          Tfi = time stamp of impulse or shock vector
+ |                (last time stamp of VTS or VTS_infer for inference)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_response = LMVAR_obj.response()
+ |      
+ |      vts_response = LMVAR_obj.response(shock_list=shock_list,
+ |          target_type=target_type, fwd_cumsum=fwd_cumsum)
+ |  
+ |  set_param(self, **kwargs)
+ |      Set, update or reset value(s) of any, some or all parameter(s)
+ |      
+ |      Learning parameters
+ |      -------------------
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic factor
+ |              model (DFM) for common components of vector time-series
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model (DFM) for common
+ |              components of vector time-series
+ |          Notes:
+ |              num_factors < min(len_learn_window, num_ts)
+ |      
+ |      ar_order : int >= 1
+ |          Autoregressive (AR) order, q, of AR model for idiosyncratic
+ |              components of time-series, here q applied to all time-
+ |              series other than those specified, if any, in alt_ar_order
+ |      
+ |      num_pcs : int >= 1
+ |          Number of principal components (PCs), m, of YWpcAR model for
+ |              idiosyncratic components of time-series, here m applied
+ |              to all time-series other than those specified, if any, in
+ |              alt_num_pcs
+ |      
+ |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |          Autoregressive (AR) orders, q1, q2, ..., applied to specified
+ |              time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |      
+ |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2, ..., applied
+ |              to specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |      
+ |      Inference parameters
+ |      --------------------
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      max_response_step : int >= 1
+ |          Maximum number of forward steps of shock-responses
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      LMVAR_obj.set_param(**kwargs)
+ |      
+ |      LMVAR_obj.set_param(
+ |          param_name=param_value)
+ |      
+ |      LMVAR_obj.set_param(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |      
+ |      LMVAR_obj.set_param(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          ar_order=ar_order,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          shock_list=shock_list,
+ |          max_forecast_step=max_forecast_step,
+ |          max_response_step=max_response_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+
+>>>
