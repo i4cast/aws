@@ -1,0 +1,1206 @@
+>>> help(LMDFM)
+
+Help on class LMDFM in module LMDFM:
+
+class LMDFM(builtins.object)
+ |  LMDFM(len_learn_window=30, var_order=2, num_factors=1, forecast_type=3, shock_list={}, max_forecast_step=1, max_response_step=10, target_type='Original', fwd_cumsum=False)
+ |  
+ |  Long-Memory Dynamic Factor Model (LMDFM)
+ |  
+ |  DFM Framework
+ |  -------------
+ |  
+ |  Acronyms
+ |      VAR : vector autoregressive model of multiple time-series
+ |      DFM : dynamic factor model of multiple time-series
+ |      LMDFM : long-memory dynamic factor model
+ |  
+ |  Notations
+ |      y(t) : data time-series of n-by-1 vector y with time index t
+ |      c : n-by-1 mean vector of time-series y(t)
+ |      n : number of time-series
+ |  
+ |  Notations
+ |      f(t) : factor time-series of m-by-1 vector f with time index t
+ |      m : number of factors
+ |      
+ |  Notations
+ |      z(t) : time-series of n-by-1 common components vector of data y(t)
+ |      u(t) : time-series of n-by-1 idiosyncratic component vector of y(t)
+ |      v(t) : time-series of m-by-1 random error vector of factor f(t)
+ |      
+ |  Notations
+ |      X(j) : n-by-m matrix of loadings of j-lag factors f(t-j) on y(t)
+ |      A(k) : m-by-m matrix of vector autoregressive coefficients of f(t)
+ |      G(j) : m-by-n matrix of structural VAR coefficients of y(t) and f(t)
+ |      B(k) : n-by-n matrix of vector autoregressive coefficients of y(t)
+ |  
+ |  Parameter values
+ |      c = 0 : assuming y(t) are zero-mean time-series
+ |      t = 0, 1, 2, ..., T
+ |      T : last time stamp
+ |      1 <= m < n
+ |  
+ |  Parameter values
+ |      j = 0, 1, 2, ..., p
+ |      k = 1, 2, ..., p
+ |      p : vector autoregressive order
+ |  
+ |  State space representation of dynamic factor model DFM
+ |      
+ |      State space equations
+ |          Measurement equation of y(t)
+ |          State equation of f(t)
+ |      
+ |      Two forms of DFM by estimated by LMDFM
+ |          DFM of Form I
+ |          DFM of Form II
+ |  
+ |  Factor loadings, X(j), estimated by LMDFM for DFM of Form I
+ |      y(t) = X(0) f(t) + X(1) f(t-1) + ... + X(p) f(t-p) + u(t)
+ |      f(t) = g(v(t))
+ |  
+ |  Factor VAR coefficients, A(k), estimated by LMDFM for DFM of Form II
+ |      y(t) = X f(t) + u(t)
+ |      f(t) = A(1) f(t-1) + A(2) f(t-2) + ... + A(p) f(t-p) + v(t)
+ |  
+ |  Notes on factor loadings
+ |      Loadings matrix X in Form II is NOT the same as loadings matrix
+ |          X(0) in Form I
+ |      Function g() of v(t) in Form I not identified by this algorithm
+ |  
+ |  Structural VAR matrix, G(l), estimated by LMDFM for expression
+ |      G(0) y(t) + G(1) y(t-1) + ... + G(p) y(t-p) = f(t)
+ |  
+ |  Notes on structural VAR
+ |      Strucural VAR formula of y(t) with shock s(t)
+ |          S(0) y(t) + S(1) y(t-1) + S(2) y(t-2) + ... = s(t)
+ |      In structural VAR format, G(L) y(t) = f(t)
+ |          G(L) is truncated approximation of inverse Inv[X(L)]
+ |      Factors are estimated by structural VAR formulation
+ |          f(t) = G(0) y(t) + G(1) y(t-1) + ... + G(p) y(t-p)
+ |  
+ |  DFM-based VAR model of y(t)
+ |      y(t) = B(1) y(t-1) + B(2) y(t-2) + ... + B(p) y(t-p) + u(t)
+ |  
+ |  Notes on VAR model
+ |      VAR coefficient matrix: B(k) = BL BR(k)
+ |      Left multiplier matrix: BL = Inv(I - X G(0)) X
+ |          here matrix X is factor loadings in DFM of form II
+ |      Right multiplier matrix: BR(k) = G(k)
+ |  
+ |  Long-memory
+ |  -----------
+ |  
+ |  Long-memory DFM
+ |      Vector autoregressive order p >> 1
+ |  
+ |  Forecasts by LMDFM
+ |  ------------------
+ |  
+ |  Four types of forecasts by LMDFM algorithm
+ |      1. DFM forecasts, by DFM Form I
+ |      2. VAR-factor forecasts, by DFM Form II
+ |      3. Hybrid forecasts, by combining DFM Forms I and II
+ |      4. VAR model forecasts, by DFM-based VAR model
+ |      Default. Hybrid forecasts
+ |  
+ |  Type 1, DFM forecasts
+ |      f(t+s-k) = 0 for s > k
+ |      y(t+s) = X(0) f(t+s) + X(1) f(t+s-1) + ... + X(p) f(t+s-p)
+ |  
+ |  Type 2, VAR-factor forecasts
+ |      f(t+s) = A(1) f(t+s-1) + A(2) f(t+s-2) + ... + A(p) f(t+s-p)
+ |      y(t+s) = X f(t+s)
+ |  
+ |  Type 3, hybrid forecasts
+ |      f(t+s) = A(1) f(t+s-1) + A(2) f(t+s-2) + ... + A(p) f(t+s-p)
+ |      y(t+s) = X(0) f(t+s) + X(1) f(t+s-1) + ... + X(p) f(t+s-p)
+ |  
+ |  Type 4, VAR model forecasts
+ |      z(t+s) = B(1) z(t+s-1) + B(2) z(t+s-2) + ... + B(p) z(t+s-p)
+ |             = BL [ BR(1) z(t+s-1) + ... + BR(p) z(t+s-p) ]
+ |      y(t+s) = z(t+s)
+ |      f(t+s) = G(0) y(t+s) + G(1) y(t+s-1) + ... + G(p) y(t+s-p)
+ |  
+ |  Default type, hybrid forecasts (Type 3)
+ |      f(t+s) = A(1) f(t+s-1) + A(2) f(t+s-2) + ... + A(p) f(t+s-p)
+ |      y(t+s) = X(0) f(t+s) + X(1) f(t+s-1) + ... + X(p) f(t+s-p)
+ |  
+ |  Note:
+ |      Using realized data when k >= s, i.e. s-k <= 0
+ |          f(t+s-k|t) = f(t+s-k)
+ |          y(t+s-k|t) = y(t+s-k)
+ |          z(t+s-k|t) = z(t+s-k)
+ |  
+ |  Shock response (forecast type 4)
+ |  --------------------------------
+ |  
+ |  Notations
+ |      h(t) : n-by-1 shock vector, h, at time t
+ |      r(t+s) : time-series of n-by-1 response vector r(t+s)
+ |  
+ |  Values
+ |      h(t) : one element = 1, primary shock
+ |             other element(s) < 1, if any, correlated shock(s)
+ |      h(t-k) = 0 for k >= 1
+ |  
+ |  Values
+ |      r(t) = h(t)
+ |      r(t-k) = 0 for k >= 0
+ |  
+ |  Impulse/shock response by forecast type 4
+ |      r(t+s) = B(1) r(t+s-1) + B(2) r(t+s-2) + ... + B(p) r(t+s-p)
+ |  
+ |  Note:
+ |      Using realized data when k >= s, i.e. s-k <= 0
+ |          r(t|t) = h(t)
+ |          r(t+s-k|t) = r(t+s-k)
+ |  
+ |  References
+ |  ----------
+ |  
+ |  J. Stock and M. Watson (2016). “Chapter 8. Dynamic Factor Models,
+ |  Factor-Augmented Vector Autoregressions, and Structural Vector
+ |  Autoregressions in Macroeconomics”, in Handbook of Macroeconomics,
+ |  Volume 2A, pp. 415–525. Ed: J. Taylor and H. Uhlig. Elsevier B.V.,
+ |  2016. http://www.princeton.edu/~mwatson/papers/Stock_Watson_HOM_Vol2
+ |  https://www.sciencedirect.com/handbook/handbook-of-macroeconomics/vol/2/
+ |  
+ |  K. Barhoumi, O. Darné and L. Ferrara (2017). “Chapter 10.
+ |  Dynamic Factor Models: A Review of the Literature”, in
+ |  Handbook on Rapid Estimtates, pp. 287–320. Ed: G.L. Mazzi and
+ |  D. Ladirayc. Publications Office of the European Union, 2017.
+ |  https://op.europa.eu/en/publication-detail/-/publication/4a5046d2-f4f1-11e7-be11-01aa75ed71a1
+ |  
+ |  C. Doz & P. Fuleky (2020). "Chapter 2. Dynamic Factor Models",
+ |  in Macroeconomic Forecasting in the Era of Big Data: Theory
+ |  and Practice, pp. 27–64. Ed: P. Fuleky. Springer Nature, 2020.
+ |  https://www.springer.com/gp/book/9783030311490  or manuscript
+ |  https://halshs.archives-ouvertes.fr/halshs-02262202/document
+ |  
+ |  Data (vector time-series)
+ |  -------------------------
+ |  
+ |  VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |      Vector time-series: row time-series of column vector
+ |          First column as the oldest, last column as the latest
+ |      Required, for DFM learning, and for inference
+ |  
+ |  VTS_infer : pandas.DataFrame, shape (num_ts, len_ts_infer)
+ |      Vector time-series: row time-series of column vector
+ |          First column as the oldest, last column as the latest
+ |      Optional, for inference only
+ |  
+ |  num_ts : int > 1
+ |      Number of time-series
+ |  
+ |  len_ts and len_ts_infer : int > 1
+ |      Length of time-series
+ |  
+ |  Notes on VTS and VTS_infer:
+ |      * VTS_infer.index = VTS.index, i.e. same set of time-series
+ |      * if VTS_infer not applied, VTS is assumed for inference
+ |  
+ |  Learning parameters
+ |  -------------------
+ |  
+ |  len_learn_window : int >> 1
+ |      Length of trailing time window for model learning
+ |  
+ |  var_order : int >= 1
+ |      Vector autoregressive order, p
+ |      Notes:
+ |          var_order <= len_learn_window
+ |          len_ts >= len_learn_window + (3 var_order)
+ |          len_ts_infer >= (3 var_order) + 1
+ |  
+ |  num_factors : int >= 1
+ |      Number of factors of dynamic factor model DFM
+ |      Notes:
+ |          num_factors < min(len_learn_window, num_ts)
+ |  
+ |  notes:
+ |      Resetting any learning parameters makes the object as
+ |      a NEW object, which need fit(VTS), and apply(VTS), again
+ |  
+ |  Inference parameters
+ |  --------------------
+ |  
+ |  forecast_type : int {1, 2, 3, 4} (default = 3)
+ |      Type of formulas to forecast factors and vector time-series
+ |      If 1: DFM forecasts, by DFM Form I
+ |      If 2: VAR-factor forecasts, by DFM Form II
+ |      If 3: hybrid forecasts, by DFM Froms I and II
+ |      If 4: VAR model forecasts, by DFM-based VAR model
+ |  
+ |  shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |      List of shock(s) specified as shock_list = {
+ |          ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |  
+ |  max_forecast_step : int >= 1
+ |      Maximum number of forward steps of time-series forecasts
+ |  
+ |  max_response_step : int >= 1
+ |      Maximum number of forward steps of shock-response time-series
+ |  
+ |  target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                     'z', 'Z', 'original', 'o', 'O'}
+ |      Type of vector time-series data to be forecasted
+ |      If 's', 'S' or 'standardized':
+ |          forecasting standardized vector time-series
+ |      If 'z', 'S' or 'zero-mean':
+ |          forecasting zero-mean, i.e. de-meaned, vector time-series
+ |      If 'o', 'O' or 'origional':
+ |          forecasting original vector time-series
+ |  
+ |  fwd_cumsum : bool {True, False}
+ |      Whether or not to make cum-sum forecast
+ |  
+ |  Attributes
+ |  ----------
+ |  
+ |  mean_vec : pandas.Series, shape (num_ts,)
+ |      Sample mean vector of vector time-series of
+ |          last len_learn_window data points
+ |      mean_vec.name: T, last time stamp of data in learning window
+ |      Vector c in dynamic factor model expression
+ |  
+ |  stdev_vec : pandas.Series, shape (num_ts,)
+ |      Sample standard deviation of time-series of
+ |          last len_learn_window data points
+ |      stdev_vec.name: T, last time stamp of data in learning window
+ |  
+ |  vts_standard : dict(), keys ('Learning', 'Inference')
+ |      vts_standard[k] : pandas.DataFrame, shape (num_ts, len_ts[k])
+ |          Standardized vector time-series for factor model learning
+ |              and for inference
+ |  
+ |  dfm_loadings : dict(), keys (0, 1,...,var_order, 'DFM-II', 'asof')
+ |      dfm_loadings[k] : pandas.DataFrame, shape (num_ts, num_factors)
+ |          Loadings matrix of k-th lag factors on vector time-series
+ |          Estimated matrix X(k) in DFM Form I, or matrix X in Form-II
+ |          dfm_loadings['asof']: last time stamp of VTS
+ |  
+ |  var_dfm : dict(), keys (1, 2, ..., var_order, 'asof')
+ |      var_dfm[k] : pandas.DataFrame, shape (num_factors, num_factors)
+ |          k-th Vector autoregressive coefficient matrix of factors
+ |          Estimated VAR coefficient matrix A(k) in DFM Form II
+ |          var_coef['asof']: last time stamp of VTS
+ |  
+ |  var_struct : dict(), keys (0, 1, ..., var_order, 'asof')
+ |      var_struct[k] : pandas.DataFrame, shape (num_factors, num_ts)
+ |          k-th sub-matrix mapping k-lag data y(t-k) to factor space
+ |          Estimated structural VAR coefficient matrix G(k) 
+ |          var_struct['asof']: last time stamp of VTS
+ |  
+ |  var_left : pandas.DataFrame, shape (num_ts, num_factors)
+ |      Left multiplier of DFM-based VAR model coefficient matrix
+ |          of vector time-series
+ |      Estimated left multiplier BL of B(k)
+ |  
+ |  var_right : dict(), keys (1, ..., var_order, 'asof')
+ |      var_right[k] = var_struct[k] for k > 0
+ |          Right multiplier of DFM-based VAR model coefficient
+ |              matrix of k-th lag
+ |          Estimated right multiplier BR(k) of B(k)
+ |  
+ |  dfm_factors : dict(), keys ('Learning', 'Inference')
+ |      dfm_factors[k] : DataFrame, shape (num_factors, len_factors[k])
+ |          Matrix of row time-series of DFM factor scores column
+ |          Estimated values of f(t) in dynamic factor model expression
+ |      Note:
+ |          len_factors['Learning'] = len_ts - var_order
+ |          len_factors['Inference'] = len_ts_infer - var_order
+ |  
+ |  vts_common : dict(), keys ('Learning', 'Inference')
+ |      vts_common[k] : pandas.DataFrame, shape (num_ts, len_factors[k])
+ |          Common components of Standardized vector time-series
+ |          Estimated by DFM factor scores
+ |  
+ |  vts_idiosync : dict(), keys ('Learning', 'Inference')
+ |      vts_idiosync[k] : DataFrame, shape (num_ts, len_factors[k])
+ |          Idiosyncratic components of Standardized vector time-series
+ |          Estimated by DFM factor scores
+ |  
+ |  dfs_forecast : DataFrame, shape (num_factors, (max_forec_step + 1))
+ |      Out-of-sample s-step forecasts of dynamic factor scores
+ |          with one specification, forecast_type
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |          forecast_type = 1 for DFM, 2 for VAR-factor, 3 for
+ |              hybrid (default), and 4 for VAR model, forecasts
+ |  
+ |  vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |      Out-of-sample s-step forecasts of vector time-series
+ |          with three specifications,
+ |              forecast_type, target_type and fwd_cumsum
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |          forecast_type = 1 for DFM, 2 for VAR-factor, 3 for
+ |              hybrid (default), and 4 for VAR model, forecasts
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |  
+ |  vts_response : DataFrame, shape (num_ts, (max_response_step + 1))
+ |      s-Step response to impulse or shock vector at time t = Tfi
+ |          with two specifications, target_type and fwd_cumsum
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_response_step
+ |          Tfi = time stamp of impulse or shock vector
+ |                (last time stamp of VTS or VTS_infer for inference)
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |  
+ |  asof_time : dict, keys ('Learning', 'Inference')
+ |          asof_time['Learning']: last time stamp of VTS for
+ |              learning
+ |          asof_time['Inference']: last time stamp of VTS or
+ |              VTS_infer for inference
+ |          asof_time['Inference'] = asof_time['Learning'] if
+ |              VTS_infer not applied
+ |      As-of times of learning and of inference
+ |  
+ |  Examples
+ |  --------
+ |  
+ |  Sample codes:
+ |      demo.jpynb
+ |      demo.py
+ |  
+ |  Methods
+ |  -------
+ |  
+ |  For model initiation
+ |      LMDFM(len_learn_window, var_order, num_factors,
+ |          forecast_type, shock_list, max_forecast_step,
+ |          max_response_step, target_type, fwd_cumsum)
+ |      LMDFM_obj.set_param(len_learn_window, var_order,
+ |          num_factors, forecast_type, shock_list,
+ |          max_forecast_step, max_response_step, target_type,
+ |          fwd_cumsum)
+ |      LMDFM_obj.get_param(param_name_list)
+ |      LMDFM_obj.get_target_type_list()
+ |      LMDFM_obj.min_ts_len()
+ |      LMDFM_obj.check(VTS)
+ |  
+ |  For model learning
+ |      LMDFM_obj.fit(VTS)
+ |      LMDFM_obj.get_mean()
+ |      LMDFM_obj.get_stdev()
+ |      LMDFM_obj.get_loadings(target_type)
+ |      LMDFM_obj.get_dfmVAR()
+ |      LMDFM_obj.get_structVAR(target_type)
+ |      LMDFM_obj.get_mtsVAR(target_type)
+ |  
+ |  For model inference
+ |      LMDFM_obj.apply(VTS)
+ |      LMDFM_obj.get_standard()
+ |      LMDFM_obj.get_factors()
+ |      LMDFM_obj.get_common()
+ |      LMDFM_obj.get_idiosync()
+ |      LMDFM_obj.forecast(forecast_type, target_type, fwd_cumsum)
+ |      LMDFM_obj.predict(...) = LMDFM_obj.forecast(...)
+ |      LMDFM_obj.response(shock_list, target_type, fwd_cumsum)
+ |  
+ |  For time stamp of model estimates
+ |      LMDFM_obj.get_asof()
+ |  
+ |  Notes on data
+ |  -------------
+ |  
+ |  * VTS, for learning and for inference, input of method fit(VTS)
+ |  * VTS_infer, for inference only, input of optional method apply()
+ |  * if VTS_infer not applied, VTS is assumed for inference
+ |  
+ |  
+ |  Methods defined here:
+ |  
+ |  __data_holder__(self)
+ |      Initialize or reset data and related items
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__data_holder__()
+ |  
+ |  __forecast_adjustment__(self, vts_forecast=None)
+ |      Adjust forecasts of vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of vector time-series
+ |              with three specifications,
+ |                  forecast_type, target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |          forecast_type = 1 for DFM, 2 for VAR-factor, 3 for
+ |              hybrid (default), and 4 for VAR model, forecasts
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_forecast = self.__forecast_adjustment__(
+ |          vts_forecast=vts_forecast.copy())
+ |  
+ |  __init__(self, len_learn_window=30, var_order=2, num_factors=1, forecast_type=3, shock_list={}, max_forecast_step=1, max_response_step=10, target_type='Original', fwd_cumsum=False)
+ |      Initialize object self
+ |      
+ |      Learning parameters
+ |      -------------------
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive order, p
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model DFM
+ |      
+ |      Inference parameters
+ |      --------------------
+ |      
+ |      forecast_type : int {1, 2, 3, 4} (default = 3)
+ |          Type of formulas to forecast factors and vector time-series
+ |          If 1: DFM forecasts, by DFM Form I
+ |          If 2: VAR-factor forecasts, by DFM Form II
+ |          If 3: hybrid forecasts, by DFM Froms I and II
+ |          If 4: VAR model forecasts, by DFM-based VAR model
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      max_response_step : int >= 1
+ |          Maximum number of forward steps of shock-response
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      self : object
+ |          Instance itself
+ |      
+ |      Class initiation call
+ |      ---------------------
+ |      
+ |      LMDFM_obj = LMDFM(param_name=param_value)
+ |      
+ |      LMDFM_obj = LMDFM(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |      
+ |      LMDFM_obj = LMDFM(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          forecast_type=forecast_type,
+ |          shock_list=shock_list,
+ |          max_forecast_step=max_forecast_step,
+ |          max_response_step=max_response_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  __is_fit__(self)
+ |      Raise Exception if model not learned with .fit(VTS)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__is_fit__()
+ |  
+ |  __param_validate__(self)
+ |      Validate parameters input
+ |      
+ |      Raises
+ |      ------
+ |      
+ |      TypeError
+ |          If data type of a parameter not as specified
+ |          
+ |      ValueError
+ |          If value of integer parameters not positive
+ |          If var_order > len_learn_window
+ |          If num_factors >= min(len_learn_window, num_ts)
+ |          If len_ts < len_learn_window + (3 var_order)
+ |          If value of string parameters not valid
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__param_validate__()
+ |  
+ |  __shock_response__(self)
+ |      Generate vector time-series response to impulse or shock
+ |          vector at time t = Tfi
+ |      
+ |      Imputs
+ |      ------
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_response : DataFrame, shape (num_ts, (max_resp_step + 1))
+ |          s-Step response to impulse or shock vector at time t = Tfi
+ |              with two specifications, target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_response_step
+ |          Tfi = time stamp of impulse or shock vector
+ |                (last time stamp of VTS or VTS_infer for inference)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_response = self.__shock_response__()
+ |  
+ |  __standardized_forecast__(self)
+ |      Generate forecasts of standardized vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      dfs_forecast : DataFrame, shape (num_factors, (max_for_step + 1))
+ |          Out-of-sample s-step forecasts of dynamic factor scores
+ |              with one specification, forecast_type
+ |      
+ |      vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of vector time-series
+ |              with one specification, forecast_type
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      dfs_forecast, vts_forecast = (
+ |          self.__standardized_forecast__())
+ |  
+ |  __var_left_right__(self)
+ |      Get left multiplier of DFM-based VAR model coefficients
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__var_left_right__()
+ |  
+ |  apply(self, VTS)
+ |      Set for-inference-only data VTS = VTS_infer for model inference
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS (= VTS_infer) : pandas.DataFrame, shape (num_ts, len_ts_infer)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |      
+ |      Notes:
+ |          VTS data for inference only (i.e. VTS_infer)
+ |          VTS_infer.index = VTS.index, i.e. same set of time-series
+ |          if VTS_infer not applied, VTS is assumed for inference
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      LMDFM_obj.apply(VTS)
+ |  
+ |  check(self, VTS)
+ |      Inspect input data VTS
+ |      
+ |      Raises
+ |      ------
+ |      
+ |      TypeError
+ |          If data type of VTS not pandas.DataFrame
+ |      
+ |      ValueError
+ |          If VTS empty
+ |          If len_ts < len_learn_window + (3 var_order)
+ |          If num_ts <= num_factors
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      (num_ts_input, len_ts_input, ts_list_input,
+ |          num_ts, len_ts, ts_list, VTS_valid) = (
+ |          LMDFM_obj.check(VTS))
+ |  
+ |  fit(self, VTS)
+ |      Fit model with data VTS
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |      
+ |      num_ts : int > 1
+ |          Number of time-series
+ |          num_ts > num_factors
+ |      
+ |      len_ts : int > 1
+ |          Length of time-series
+ |          len_ts >= len_learn_window + (3 var_order)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      LMDFM_obj.fit(VTS)
+ |  
+ |  forecast(self, forecast_type=None, target_type=None, fwd_cumsum=None)
+ |      Generate forecasts of vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      forecast_type : int {1, 2, 3, 4} (default = 3)
+ |          Type of formulas to forecast factors and vector time-series
+ |          If 1: DFM forecasts, by DFM Form I
+ |          If 2: VAR-factor forecasts, by DFM Form II
+ |          If 3: hybrid forecasts, by DFM Froms I and II
+ |          If 4: VAR model forecasts, by DFM-based VAR model
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      dfs_forecast : DataFrame, shape (num_factors, (max_for_step + 1))
+ |          Out-of-sample s-step forecasts of dynamic factor scores
+ |              with one specification, forecast_type
+ |      
+ |      vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of vector time-series
+ |              with three specifications,
+ |                  forecast_type, target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |          forecast_type = 1 for DFM, 2 for VAR-factor, 3 for
+ |              hybrid (default), and 4 for VAR model, forecasts
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      dfs_forecast, vts_forecast = self.forecast()
+ |      
+ |      dfs_forecast, vts_forecast = self.forecast(
+ |          forecast_type=forecast_type, target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |      
+ |      dfs_forecast, vts_forecast = LMDFM_obj.forecast()
+ |      
+ |      dfs_forecast, vts_forecast = LMDFM_obj.forecast(
+ |          forecast_type=forecast_type, target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  get_asof(self)
+ |      Get as-of times of estimates
+ |          by model learning and for model inference
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      asof_time : dict, keys ('Learning', 'Inference')
+ |              asof_time['Learning']: last time stamp of VTS for
+ |                  learning
+ |              asof_time['Inference']: last time stamp of VTS or
+ |                  VTS_infer for inference
+ |              asof_time['Inference'] = asof_time['Learning'] if
+ |                  VTS_infer not applied
+ |          As-of times of learning and of inference
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      asof_time = LMDFM_obj.get_asof()
+ |  
+ |  get_common(self)
+ |      Get common components of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_common : dict(), keys ('Learning', 'Inference')
+ |          vts_common[k] : DataFrame, shape (num_ts, len_factors[k])
+ |              Common components of Standardized vector time-series
+ |              Estimated by DFM factor scores
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_common = LMDFM_obj.get_common()
+ |  
+ |  get_dfmVAR(self)
+ |      Get vector autoressive coefficient matrices of dynamic factors
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      var_dfm : dict(), keys (1, 2, ..., var_order, 'asof')
+ |          var_dfm[k] : DataFrame, shape (num_factors, num_factors)
+ |              k-th Vector autoregressive coefficient matrix of factors
+ |              Estimated VAR coefficient matrix A(k) in DFM Form II
+ |              var_coef['asof']: last time stamp of VTS
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      var_dfm = LMDFM_obj.get_dfmVAR()
+ |  
+ |  get_factors(self)
+ |      Get estimated dynamic factor scores time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      dfm_factors : dict(), keys ('Learning', 'Inference')
+ |          dfm_factors[k] : DataFrame, shape (num_factors, len_factors[k])
+ |              Matrix of row time-series of DFM factor scores column
+ |              Estimated values of f(t) in dynamic factor model expression
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      dfm_factors = LMDFM_obj.get_factors()
+ |  
+ |  get_idiosync(self)
+ |      Get idiosyncratic components of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_idiosync : dict(), keys ('Learning', 'Inference')
+ |          vts_idiosync[k] : DataFrame, shape (num_ts, len_factors[k])
+ |              Idiosyncratic components of Standardized vector ts
+ |              Estimated by DFM factor scores
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_idiosync = LMDFM_obj.get_idiosync()
+ |  
+ |  get_loadings(self, target_type=None)
+ |      Get DFM loadings matrix
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      dfm_loadings : dict(), keys (0, 1,...,var_order, 'DFM-II', 'asof')
+ |          dfm_loadings[k] : pandas.DataFrame, shape (num_ts, num_factors)
+ |              Loadings matrix of k-th lag factors on vector time-series
+ |              Estimated matrix X(k) in DFM Form I, or matrix X in Form-II
+ |              dfm_loadings['asof']: last time stamp of VTS
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      dfm_loadings = LMDFM_obj.get_loadings()
+ |      
+ |      dfm_loadings = LMDFM_obj.get_loadings(
+ |          target_type=target_type)
+ |  
+ |  get_mean(self)
+ |      Get sample mean vector of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      mean_vec : pandas.Series, shape (num_ts,)
+ |          Sample mean vector of vector time-series of
+ |              last len_learn_window data points
+ |          mean_vec.name: last time stamp of data in learning window
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      mean_vec = LMDFM_obj.get_mean()
+ |  
+ |  get_mtsVAR(self, target_type=None)
+ |      Get left and right multipliers of DFM-based VAR model
+ |          coefficient matrix of vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      var_left : pandas.DataFrame, shape (num_ts, num_factors)
+ |          Left multiplier of DFM-based VAR model coefficient matrix
+ |              of vector time-series
+ |      
+ |      var_right : dict(), keys (1, ..., var_order, 'asof')
+ |          var_right[k] = var_struct[k] for k > 0
+ |              Right multiplier of DFM-based VAR model coefficient
+ |                  matrix of k-th lag
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      var_left, var_right = LMDFM_obj.get_mtsVAR()
+ |      
+ |      var_left, var_right = LMDFM_obj.get_mtsVAR(
+ |          target_type=target_type)
+ |  
+ |  get_param(self, param_name_list)
+ |      Get values of specified parameters
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      param_name_list : list [str]
+ |          list of names of parameters
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      param_dict : dict {str: obj}
+ |          dict of name and value of specified parameters
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      param_dict = LMDFM_obj.get_param(param_name_list)
+ |  
+ |  get_standard(self)
+ |      Get standardized vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_standard : dict(), keys ('Learning', 'Inference')
+ |          vts_standard[k] : pandas.DataFrame, shape (num_ts, len_ts[k])
+ |              Standardized vector time-series for factor model learning
+ |                  and for inference
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_standard = LMDFM_obj.get_standard()
+ |  
+ |  get_stdev(self)
+ |      Get sample standard deviation vector of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      stdev_vec : pandas.Series, shape (num_ts,)
+ |          Sample standard deviation of time-series of
+ |              last len_learn_window data points
+ |          stdev_vec.name: last time stamp of data in learning window
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      stdev_vec = LMDFM_obj.get_stdev()
+ |  
+ |  get_structVAR(self, target_type=None)
+ |      Get structural VAR coefficients to estimate factors by
+ |          observed data
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      var_struct : dict(), keys (0, 1, ..., var_order, 'asof')
+ |          var_struct[k] : pandas.DataFrame, shape (num_factors, num_ts)
+ |              k-th sub-matrix mapping k-lag data y(t-k) to factor space
+ |              Estimated structural VAR coefficient matrix G(k) 
+ |              var_struct['asof']: last time stamp of VTS
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      var_struct = LMDFM_obj.get_structVAR()
+ |      
+ |      var_struct = LMDFM_obj.get_structVAR(
+ |          target_type=target_type)
+ |  
+ |  get_target_type_list(self)
+ |      Get list of valid parameter target_type
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      target_type_list = [
+ |          'original', 'Original', 'o', 'O',
+ |          'zero-mean', 'Zero-mean', 'z', 'Z',
+ |          'standardized', 'Standardized', 's', 'S']
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      target_type_list = LMDFM_obj.get_target_type_list()
+ |  
+ |  iterative_forecast(self, max_num_iter=10, iter_tol=0.001, target_type=None, fwd_cumsum=None)
+ |      Generate iterative forecasts of vector time-series
+ |      
+ |      Iteration
+ |      ---------
+ |      
+ |      Initial values
+ |          y(t+s-k) = 0 for s > k
+ |      
+ |      Iterative forecasts
+ |          f(t+s) = G(0) y(t+s) + G(1) y(t+s-1) + ... + G(p) y(t+s-p)
+ |          y(t+s) = X(0) f(t+s) + X(1) f(t+s-1) + ... + X(p) f(t+s-p)
+ |      
+ |      Note:
+ |          Using realized data when k >= s, i.e. s-k <= 0
+ |              f(t+s-k|t) = f(t+s-k)
+ |              y(t+s-k|t) = y(t+s-k)
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      max_num_iter : int (default = 10)
+ |          Max number of iterations for iterative forecasts
+ |      
+ |      iter_tol : float > 0 and << 1 (default = 0.001)
+ |          Tolerance level to end iteration for iterative forecast
+ |              = relative absolute increment
+ |              = (sum of absolute increments) / (sum of absolute forec)
+ |      
+ |      Notes:
+ |          Iteration ends when either max_num_iter OR iter_tol is met
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      dfs_forecast : DataFrame, shape (num_factors, (max_for_step + 1))
+ |          Out-of-sample s-step forecasts of dynamic factor scores
+ |              with one specification, max_num_iter
+ |      
+ |      vts_forecast : DataFrame, shape (num_ts, (max_forec_step + 1))
+ |          Out-of-sample s-step forecasts of vector time-series
+ |              with three specifications,
+ |                  max_num_iter, target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_forecast_step
+ |          Tfi = last time stamp of VTS or VTS_infer for inference
+ |          target_type = 'standarized', or 'zero-mean', or 'original'
+ |          fwd_cumsum = False, or True
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      dfs_forecast, vts_forecast = LMDFM_obj.iterative_forecast()
+ |      
+ |      dfs_forecast, vts_forecast = LMDFM_obj.iterative_forecast(
+ |          max_num_iter=10, iter_tol=0.001, target_type=None,
+ |          fwd_cumsum=None)
+ |  
+ |  min_ts_len(self)
+ |      Get minimum length of time-series to satisfy parameters
+ |          of dynamic factor model analysis
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      min_len_ts : int
+ |          Minimum length of time-series for DFM analysis
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      min_len_ts = LMDFM_obj.min_ts_len()
+ |  
+ |  predict(self, forecast_type=None, target_type=None, fwd_cumsum=None)
+ |      Generate forecasts of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      dfs_forecast, vts_forecast = self.forecast()
+ |      
+ |      dfs_forecast, vts_forecast = self.forecast(
+ |          forecast_type=forecast_type, target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      dfs_forecast, vts_forecast = LMDFM_obj.predict()
+ |      
+ |      dfs_forecast, vts_forecast = LMDFM_obj.predict(
+ |          forecast_type=forecast_type, target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  response(self, shock_list=None, target_type=None, fwd_cumsum=None)
+ |      Generate response to impulse or shock by vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_response : DataFrame, shape (num_ts, (max_resp_step + 1))
+ |          s-Step response to impulse or shock vector at time t = Tfi
+ |              with two specifications, target_type and fwd_cumsum
+ |      
+ |      Note:
+ |          s = Tfi, 1, 2, ..., max_response_step
+ |          Tfi = time stamp of impulse or shock vector
+ |                (last time stamp of VTS or VTS_infer for inference)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_response = LMDFM_obj.response()
+ |      
+ |      vts_response = LMDFM_obj.response(shock_list=shock_list,
+ |          target_type=target_type, fwd_cumsum=fwd_cumsum)
+ |  
+ |  set_param(self, **kwargs)
+ |      Set, update or reset value(s) of any, some or all parameter(s)
+ |      
+ |      Learning parameters
+ |      -------------------
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive order, p
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model DFM
+ |      
+ |      Inference parameters
+ |      --------------------
+ |      
+ |      forecast_type : int {1, 2, 3, 4} (default = 3)
+ |          Type of formulas to forecast factors and vector time-series
+ |          If 1: DFM forecasts, by DFM Form I
+ |          If 2: VAR-factor forecasts, by DFM Form II
+ |          If 3: hybrid forecasts, by DFM Froms I and II
+ |          If 4: VAR model forecasts, by DFM-based VAR model
+ |      
+ |      shock_list : dict {ts1id: val1, ts2id: val2, ...}
+ |          List of shock(s) specified as shock_list = {
+ |              ts1_id: val_ts1, ts2_id: val_ts2, ...}
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      max_response_step : int >= 1
+ |          Maximum number of forward steps of shock-response
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      LMDFM_obj.set_param(**kwargs)
+ |      
+ |      LMDFM_obj.set_param(
+ |          param_name=param_value)
+ |      
+ |      LMDFM_obj.set_param(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value,
+ |          ...)
+ |      
+ |      LMDFM_obj.set_param(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          forecast_type=forecast_type,
+ |          shock_list=shock_list,
+ |          max_forecast_step=max_forecast_step,
+ |          max_response_step=max_response_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+
+>>>
