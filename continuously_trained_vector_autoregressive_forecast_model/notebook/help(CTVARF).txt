@@ -1,0 +1,2064 @@
+>>> help(CTVARF)
+
+Help on class CTVARF in module CTVARF:
+
+class CTVARF(builtins.object)
+ |  CTVARF(learning_param={}, inference_param={}, evaluation_param={}, base_case_param={}, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order={}, alt_num_pcs={})
+ |  
+ |  Continuously Trained Vector Autoregressive Forecast
+ |  (CTVARF) model for rolling forecasts of multiple
+ |  time-series
+ |  
+ |  Factor-based VAR and PCA-based AR Framework
+ |  -------------------------------------------
+ |  
+ |  Acronyms
+ |      AR : autoregressive (AR) model of univariate time-series
+ |      YWpcAR : Yule-Walker-PCA autoregressive (YWpcAR) model of
+ |               univariate time-series
+ |  
+ |  Acronyms
+ |      VAR : vector autoregressive (VAR) model of multiple time-series
+ |      DFM : dynamic factor model (DFM) of multiple time-series
+ |  
+ |  Notations
+ |      y(t) : data time-series of n-by-1 vector y with time index t
+ |      z(t) : time-series of DFM-based common components of data y(t)
+ |      u(t) : time-series of DFM-based idiosyncratic components of y(t)
+ |      v(t) : time-series of PCA-based unobserved components of u(t)
+ |      e(t) : time-series of residual components of idiosyncratic u(t)
+ |  
+ |  Time-series decomposition
+ |      y(t) = z(t) + u(t)
+ |      u(t) = v(t) + e(t)
+ |  
+ |  Notations
+ |      n : number of time-series
+ |      m : number of dynamic factors in DFM model estimation
+ |      l : number of PCs in univariate YWpcAR model estimation
+ |  
+ |  Notations
+ |      B(j) : n-by-n matrix of VAR coefficients, estimated by DFM
+ |      D(k) : n-by-n diagonal matrix of AR coefficients by YWpcAR
+ |  
+ |  Values
+ |      c = 0 : assuming y(t) are zero-mean time-series
+ |      t = 0, 1, 2, ..., T
+ |      T : last time stamp
+ |  
+ |  Values
+ |      1 <= m < n
+ |      1 <= l <= q
+ |      j = 1, 2, ..., p
+ |      k = 1, 2, ..., q
+ |      p : VAR (vector autoregressive) order
+ |      q : AR (univariate autoregressive) order
+ |  
+ |  VAR model estimated by DFM
+ |      y(t) = B(1) y(t-1) + B(2) y(t-2) + ... + B(p) y(t-p) + u(t)
+ |      z(t) = B(1) z(t-1) + B(2) z(t-2) + ... + B(p) z(t-p)
+ |      u(t) = y(t) - z(t)
+ |  
+ |  Idiosyncratic AR model estimated by YWpcAR
+ |      u(t) = D(1) u(t-1) + D(2) u(t-2) + ... + D(q) u(t-q) + e(t)
+ |      v(t) = D(1) v(t-1) + D(2) v(t-2) + ... + D(q) v(t-q)
+ |      e(t) = u(t) - v(t)
+ |  
+ |  Forecasts by LMVAR
+ |  ------------------
+ |  
+ |  Long-memory VAR (LMVAR)
+ |      VAR order p >> 1, and
+ |      AR order q >> 1
+ |  
+ |  DFM-based VAR forecasts
+ |      z(t+s) = B(1) z(t+s-1) + B(2) z(t+s-2) + ... + B(p) z(t+s-p)
+ |      u(t) = y(t) - z(t)
+ |  
+ |  PCA-based AR forecasts
+ |      v(t+s) = D(1) v(t+s-1) + D(2) v(t+s-2) + ... + D(q) v(t+s-q)
+ |      e(t) = u(t) - v(t)
+ |  
+ |  "Residual forecasts"
+ |      e(t+s) = 0
+ |  
+ |  DFM- plus PCA-based VAR forecasts
+ |      y(t+s|t) = z(t+s|t) + v(t+s|t)
+ |  
+ |  Note:
+ |      Using realized/estimated data when k >= s, i.e. s-k <= 0
+ |          y(t+s-k|t) = y(t+s-k)
+ |          z(t+s-k|t) = z(t+s-k)
+ |          u(t+s-k|t) = u(t+s-k)
+ |          v(t+s-k|t) = v(t+s-k)
+ |  
+ |  References
+ |  ----------
+ |  
+ |  J. Stock and M. Watson (2016). "Chapter 9 Factor Models and
+ |  Structural Vector Autoregressions in Macroeconomics", in Handbook
+ |  of Macroeconomics, Volume 2A. Elsevier, 2016.
+ |  https://scholar.harvard.edu/files/stock/files/stock_watson_dfm_hom_030916.pdf
+ |  
+ |  Data (vector time-series)
+ |  -------------------------
+ |  
+ |  VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |      Vector time-series, row time-series of column vector
+ |          First column as the oldest, last column as the latest
+ |      For CTVARF learning and inference
+ |  
+ |  num_ts : int > 1
+ |      Number of time-series
+ |  
+ |  len_ts : int > 1
+ |      Length of time-series
+ |  
+ |  Grouped parameters
+ |  ------------------
+ |  
+ |  learning_param : dict {'len_learn_window': int,
+ |          'var_order': int, 'num_factors': int,
+ |          'ar_order_idio': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      Learning parameters of vector time-seris
+ |          forecast model
+ |  
+ |  inference_param : dict {
+ |          'max_forecast_step': int, 'len_forecast_ts': int,
+ |          'target_type': str, 'fwd_cumsum': bool}
+ |      Inference parameters of vector time-seris
+ |          forecast model
+ |  
+ |  evaluation_param : dict {'true_target_type': str,
+ |          'half_life_list': list, 'eval_metric_list': list}
+ |      Evaluation parameters for vector time-seris
+ |          forecast model
+ |  
+ |  base_case_param : dict {'match_pq_val': bool,
+ |          'alt_aro_npc': bool, 'base_forec_path': str}
+ |      Base case parameters for vector time-seris
+ |          forecast model
+ |  
+ |  Individual learning parameters
+ |  ------------------------------
+ |  
+ |  Items in learning_param = {'len_learn_window': int,
+ |      'var_order': int, 'num_factors': int,
+ |      'ar_order_idio': int, 'num_pcs': int,
+ |      'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |  
+ |  len_learn_window : int >> 1
+ |      Length of trailing time window for model learning
+ |  
+ |  var_order : int >= 1
+ |      Vector autoregressive (VAR) order, p, of dynamic factor
+ |          model (DFM) for common components of vector time-series
+ |      Notes:
+ |          var_order <= len_learn_window
+ |  
+ |  num_factors : int >= 1
+ |      Number of factors of dynamic factor model (DFM) for common
+ |          components of vector time-series
+ |      Notes:
+ |          num_factors < min(len_learn_window, num_ts)
+ |  
+ |  ar_order_idio : int >= 1
+ |      Autoregressive (AR) order, q, of AR model for idiosyncratic
+ |          components of time-series, here q applied to all time-
+ |          series other than those specified, if any, in alt_ar_order
+ |      Notes:
+ |          ar_order_idio <= len_learn_window
+ |      
+ |  Notes:
+ |      min_len_ts = len_learn_win + (3 max(var_order, ar_ord_idio))
+ |      len_ts >= min_len_ts + 1
+ |  
+ |  num_pcs : int >= 1
+ |      Number of principal components (PCs), m, of YWpcAR model for
+ |          idiosyncratic components of time-series, here m applied
+ |          to all time-series other than those specified, if any, in
+ |          alt_num_pcs
+ |      Notes:
+ |          num_pcs < ar_order_idio
+ |  
+ |  alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |      Autoregressive (AR) orders, q1, q2, ..., applied to specified
+ |          time-series ts1, ts2, ...
+ |      Notes:
+ |          ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |          as key of alternative AR order value applied to the
+ |          specified time-series
+ |  
+ |  alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |      Numbers of principal components (PCs), m1, m2, ..., applied
+ |          to specified time-series ts1, ts2, ...
+ |      Notes:
+ |          ts1id, ts2id, ...: labels of time-series in VTS.index,
+ |          as key of alternative number of PCs applied to the
+ |          specified time-series
+ |  
+ |  Individual inference parameters
+ |  -------------------------------
+ |  
+ |  Items in inference_param = {
+ |      'max_forecast_step': int, 'len_forecast_ts': int,
+ |      'target_type': str, 'fwd_cumsum': bool})
+ |  
+ |  max_forecast_step : int >= 1
+ |      Maximum number of forward steps of time-series forecasts
+ |  
+ |  len_forecast_ts : int >= 1
+ |      Length of time-series of rolling forecasts
+ |      1 <= len_forecast_ts <= len_ts - min_len_ts
+ |  
+ |  Notes:
+ |      len_ts >= min_len_ts + len_forecast_ts
+ |      len_ts = (len_learn_window +
+ |          (3 max(var_order, ar_order_idio)) + len_forecast_ts)
+ |  
+ |  target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                     'z', 'Z', 'original', 'o', 'O'}
+ |      Type of vector time-series data to be forecasted
+ |      If 's', 'S' or 'standardized':
+ |          forecasting standardized vector time-series
+ |      If 'z', 'Z' or 'zero-mean':
+ |          forecasting zero-mean, i.e. de-meaned, vector time-series
+ |      If 'o', 'O' or 'origional':
+ |          forecasting original vector time-series
+ |  
+ |  fwd_cumsum : bool {True, False}
+ |      Whether or not to make cum-sum forecast
+ |  
+ |  Individual evaluation parameters
+ |  --------------------------------
+ |  
+ |  Items in evaluation_param = {'true_target_type': str,
+ |      'half_life_list': list, 'eval_metric_list': list})
+ |  
+ |  true_target_type : str {'original', 'o', 'O',
+ |          'zero-mean', 'z', 'Z', 'standardized', 's', 'S'}
+ |      Type of true value of vector time-series for evaluating
+ |          forecast of vector time-series
+ |      'o', 'O' or 'origional': original vector time-series
+ |      'z', 'Z' or 'zero-mean': zero-mean vector time-series
+ |      's', 'S' or 'standardized': standardized vector time-series
+ |  
+ |  half_life_list : list
+ |      List of half-lives of exponential time-weights for
+ |          evaluating vector time-series forecasts
+ |  
+ |  eval_metric_list : list
+ |      List of evaluation metrics for measuring goodness of
+ |          vector time-series forecasts
+ |  
+ |  Individual base case parameters
+ |  -------------------------------
+ |  
+ |  Items in base_case_param = {'match_pq_val': bool,
+ |      'alt_aro_npc': bool, 'base_forec_path': str}
+ |  
+ |  match_pq_val : bool
+ |      Indicator whether to set ar_order_idio same as var_order
+ |          (or var_order same as ar_order_idio) when forecasting
+ |          common (or idiosyncratic) components of vector time-series
+ |  
+ |  alt_aro_npc : bool
+ |      Indicator whether to accept alt_ar_order and alt_num_pcs
+ |          as base case forecasting parameters
+ |  
+ |  base_forec_path : str
+ |      Path of folder, if specified and existing, for base
+ |          forecast result files to be written and read
+ |  
+ |  Attributes
+ |  ----------
+ |  
+ |  base_forec_info : dict {
+ |      'comm' : dict {
+ |          'param' : dict {'len_learn_window': int,
+ |              'var_order': int, 'ar_ord_idio': int,
+ |              'num_factors': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict},
+ |          'id' : str 'Base_Win=#_p=#_q=#_DF=#_PC=#[_alt]',
+ |          'file' : str 
+ |              '{base_forec_path}\{base_forec_id}.pickle'}}
+ |      'idio' : dict {
+ |          'param' : dict {'len_learn_window': int,
+ |              'var_order': int, 'ar_ord_idio': int,
+ |              'num_factors': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict},
+ |          'id' : str 'Base_Win=#_p=#_q=#_DF=#_PC=#[_alt]',
+ |          'file' : str
+ |              '{base_forec_path}\{base_forec_id}.pickle'}}
+ |      Parameter set of base case forecast model for vector
+ |          time-series forecast
+ |  
+ |  base_forec_param : dict {'len_learn_window': int,
+ |          'var_order': int, 'ar_ord_idio': int,
+ |          'num_factors': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      Base case forecast model learning parameters
+ |  
+ |  base_forec_id : str 'Base_Win=#_p=#_q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=#_q=#_DF=#_PC=#_alt'
+ |      Base case forecast model identification label
+ |  
+ |  base_forec_file : str
+ |          '{base_forec_path}\{base_forec_id}.pickle'
+ |      Base case forecast model output data file
+ |  
+ |  mean_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |      Rolling sample mean vector time-series of VTS
+ |  
+ |  stdev_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |      Rolling sample standard deviation vector time-series of VTS
+ |  
+ |  comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |      comm_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |          Rolling forecasts of common components of standardized
+ |              vector time-series
+ |  
+ |  idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |      idio_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |          Rolling forecasts of idiosyncratic components of
+ |              standardized vector time-series
+ |  
+ |  base_case_forecast : dict {
+ |      {base_forec_id} : dict {
+ |          'base_forec_param': base_forec_param,
+ |          'base_forec_id': base_forec_id,
+ |          'base_forec_file': base_forec_file,
+ |          'mean_vec_ts': mean_vec_ts,
+ |          'stdev_vec_ts': stdev_vec_ts,
+ |          'comm_forecast_que': comm_forecast_que,
+ |          'idio_forecast_que': idio_forecast_que},
+ |      ...}
+ |      Collection of parameters and results of forecasts
+ |          of individual base cases each labeled by a
+ |          base_forec_id
+ |  
+ |  comm_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |      comm_forecast_ts[s] : DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling forecasts of common components of standardized
+ |              vector time-series
+ |  
+ |  idio_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |      idio_forecast_ts[s] : DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling forecasts of idiosyncratic components of
+ |              standardized vector time-series
+ |  
+ |  base_forecast_que : dict, keys [forecast_asof_time_list]
+ |      base_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |          Rolling forecasts of standardized vector time-series
+ |  
+ |  base_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |      base_forecast_ts[s] : DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling forecasts of standardized vector time-series
+ |  
+ |  vts_forecast_que : dict, keys [forecast_asof_time_list]
+ |      vts_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |          Rolling vector time-series forecasts, given inference
+ |              parameter pair (target_type, fwd_cumsum)
+ |  
+ |  vts_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |      vts_forecast_ts[s] : DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling vector time-series forecasts, given inference
+ |              parameter pair (target_type, fwd_cumsum)
+ |  
+ |  Note: inference parameters
+ |      target_type = 'standarized', or 'zero-mean', or 'original'
+ |      fwd_cumsum = False, or True
+ |  
+ |  Notes: rolling forecasts of standardized vector time-series,
+ |      vts_forecast_que[t] = (
+ |          comm_forecast_que[t]).add(idio_forecast_que[t])
+ |      vts_forecast_ts[step] = (
+ |          comm_forecast_ts[step]).add(idio_forecast_ts[step])
+ |  
+ |  vts_forec_puv_que : dict, keys [forecast_asof_time_list]
+ |      vts_forec_puv_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |          Rolling vector time-series forecasts per unit volatility,
+ |              given inference parameter fwd_cumsum
+ |  
+ |  vts_forec_puv_ts : dict, keys [1, 2, max_forecast_step]
+ |      vts_forec_puv_ts[s] : DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling vector time-series forecasts per unit volatility,
+ |              given inference parameter fwd_cumsum
+ |  
+ |  asof_time : obj, vts_forecast_que.keys[-1]
+ |      Last time stamp of vector time-series forecasts
+ |  
+ |  forec_score : DataFrame, shape (num_ts, max_forec_step)
+ |      Goodness score of forecasts of vector time-series with
+ |          forecast step s = 1, 2, ..., max_forecast_step
+ |  
+ |  forec_score_dict : dict {'asof_time': asof_time,
+ |          (half_life, eval_metric)_1: forec_score_1,
+ |          (half_life, eval_metric)_2: forec_score_2, ...}
+ |      Dict type list of goodness scores of vector time-series
+ |          forecasts measured by various evaluation parameter pairs
+ |          (half_life, eval_metric)
+ |  
+ |  Examples
+ |  --------
+ |  
+ |  Sample codes:
+ |      demo.jpynb
+ |      demo.py
+ |  
+ |  Methods
+ |  -------
+ |  
+ |  For forecast model initiation:
+ |      CTVARF(learning_param, inference_param, evaluation_param,
+ |          base_case_param)
+ |      CTVARF(len_learn_window, var_order, num_factors, ar_order_idio,
+ |          num_pcs, alt_ar_order, alt_num_pcs, inference_param,
+ |          evaluation_param, base_case_param)
+ |      CTVARF(...)
+ |      CTVARF_obj.set_param(learning_param, inference_param,
+ |          evaluation_param, base_case_param)
+ |      CTVARF_obj.set_param(len_learn_window, var_order, num_factors,
+ |          ar_order_idio, num_pcs, alt_ar_order, alt_num_pcs,
+ |          inference_param, evaluation_param, base_case_param)
+ |      CTVARF_obj.set_param(...)
+ |      CTVARF_obj.get_param(param_name_list)
+ |      CTVARF_obj.get_target_type_list()
+ |      CTVARF_obj.min_ts_len()
+ |      CTVARF_obj.set_data(VTS)
+ |  
+ |  For forecast model learning:
+ |      CTVARF_obj.train()
+ |      CTVARF_obj.fit(VTS)
+ |      CTVARF_obj.copy_base_forec()
+ |      CTVARF_obj.paste_base_forec(base_case_forecast)
+ |      CTVARF_obj.get_mean()
+ |      CTVARF_obj.get_stdev()
+ |      CTVARF_obj.get_comm_forec()
+ |      CTVARF_obj.get_idio_forec()
+ |      CTVARF_obj.get_base_forec()
+ |  
+ |  For forecast model inference:
+ |      CTVARF_obj.forecast(target_type, fwd_cumsum)
+ |      CTVARF_obj.predict(target_type, fwd_cumsum)
+ |      CTVARF_obj.get_vts_forec()
+ |      CTVARF_obj.get_vts_forec_puv()
+ |  
+ |  For forecast model evaluation:
+ |      CTVARF_obj.get_metric_list()
+ |      CTVARF_obj.evaluate(true_target_type,
+ |          half_life, eval_metric)
+ |      CTVARF_obj.multi_eval(true_target_type, 
+ |          half_life_list, eval_metric_list)
+ |      CTVARF_obj.get_forec_score()
+ |  
+ |  Class LMVAR
+ |  -----------
+ |  
+ |  This class, class CTVARF, initiates an instance of another
+ |      class, class LMVAR, to make vector autoregressive forecasts
+ |      of common components and of idiosyncratic components.
+ |  
+ |  Setting methods of LMVAR object:
+ |      LMVAR(len_learn_window, var_order, num_factors, ar_order_idio,
+ |          num_pcs, alt_ar_order, alt_num_pcs, max_forecast_step,
+ |          target_type, fwd_cumsum)
+ |      LMVAR_obj.set_param(param1, param2, ...)
+ |      LMVAR_obj.get_param(param_name_list)
+ |      LMVAR_obj.get_target_type_list()
+ |      LMVAR_obj.min_ts_len()
+ |  
+ |  Learning methods of LMVAR object:
+ |      LMVAR_obj.fit(VTS)
+ |      LMVAR_obj.get_mean()
+ |      LMVAR_obj.get_stdev()
+ |  
+ |  Inference methods of LMVAR object:
+ |      LMVAR_obj.forecast(target_type, fwd_cumsum)
+ |  
+ |  Additional details can be obtained from help(LMVAR)
+ |  
+ |  Class MTSFEval
+ |  --------------
+ |  
+ |  This class, class CTVARF, initiates an instance of another class,
+ |      class MTSFEval, to evaluate vector autoregressive forecasts of
+ |      vector time-series
+ |  
+ |  Setting methods of MTSFEval object:
+ |      MTSFEval(max_forecast_step, true_target_type,
+ |          fwd_cumsum, half_life_list, eval_metric_list)
+ |      MTSFEval_obj.set_param(param1, param2, ...)
+ |      MTSFEval_obj.get_param(param_name_list)
+ |      MTSFEval_obj.get_metric_list()
+ |  
+ |  Evaluation methods of MTSFEval object:
+ |      MTSFEval_obj.set_data(VTS, mean_vec_ts,
+ |          stdev_vec_ts, vts_forecast_que, vts_forecast_ts)
+ |      MTSFEval_obj.evaluate(half_life, eval_metric)
+ |      MTSFEval_obj.multi_eval(half_life_list, eval_metric_list)
+ |  
+ |  Additional details can be obtained from help(MTSFEval)
+ |  
+ |  Methods defined here:
+ |  
+ |  __avail_base_forec__(self)
+ |      Get available base case forecast result given
+ |          a specific base case parameter set
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      base_forec_param : dict {'len_learn_window': int,
+ |          'var_order': int, 'ar_ord_idio': int,
+ |          'num_factors': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      
+ |      base_forec_id : str 'Base_Win=#_p=#_q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=#_q=#_DF=#_PC=#_alt'
+ |      
+ |      base_forec_file : str
+ |          '{base_forec_path}\{base_forec_id}.pickle'
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      ts_list : list, list(vector_timeseries.index)
+ |          List of individual time-series
+ |      
+ |      asof_time : obj, vts_forecast_que.keys[-1]
+ |          Last time stamp of vector time-series forecasts
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |          Rolling sample mean vector time-series of VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |          Rolling sample standard deviation vector time-series of VTS
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling forecasts of common components of standardized
+ |                  vector time-series
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling forecasts of idiosyncratic components of
+ |                  standardized vector time-series
+ |      
+ |      base_case_forecast[base_forec_id] : dict {
+ |          'base_forec_param': base_forec_param,
+ |          'base_forec_id': base_forec_id,
+ |          'base_forec_file': base_forec_file,
+ |          'mean_vec_ts': mean_vec_ts,
+ |          'stdev_vec_ts': stdev_vec_ts,
+ |          'comm_forecast_que': comm_forecast_que,
+ |          'idio_forecast_que': idio_forecast_que}
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      new_forec : bool
+ |          Indicator of need of new base case forecast of
+ |              vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      new_forec = self.__avail_base_forec__()
+ |  
+ |  __base_forec_collect__(self)
+ |      Generate base case forecast result collection
+ |          in data file or data holder
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      base_forec_param : dict {'len_learn_window': int,
+ |          'var_order': int, 'ar_ord_idio': int,
+ |          'num_factors': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      
+ |      base_forec_id : str 'Base_Win=#_p=#_q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=#_q=#_DF=#_PC=#_alt'
+ |      
+ |      base_forec_file : str
+ |          '{base_forec_path}\{base_forec_id}.pickle'
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |          Rolling sample mean vector time-series of VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |          Rolling sample standard deviation vector time-series of VTS
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling forecasts of common components of standardized
+ |                  vector time-series
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling forecasts of idiosyncratic components of
+ |                  standardized vector time-series
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      pd.to_pickle(
+ |          (base_forec_param, base_forec_id,
+ |           base_forec_file, mean_vec_ts,
+ |           stdev_vec_ts, comm_forecast_que,
+ |           idio_forecast_que),
+ |          base_forec_file)
+ |      
+ |      base_case_forecast : dict {
+ |          {base_forec_id} : dict {
+ |              'base_forec_param': base_forec_param,
+ |              'base_forec_id': base_forec_id,
+ |              'base_forec_file': base_forec_file,
+ |              'mean_vec_ts': mean_vec_ts,
+ |              'stdev_vec_ts': stdev_vec_ts,
+ |              'comm_forecast_que': comm_forecast_que,
+ |              'idio_forecast_que': idio_forecast_que},
+ |          ...}
+ |          Collection of parameters and results of forecasts
+ |              of individual base cases each labeled by a
+ |              base_forec_id
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__base_forec_collect__()
+ |  
+ |  __base_forec_que__(self)
+ |      Combine common and idiosyncratic component forecasts to get
+ |          base case forecasts of standardized vector time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      base_forecast_que : dict, keys [forecast_asof_time_list]
+ |          base_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__base_forec_que__()
+ |  
+ |  __comm_idio_forec__(self, comm_idio)
+ |      Generate forecast of common or idiosyncratic component
+ |          of vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      comm_idio : str(), 'comm' or 'idio'
+ |          Indicator for common or idiosyncratic forecasts
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      base_forec_info : dict {
+ |          'comm' : dict {
+ |              'param' : dict {'len_learn_window': int,
+ |                  'var_order': int, 'ar_ord_idio': int,
+ |                  'num_factors': int, 'num_pcs': int,
+ |                  'alt_ar_order': dict, 'alt_num_pcs': dict},
+ |              'id' : str 'Base_Win=#_p=#_q=#_DF=#_PC=#[_alt]',
+ |              'file' : str 
+ |                  '{base_forec_path}\{base_forec_id}.pickle'}}
+ |          'idio' : dict {
+ |              'param' : dict {'len_learn_window': int,
+ |                  'var_order': int, 'ar_ord_idio': int,
+ |                  'num_factors': int, 'num_pcs': int,
+ |                  'alt_ar_order': dict, 'alt_num_pcs': dict},
+ |              'id' : str 'Base_Win=#_p=#_q=#_DF=#_PC=#[_alt]',
+ |              'file' : str
+ |                  '{base_forec_path}\{base_forec_id}.pickle'}}
+ |          Parameter set of base case forecast model for vector
+ |              time-series forecast
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      base_forec_param : dict {'len_learn_window': int,
+ |          'var_order': int, 'ar_ord_idio': int,
+ |          'num_factors': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      
+ |      base_forec_id : str 'Base_Win=#_p=#_q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=#_q=#_DF=#_PC=#_alt'
+ |      
+ |      base_forec_file : str
+ |          '{base_forec_path}\{base_forec_id}.pickle'
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      base_case_forecast : dict {
+ |          {base_forec_id} : dict {
+ |              'base_forec_param': base_forec_param,
+ |              'base_forec_id': base_forec_id,
+ |              'base_forec_file': base_forec_file,
+ |              'mean_vec_ts': mean_vec_ts,
+ |              'stdev_vec_ts': stdev_vec_ts,
+ |              'comm_forecast_que': comm_forecast_que,
+ |              'idio_forecast_que': idio_forecast_que},
+ |          ...}
+ |          Collection of parameters and results of forecasts
+ |              of individual base cases each labeled by a
+ |              base_forec_id
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__comm_idio_forec__(comm_idio)
+ |  
+ |  __curr_base_forec__(self)
+ |      Load saved components of vector time-series forecasts
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__curr_base_forec__()
+ |  
+ |  __curr_comm_idio__(self, comm_idio)
+ |      Load saved or fetch stored common or idiosyncratic
+ |          components of current vector time-series forecast
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      comm_idio : str(), 'comm' or 'idio'
+ |          Indicator for common or idiosyncratic forecasts
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      (base_forec_param,
+ |          base_forec_id,
+ |          base_forec_file,
+ |          mean_vec_ts,
+ |          stdev_vec_ts,
+ |          comm_forecast_que,
+ |          idio_forecast_que
+ |          ) = (
+ |          pd.read_pickle(base_forec_file))
+ |      
+ |      base_case_forecast[base_forec_id] : dict {
+ |          'base_forec_param': base_forec_param,
+ |          'base_forec_id': base_forec_id,
+ |          'base_forec_file': base_forec_file,
+ |          'mean_vec_ts': mean_vec_ts,
+ |          'stdev_vec_ts': stdev_vec_ts,
+ |          'comm_forecast_que': comm_forecast_que,
+ |          'idio_forecast_que': idio_forecast_que}
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__curr_comm_idio__(comm_idio)
+ |  
+ |  __forec_data_holder__(self)
+ |      Initialize or reset VTS forecast data items
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__forec_data_holder__()
+ |  
+ |  __get_base_forec_info__(self)
+ |      Generate base case forecast model parameter set
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      learning_param : dict {'len_learn_window': int,
+ |          'var_order': int, 'num_factors': int,
+ |          'ar_order_idio': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      
+ |      base_case_param : dict {'match_pq_val': bool,
+ |          'alt_aro_npc': bool, 'base_forec_path': str}
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      base_forec_info : dict {
+ |          'comm' : dict {
+ |              'param' : dict {'len_learn_window': int,
+ |                  'var_order': int, 'ar_ord_idio': int,
+ |                  'num_factors': int, 'num_pcs': int,
+ |                  'alt_ar_order': dict, 'alt_num_pcs': dict},
+ |              'id' : str 'Base_Win=#_p=#_q=#_DF=#_PC=#[_alt]',
+ |              'file' : str 
+ |                  '{base_forec_path}\{base_forec_id}.pickle'}}
+ |          'idio' : dict {
+ |              'param' : dict {'len_learn_window': int,
+ |                  'var_order': int, 'ar_ord_idio': int,
+ |                  'num_factors': int, 'num_pcs': int,
+ |                  'alt_ar_order': dict, 'alt_num_pcs': dict},
+ |              'id' : str 'Base_Win=#_p=#_q=#_DF=#_PC=#[_alt]',
+ |              'file' : str
+ |                  '{base_forec_path}\{base_forec_id}.pickle'}}
+ |          Parameter set of base case forecast model for vector
+ |              time-series forecast
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__get_base_forec_info__()
+ |  
+ |  __grouped_param_value__(self)
+ |      Set values of grouped parameters by values of
+ |          individual parameters
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      learning_param : dict {'len_learn_window': int,
+ |              'var_order': int, 'num_factors': int,
+ |              'ar_order_idio': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |          Learning parameters of vector time-seris
+ |              forecast model
+ |      
+ |      inference_param : dict {
+ |              'max_forecast_step': int, 'len_forecast_ts': int,
+ |              'target_type': str, 'fwd_cumsum': bool}
+ |          Inference parameters of vector time-seris
+ |              forecast model
+ |      
+ |      evaluation_param : dict {'true_target_type': str,
+ |              'half_life_list': list, 'eval_metric_list': list}
+ |          Evaluation parameters for vector time-seris
+ |              forecast model
+ |      
+ |      base_case_param : dict {'match_pq_val': bool,
+ |              'alt_aro_npc': bool, 'base_forec_path': str}
+ |          Base case parameters for vector time-seris
+ |              forecast model
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__grouped_param_value__()
+ |  
+ |  __have_data__(self)
+ |      Check availability of vector time-series data VTS
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__have_data__()
+ |  
+ |  __have_param__(self, par_set_nam)
+ |      Check availability of a parameter set
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      par_set_nam : str,
+ |          'learning_param', or 'inference_param',
+ |          or 'evaluation_param', or 'base_case_param'
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__have_param__(par_set_nam)
+ |  
+ |  __indiv_param_value__(self)
+ |      Set values of individual parameters by values of
+ |          grouped parameters
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      learning_param : dict {'len_learn_window': int,
+ |              'var_order': int, 'num_factors': int,
+ |              'ar_order_idio': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |          Learning parameters of vector time-seris
+ |              forecast model
+ |      
+ |      inference_param : dict {
+ |              'max_forecast_step': int, 'len_forecast_ts': int,
+ |              'target_type': str, 'fwd_cumsum': bool}
+ |          Inference parameters of vector time-seris
+ |              forecast model
+ |      
+ |      evaluation_param : dict {'true_target_type': str,
+ |              'half_life_list': list, 'eval_metric_list': list}
+ |          Evaluation parameters for vector time-seris
+ |              forecast model
+ |      
+ |      base_case_param : dict {'match_pq_val': bool,
+ |              'alt_aro_npc': bool, 'base_forec_path': str}
+ |          Base case parameters for vector time-seris
+ |              forecast model
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      len_learn_window : int
+ |      var_order : int
+ |      ...
+ |      alt_aro_npc : bool
+ |      base_forec_path: str
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__indiv_param_value__()
+ |  
+ |  __init__(self, learning_param={}, inference_param={}, evaluation_param={}, base_case_param={}, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order={}, alt_num_pcs={})
+ |      Initialize object self
+ |      
+ |      Grouped parameters
+ |      ------------------
+ |      
+ |      learning_param : dict {'len_learn_window': int,
+ |              'var_order': int, 'num_factors': int,
+ |              'ar_order_idio': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |          Learning parameters of vector time-seris
+ |              forecast model
+ |      
+ |      inference_param : dict {
+ |              'max_forecast_step': int, 'len_forecast_ts': int,
+ |              'target_type': str, 'fwd_cumsum': bool}
+ |          Inference parameters of vector time-seris
+ |              forecast model
+ |      
+ |      evaluation_param : dict {'true_target_type': str,
+ |              'half_life_list': list, 'eval_metric_list': list}
+ |          Evaluation parameters for vector time-seris
+ |              forecast model
+ |      
+ |      base_case_param : dict {'match_pq_val': bool,
+ |              'alt_aro_npc': bool, 'base_forec_path': str}
+ |          Base case parameters for vector time-seris
+ |              forecast model
+ |      
+ |      Individual parameters (learning)
+ |      --------------------------------
+ |      
+ |      Items in learning_param = {'len_learn_window': int,
+ |          'var_order': int, 'num_factors': int, 'ar_order_idio': int,
+ |          'num_pcs': int, 'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic factor
+ |              model (DFM) for common components of vector time-series
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model (DFM) for common
+ |              components of vector time-series
+ |      
+ |      ar_order_idio : int >= 1
+ |          Autoregressive (AR) order, q, of AR model for idiosyncratic
+ |              components of time-series, here q applied to all time-
+ |              series other than those specified, if any, in alt_ar_order
+ |      
+ |      num_pcs : int >= 1
+ |          Number of principal components (PCs), m, of YWpcAR model for
+ |              idiosyncratic components of time-series, here m applied
+ |              to all time-series other than those specified, if any, in
+ |              alt_num_pcs
+ |      
+ |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |          Autoregressive (AR) orders, q1, q2, ..., applied to specified
+ |              time-series ts1, ts2, ...
+ |      
+ |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2, ..., applied
+ |              to specified time-series ts1, ts2, ...
+ |      
+ |      Individual parameters (inference)
+ |      ---------------------------------
+ |      
+ |      Items in inference_param = {'max_forecast_step': int,
+ |          'len_forecast_ts': int, 'target_type': str,
+ |          'fwd_cumsum': bool})
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      len_forecast_ts : int >= 1
+ |          Length of time-series of rolling forecasts
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Individual parameters (evaluation)
+ |      ----------------------------------
+ |      
+ |      Items in evaluation_param = {'true_target_type': str,
+ |          'half_life_list': list, 'eval_metric_list': list})
+ |      
+ |      true_target_type : str {'original', 'o', 'O',
+ |              'zero-mean', 'z', 'Z', 'standardized', 's', 'S'}
+ |          Type of true value of vector time-series for evaluating
+ |              forecast of vector time-series
+ |      
+ |      half_life_list : list
+ |          List of half-lives of exponential time-weights for
+ |              evaluating vector time-series forecasts
+ |      
+ |      eval_metric_list : list
+ |          List of evaluation metrics for measuring goodness of
+ |              vector time-series forecasts
+ |      
+ |      Individual parameters (base mdoel)
+ |      ----------------------------------
+ |      
+ |      Items in base_case_param = {'match_pq_val': bool,
+ |          'alt_aro_npc': bool, 'base_forec_path': str}
+ |      
+ |      match_pq_val : bool
+ |          Indicator whether to set ar_order_idio same as var_order
+ |              (or var_order same as ar_order_idio) when forecasting
+ |              common (or idiosyncratic) components of vector time-series
+ |      
+ |      alt_aro_npc : bool
+ |          Indicator whether to accept alt_ar_order and alt_num_pcs
+ |              as base case forecasting parameters
+ |      
+ |      base_forec_path : str
+ |          Path of folder, if specified and existing, for base
+ |              forecast result files to be written and read
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      self : object
+ |          Instance itself
+ |      
+ |      Class initiation call
+ |      ---------------------
+ |      
+ |      CTVARF_obj = CTVARF()
+ |      
+ |      CTVARF_obj = CTVARF(
+ |          learning_param=learning_param,
+ |          inference_param=inference_param,
+ |          evaluation_param=evaluation_param,
+ |          base_case_param=base_case_param)
+ |      
+ |      CTVARF_obj = CTVARF(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          ar_order_idio=ar_order_idio,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          inference_param=inference_param,
+ |          evaluation_param=evaluation_param,
+ |          base_case_param=base_case_param)
+ |  
+ |  __lmvar_object__(self)
+ |      Initialize LMVAR object
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      lmvar : object
+ |          Instance of class LMVAR (long-memory vector
+ |              autoregressionve model)
+ |      
+ |      min_len_ts : int
+ |          Minimum length of time-series for CTVARF analysis
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__lmvar_object__()
+ |  
+ |  __mtsfeval_object__(self)
+ |      Initialize MTSFEval (multi-time-series forecast evaluation) object
+ |          and set data for evaluating vector time-series forecasts
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mtsfeval : object
+ |          Instance object of class MTSFEval
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__mtsfeval_object__()
+ |  
+ |  __new_base_forec__(self)
+ |      Generate new base case forecast result data holder
+ |          given a specified base case parameter set
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      base_forec_param : dict {'len_learn_window': int,
+ |          'var_order': int, 'ar_ord_idio': int,
+ |          'num_factors': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      
+ |      base_forec_id : str 'Base_Win=#_p=#_q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=q=#_DF=#_PC=#'
+ |          or 'Base_Win=#_p=#_q=#_DF=#_PC=#_alt'
+ |      
+ |      base_forec_file : str
+ |          '{base_forec_path}\{base_forec_id}.pickle'
+ |      
+ |      ts_list : list, list(vector_timeseries.index)
+ |          List of individual time-series
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      base_case_forecast[base_forec_id] : dict {
+ |          'base_forec_param': base_forec_param,
+ |          'base_forec_id': base_forec_id,
+ |          'base_forec_file': base_forec_file,
+ |          'mean_vec_ts': mean_vec_ts,
+ |          'stdev_vec_ts': stdev_vec_ts,
+ |          'comm_forecast_que': comm_forecast_que,
+ |          'idio_forecast_que': idio_forecast_que}
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__new_base_forec__()
+ |  
+ |  __rolling_base_forec__(self)
+ |      Generate rolling vector time-series forecast by continuously
+ |          trained vector autoregressive forecast model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      vts_series : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series, row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |      
+ |      lmvar : object
+ |          Instance of class LMVAR (long-memory vector
+ |              autoregressionve model)
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      len_forecast_ts : int >= 1
+ |          Length of time-series of rolling forecasts
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |          Rolling sample mean vector time-series of VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape (num_ts, len_forecast_ts)
+ |          Rolling sample standard deviation vector time-series of VTS
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling forecasts of common components of standardized
+ |                  vector time-series
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling forecasts of idiosyncratic components of
+ |                  standardized vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__rolling_base_forec__()
+ |  
+ |  __vts_data_holder__(self)
+ |      Initialize or reset vector time-series data items
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__vts_data_holder__()
+ |  
+ |  __vts_forec_queue__(self)
+ |      Generate vector time-series forecasts, and forecasts
+ |          per unit volatility, in format of queue
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |      
+ |      base_forecast_que : dict, keys [forecast_asof_time_list]
+ |          vts_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      vts_forecast_que : dict, keys [forecast_asof_time_list]
+ |          vts_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |      
+ |      vts_forec_puv_que : dict, keys [forecast_asof_time_list]
+ |          vts_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__vts_forec_queue__()
+ |  
+ |  copy_base_forec(self)
+ |      Generate a copy of parameters and results of available
+ |          base case forecasts
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      base_case_forecast : dict {
+ |          {base_forec_id} : dict {
+ |              'base_forec_param': base_forec_param,
+ |              'base_forec_id': base_forec_id,
+ |              'base_forec_file': base_forec_file,
+ |              'mean_vec_ts': mean_vec_ts,
+ |              'stdev_vec_ts': stdev_vec_ts,
+ |              'comm_forecast_que': comm_forecast_que,
+ |              'idio_forecast_que': idio_forecast_que},
+ |          ...}
+ |          Collection of parameters and results of forecasts
+ |              of individual base cases each labeled by a
+ |              base_forec_id
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      base_case_forecast = CTVARF_obj.copy_base_forec()
+ |  
+ |  evaluate(self, true_target_type=None, half_life=None, eval_metric=None)
+ |      Generate goodness score of vector time-series forecast
+ |          for forecast model evaluation
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      true_target_type : str {'original', 'o', 'O',
+ |              'zero-mean', 'z', 'Z', 'standardized', 's', 'S'}
+ |          Type of true value of vector time-series for evaluating
+ |              forecast of vector time-series
+ |      
+ |      half_life : int
+ |          Half-life of exponential time-weights for vector
+ |              time-series forecast score
+ |      
+ |      eval_metric : str
+ |          Name of vector time-series forecast goodness evaluation
+ |              metric
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      forec_score_dict : dict {'asof_time': asof_time,
+ |              (half_life, eval_metric): forec_score}
+ |          Dict of goodness scores of vector time-series forecasts
+ |              given evaluation parameter pairs (half_life,
+ |              eval_metric)
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      asof_time : obj, vts_forecast_que.key[-1]
+ |          Last time stamp of vector time-series forecasts
+ |      
+ |      forec_score : DataFrame, shape (num_ts, max_forec_step)
+ |          Goodness score of forecasts of vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      CTVARF_obj.evaluate()
+ |      
+ |      CTVARF_obj.evaluate(true_target_type=true_target_type,
+ |          half_life=half_life, eval_metric=eval_metric)
+ |  
+ |  fit(self, VTS)
+ |      Fit the CTVARF (continuouly trained vector autoregressive
+ |          forecast) model of vector time-series forecasts
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column the oldest, last column the latest
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      learning_param : dict {'len_learn_window': int,
+ |              'var_order': int, 'num_factors': int,
+ |              'ar_order_idio': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |          Learning parameters of vector time-seris
+ |              forecast model
+ |      
+ |      inference_param : dict {
+ |              'max_forecast_step': int, 'len_forecast_ts': int,
+ |              'target_type': str, 'fwd_cumsum': bool}
+ |          Inference parameters of vector time-seris
+ |              forecast model
+ |      
+ |      base_case_param : dict {'match_pq_val': bool,
+ |              'alt_aro_npc': bool, 'base_forec_path': str}
+ |          Base case parameters for vector time-seris
+ |              forecast model
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling sample mean vector time-series of VTS
+ |      
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling standard deviation vector time-series of VTS
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |              Rolling forecasts of common components of standardized
+ |                  vector time-series
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |              Rolling forecasts of idiosyncratic components of
+ |                  standardized vector time-series
+ |      
+ |      base_case_forecast : dict {
+ |          {base_forec_id} : dict {
+ |              'base_forec_param': base_forec_param,
+ |              'base_forec_id': base_forec_id,
+ |              'base_forec_file': base_forec_file,
+ |              'mean_vec_ts': mean_vec_ts,
+ |              'stdev_vec_ts': stdev_vec_ts,
+ |              'comm_forecast_que': comm_forecast_que,
+ |              'idio_forecast_que': idio_forecast_que},
+ |          ...}
+ |          Collection of parameters and results of forecasts
+ |              of individual base cases each labeled by a
+ |              base_forec_id
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      CTVARF_obj.fit(VTS)
+ |  
+ |  forecast(self, target_type=None, fwd_cumsum=None)
+ |      Generate rolling vector time-series forecasts by continuouly
+ |          trained vector autoregressive forecast model
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O', None}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False, None}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      vts_forecast_que : dict, keys [forecast_asof_time_list]
+ |          vts_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling vector time-series forecasts, given inference
+ |                  parameter pair (target_type, fwd_cumsum)
+ |      
+ |      vts_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |          vts_forecast_ts[s] : DataFrame, shape (n_ts, len_for_ts)
+ |              Rolling vector time-series forecasts, given inference
+ |                  parameter pair (target_type, fwd_cumsum)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.forecast()
+ |      self.forecast(target_type=target_type, fwd_cumsum=fwd_cumsum)
+ |      
+ |      CTVARF_obj.forecast()
+ |      CTVARF_obj.forecast(target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  get_base_forec(self)
+ |      Get base case forecasts of standardized vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      base_forecast_que : dict, keys [forecast_asof_time_list]
+ |          base_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling forecasts of standardized vector time-series
+ |      
+ |      base_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |          base_forecast_ts[s] : DataFrame, shape (num_ts, len_forec_ts)
+ |              Rolling forecasts of standardized vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      base_forecast_que, base_forecast_ts = (
+ |          CTVARF_obj.get_base_forec())
+ |  
+ |  get_comm_forec(self)
+ |      Get rolling s-step forecasts of common components of
+ |          standardized vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |              Rolling forecasts of common components of standardized
+ |                  vector time-series
+ |      
+ |      comm_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |          comm_forecast_ts[s] : DataFrame, shape (n_ts, len_for_ts)
+ |              Rolling forecasts of common components of standardized
+ |                  vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      comm_forecast_que, comm_forecast_ts = (
+ |          CTVARF_obj.get_comm_forec())
+ |  
+ |  get_forec_score(self)
+ |      Get collection of of goodness scores of vector time-
+ |          series forecasts measured by various evaluation
+ |          parameter pairs (half_life, eval_metric)
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      forec_score_dict : dict {'asof_time': asof_time,
+ |              (half_life, eval_metric)_1: forec_score_1,
+ |              (half_life, eval_metric)_2: forec_score_2, ...}
+ |          Dict type list of goodness scores of vector time-series
+ |              forecasts measured by various evaluation parameter
+ |              pairs (half_life, eval_metric)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      forec_score_dict = CTVARF_obj.get_forec_score()
+ |  
+ |  get_idio_forec(self)
+ |      Get rolling s-step forecasts of idiosync components of
+ |          standardized vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |              Rolling forecasts of idiosyncratic components of
+ |                  standardized vector time-series
+ |      
+ |      idio_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |          idio_forecast_ts[s] : DataFrame, shape (n_ts, len_for_ts)
+ |              Rolling forecasts of idiosyncratic components of
+ |                  standardized vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      idio_forecast_que, idio_forecast_ts = (
+ |          CTVARF_obj.get_idio_forec())
+ |  
+ |  get_mean(self)
+ |      Get rolling sample mean vector time-series of VTS
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling sample mean vector time-series of VTS
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      mean_vec_ts = CTVARF_obj.get_mean()
+ |  
+ |  get_metric_list(self)
+ |      Get list of available goodness score metrics for vector
+ |          time-series forecast evaluation
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      valid_metric_list : list()
+ |          List of available goodness score metrics for vector
+ |              time-series forecast evaluation
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      valid_metric_list = self.get_metric_list()
+ |      
+ |      valid_metric_list = CTVARF_obj.get_metric_list()
+ |  
+ |  get_param(self, param_name_list)
+ |      Get values of specified parameters
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      param_name_list : list [str]
+ |          list of names of parameters
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      param_dict : dict {str: obj}
+ |          dict of name and value of specified parameters
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      param_dict = CTVARF_obj.get_param(param_name_list)
+ |  
+ |  get_stdev(self)
+ |      Get rolling sample standard deviation vector time-series of VTS
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling standard deviation vector time-series of VTS
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      stdev_vec_ts = CTVARF_obj.get_stdev()
+ |  
+ |  get_target_type_list(self)
+ |      Get list of valid parameter target_type
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      target_type_list = [
+ |          'original', 'Original', 'o', 'O',
+ |          'zero-mean', 'Zero-mean', 'z', 'Z',
+ |          'standardized', 'Standardized', 's', 'S']
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      target_type_list = CTVARF_obj.get_target_type_list()
+ |  
+ |  get_vts_forec(self)
+ |      Get rolling vector time-series forecasts
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_forecast_que : dict, keys [forecast_asof_time_list]
+ |          vts_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling vector time-series forecasts, given inference
+ |                  parameter pair (target_type, fwd_cumsum)
+ |      
+ |      vts_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |          vts_forecast_ts[s] : DataFrame, shape (n_ts, len_for_ts)
+ |              Rolling vector time-series forecasts, given inference
+ |                  parameter pair (target_type, fwd_cumsum)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_forecast_que, vts_forecast_ts = (
+ |          CTVARF_obj.get_vts_forec())
+ |  
+ |  get_vts_forec_puv(self)
+ |      Get rolling vector time-series forecasts per unit volatility
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_forec_puv_que : dict, keys [forecast_asof_time_list]
+ |          vts_forec_puv_que[t] : DataFrame, shape (n_ts, max_step)
+ |              Rolling vector time-series forecasts per unit
+ |                  volatility, given inference parameter fwd_cumsum
+ |      
+ |      vts_forec_puv_ts : dict, keys [1, 2, max_forecast_step]
+ |          vts_forec_puv_ts[s] : DataFrame, shape (n_ts, len_fo_ts)
+ |              Rolling vector time-series forecasts per unit
+ |                  volatility, given inference parameter fwd_cumsum
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_forec_puv_que, vts_forec_puv_ts = (
+ |          CTVARF_obj.get_vts_forec_puv())
+ |  
+ |  min_ts_len(self)
+ |      Get minimum length of time-series to satisfy parameters
+ |          of continuouly trained VAR forecast model analysis
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      min_len_ts : int
+ |          Minimum length of time-series for CTVARF analysis
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      min_len_ts = CTVARF_obj.min_ts_len()
+ |  
+ |  multi_eval(self, true_target_type=None, half_life_list=None, eval_metric_list=None)
+ |      Generate collection of goodness scores of vector time-series
+ |          forecasts for forecast model evaluation
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      true_target_type : str {'original', 'o', 'O',
+ |              'zero-mean', 'z', 'Z', 'standardized', 's', 'S'}
+ |          Type of true value of vector time-series for evaluating
+ |              forecast of vector time-series
+ |      
+ |      half_life_list : list()
+ |          List of half-life of exponential time-weights
+ |      
+ |      eval_metric_list : list()
+ |          List of forecast goodness evaluation metrics
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      forec_score_dict : dict {'asof_time': asof_time,
+ |              (half_life, eval_metric)_1: forec_score_1,
+ |              (half_life, eval_metric)_2: forec_score_2, ...}
+ |          Dict type list of goodness scores of vector time-series
+ |              forecasts measured by various evaluation parameter
+ |              pairs (half_life, eval_metric)
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      asof_time : obj, vts_forecast_que.key[-1]
+ |          Last time stamp of vector time-series forecasts
+ |      
+ |      forec_score : DataFrame, shape (num_ts, max_forec_step)
+ |          Goodness score of forecasts of vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      CTVARF_obj.multi_eval()
+ |      
+ |      CTVARF_obj.multi_eval(
+ |          true_target_type=true_target_type,
+ |          half_life_list=half_life_list,
+ |          eval_metric_list=eval_metric_list)
+ |  
+ |  paste_base_forec(self, base_case_forecast)
+ |      Uploade a copy of parameters and results of available
+ |          base case forecasts
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      base_case_forecast : dict {
+ |          {base_forec_id} : dict {
+ |              'base_forec_param': base_forec_param,
+ |              'base_forec_id': base_forec_id,
+ |              'base_forec_file': base_forec_file,
+ |              'mean_vec_ts': mean_vec_ts,
+ |              'stdev_vec_ts': stdev_vec_ts,
+ |              'comm_forecast_que': comm_forecast_que,
+ |              'idio_forecast_que': idio_forecast_que},
+ |          ...}
+ |          Collection of parameters and results of forecasts
+ |              of individual base cases each labeled by a
+ |              base_forec_id
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      base_case_forecast : dict {
+ |          {base_forec_id} : dict {
+ |              'base_forec_param': base_forec_param,
+ |              'base_forec_id': base_forec_id,
+ |              'base_forec_file': base_forec_file,
+ |              'mean_vec_ts': mean_vec_ts,
+ |              'stdev_vec_ts': stdev_vec_ts,
+ |              'comm_forecast_que': comm_forecast_que,
+ |              'idio_forecast_que': idio_forecast_que},
+ |          ...}
+ |          Collection of parameters and results of forecasts
+ |              of individual base cases each labeled by a
+ |              base_forec_id
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      CTVARF_obj.paste_base_forec(base_case_forecast)
+ |  
+ |  predict(self, target_type=None, fwd_cumsum=None)
+ |      Generate rolling vector time-series forecasts by continuouly
+ |          trained vector autoregressive forecast model
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O', None}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False, None}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      vts_forecast_que : dict, keys [forecast_asof_time_list]
+ |          vts_forecast_que[t] : DataFrame, shape (n_ts, max_for_step)
+ |              Rolling vector time-series forecasts, given inference
+ |                  parameter pair (target_type, fwd_cumsum)
+ |      
+ |      vts_forecast_ts : dict, keys [1, 2, max_forecast_step]
+ |          vts_forecast_ts[s] : DataFrame, shape (n_ts, len_for_ts)
+ |              Rolling vector time-series forecasts, given inference
+ |                  parameter pair (target_type, fwd_cumsum)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      CTVARF_obj.predict()
+ |      CTVARF_obj.predict(target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |  
+ |  set_data(self, VTS)
+ |      Set vector time-series data, VTS, for continuously trained
+ |          vector autoregressive forecasts (CTVARF)
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column the oldest, last column the latest
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      num_ts : int > 1
+ |          Number of time-series
+ |      
+ |      len_ts : int > 1
+ |          Length of time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.set_data(VTS)
+ |      
+ |      CTVARF_obj.set_data(VTS)
+ |  
+ |  set_param(self, **kwargs)
+ |      Set, update or reset value(s) of any, some or all parameter(s)
+ |      
+ |      Grouped parameters
+ |      ------------------
+ |      
+ |      learning_param : dict {'len_learn_window': int,
+ |              'var_order': int, 'num_factors': int,
+ |              'ar_order_idio': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |          Learning parameters of vector time-seris
+ |              forecast model
+ |      
+ |      inference_param : dict {
+ |              'max_forecast_step': int, 'len_forecast_ts': int,
+ |              'target_type': str, 'fwd_cumsum': bool}
+ |          Inference parameters of vector time-seris
+ |              forecast model
+ |      
+ |      evaluation_param : dict {'true_target_type': str,
+ |              'half_life_list': list, 'eval_metric_list': list}
+ |          Evaluation parameters for vector time-seris
+ |              forecast model
+ |      
+ |      base_case_param : dict {'match_pq_val': bool,
+ |              'alt_aro_npc': bool, 'base_forec_path': str}
+ |          Base case parameters for vector time-seris
+ |              forecast model
+ |      
+ |      Individual parameters (learning)
+ |      --------------------------------
+ |      
+ |      Items in learning_param = {'len_learn_window': int,
+ |          'var_order': int, 'num_factors': int,
+ |          'ar_order_idio': int, 'num_pcs': int,
+ |          'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic factor
+ |              model (DFM) for common components of vector time-series
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model (DFM) for common
+ |              components of vector time-series
+ |      
+ |      ar_order_idio : int >= 1
+ |          Autoregressive (AR) order, q, of AR model for idiosyncratic
+ |              components of time-series, here q applied to all time-
+ |              series other than those specified, if any, in alt_ar_order
+ |      
+ |      num_pcs : int >= 1
+ |          Number of principal components (PCs), m, of YWpcAR model for
+ |              idiosyncratic components of time-series, here m applied
+ |              to all time-series other than those specified, if any, in
+ |              alt_num_pcs
+ |      
+ |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |          Autoregressive (AR) orders, q1, q2, ..., applied to specified
+ |              time-series ts1, ts2, ...
+ |      
+ |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2, ..., applied
+ |              to specified time-series ts1, ts2, ...
+ |      
+ |      Individual parameters (inference)
+ |      ---------------------------------
+ |      
+ |      Items in inference_param = {
+ |          'max_forecast_step': int, 'len_forecast_ts': int,
+ |          'target_type': str, 'fwd_cumsum': bool})
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forward steps of time-series forecasts
+ |      
+ |      len_forecast_ts : int >= 1
+ |          Length of time-series of rolling forecasts
+ |      
+ |      target_type : str {'standardized', 's', 'S', 'zero-mean',
+ |                         'z', 'Z', 'original', 'o', 'O'}
+ |          Type of vector time-series data to be forecasted
+ |      
+ |      fwd_cumsum : bool {True, False}
+ |          Whether or not to make cum-sum forecast
+ |      
+ |      Individual parameters (evaluation)
+ |      ----------------------------------
+ |      
+ |      Items in evaluation_param = {'true_target_type': str,
+ |          'half_life_list': list, 'eval_metric_list': list})
+ |      
+ |      true_target_type : str {'original', 'o', 'O',
+ |              'zero-mean', 'z', 'Z', 'standardized', 's', 'S'}
+ |          Type of true value of vector time-series for evaluating
+ |              forecast of vector time-series
+ |      
+ |      half_life_list : list
+ |          List of half-lives of exponential time-weights for
+ |              evaluating vector time-series forecasts
+ |      
+ |      eval_metric_list : list
+ |          List of evaluation metrics for measuring goodness of
+ |              vector time-series forecasts
+ |      
+ |      Individual parameters (base mdoel)
+ |      ----------------------------------
+ |      
+ |      Items in base_case_param = {'match_pq_val': bool,
+ |          'alt_aro_npc': bool, 'base_forec_path': str}
+ |      
+ |      match_pq_val : bool
+ |          Indicator whether to set ar_order_idio same as var_order
+ |              (or var_order same as ar_order_idio) when forecasting
+ |              common (or idiosyncratic) components of vector time-series
+ |      
+ |      alt_aro_npc : bool
+ |          Indicator whether to accept alt_ar_order and alt_num_pcs
+ |              as base case forecasting parameters
+ |      
+ |      base_forec_path : str
+ |          Path of folder, if specified and existing, for base
+ |              forecast result files to be written and read
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      CTVARF_obj.set_param(**kwargs)
+ |      
+ |      CTVARF_obj.set_param(
+ |          param_name=param_value)
+ |      
+ |      CTVARF_obj.set_param(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |      
+ |      CTVARF_obj.set_param(
+ |          learning_param=learning_param,
+ |          inference_param=inference_param,
+ |          evaluation_param=evaluation_param,
+ |          base_case_param=base_case_param)
+ |      
+ |      CTVARF_obj.set_param(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          ar_order_idio=ar_order_idio,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          inference_param=inference_param,
+ |          evaluation_param=evaluation_param,
+ |          base_case_param=base_case_param)
+ |  
+ |  train(self)
+ |      Train the CTVARF (continuouly trained vector autoregressive
+ |          forecast) model of vector time-series forecasts
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      learning_param : dict {'len_learn_window': int,
+ |              'var_order': int, 'num_factors': int,
+ |              'ar_order_idio': int, 'num_pcs': int,
+ |              'alt_ar_order': dict, 'alt_num_pcs': dict}
+ |          Learning parameters of vector time-seris
+ |              forecast model
+ |      
+ |      inference_param : dict {
+ |              'max_forecast_step': int, 'len_forecast_ts': int,
+ |              'target_type': str, 'fwd_cumsum': bool}
+ |          Inference parameters of vector time-seris
+ |              forecast model
+ |      
+ |      base_case_param : dict {'match_pq_val': bool,
+ |              'alt_aro_npc': bool, 'base_forec_path': str}
+ |          Base case parameters for vector time-seris
+ |              forecast model
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column the oldest, last column the latest
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling sample mean vector time-series of VTS
+ |      
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_forec_ts)
+ |          Rolling standard deviation vector time-series of VTS
+ |      
+ |      comm_forecast_que : dict, keys [forecast_asof_time_list]
+ |          comm_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |              Rolling forecasts of common components of standardized
+ |                  vector time-series
+ |      
+ |      idio_forecast_que : dict, keys [forecast_asof_time_list]
+ |          idio_forecast_que[t] : DataFrame, shape (n_ts, max_f_step)
+ |              Rolling forecasts of idiosyncratic components of
+ |                  standardized vector time-series
+ |      
+ |      base_case_forecast : dict {
+ |          {base_forec_id} : dict {
+ |              'base_forec_param': base_forec_param,
+ |              'base_forec_id': base_forec_id,
+ |              'base_forec_file': base_forec_file,
+ |              'mean_vec_ts': mean_vec_ts,
+ |              'stdev_vec_ts': stdev_vec_ts,
+ |              'comm_forecast_que': comm_forecast_que,
+ |              'idio_forecast_que': idio_forecast_que},
+ |          ...}
+ |          Collection of parameters and results of forecasts
+ |              of individual base cases each labeled by a
+ |              base_forec_id
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.train()
+ |      
+ |      CTVARF_obj.train()
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+
+>>>
