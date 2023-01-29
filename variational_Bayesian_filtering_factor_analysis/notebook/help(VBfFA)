@@ -1,0 +1,3683 @@
+>>> help(VBfFA)
+
+Help on class VBfFA in module VBfFA:
+
+class VBfFA(builtins.object)
+ |  VBfFA(num_factors=None, error_reduct_target=None, num_data_points=None, num_va_iteration=None, len_moving_window=None, ts_standardization=None, len_leaveout_window=None, max_len_output_ts=None, score_target_type=None, max_predict_step=None, weight_dict=None, max_num_ts_add_del=None)
+ |  
+ |  Variational Bayesian filtering Factor Analysis (VBfFA) algorithm
+ |      for continuous learning of time-varying statistical factor
+ |      model of large set of multiple time-series by applying
+ |      variational Bayesian filtering approach.
+ |  
+ |  Implementation
+ |  --------------
+ |  
+ |  This module implements BFfFA formulation published by Figure 1
+ |      through Figure 4 in a paper in journal of Quantitative Finance,
+ |      https://doi.org/10.1080/14697688.2016.1268708, or,
+ |      https://www.tandfonline.com/doi/abs/10.1080/14697688.2016.1268708, or,
+ |      https://github.com/i4cast/aws/blob/main/variational_Bayesian_filtering_factor_analysis/publication/VBfFA_Publication.pdf,
+ |      or in manuscript of the publication,
+ |      https://github.com/i4cast/aws/blob/main/variational_Bayesian_filtering_factor_analysis/publication/VBfFA_Manuscript.pdf.
+ |  
+ |  VBfFA framework
+ |  ---------------
+ |  
+ |  Acronyms
+ |      FA : factor analysis
+ |      tvFM : time-varying (time-dependent) factor model
+ |      VBA : variational Bayesian approximation
+ |      VBf : variational Bayesian filtering
+ |      VBfFA : variational Bayesian filtering factor analysis
+ |  
+ |  Notations
+ |      Known variables
+ |      y(t) : data time-series of n-by-1 vector y with time index t
+ |      c : n-by-1 mean vector of time-series y(t)
+ |      n : number of time-series
+ |  
+ |  Notations
+ |      Unknown variables to be solved for
+ |      f(t) : factor score time-series of m-by-1 vector of time index t
+ |      P(t) : time-series of m-by-1 vector of variance of factor scores
+ |      m : number of factors
+ |  
+ |  Notations
+ |      Unknown variables to be solved for
+ |      X(t) : time-series of n-by-m matrix of loadings of factors f(t)
+ |      U(t) : time-series of n-by-m matrix of variance of loadings
+ |      Xj(t) : j-th column of X(t)
+ |      Uj(t) : j-th column of U(t)
+ |  
+ |  Notations
+ |      Unknown variables to be solved for
+ |      e(t) : time-series of m-by-1 residual error vector of data y(t)
+ |      R(t) : time-series of m-by-1 vector of variance of error e(t)
+ |  
+ |  Values of parameters
+ |      c = 0 : assuming y(t) are zero-mean time-series
+ |      t = 0, 1, 2, ..., T
+ |      T : last time stamp
+ |      1 <= m < n
+ |  
+ |  Time-varying, i.e. time-dependent, statistical factor model (tvFM)
+ |      y(t) = X(t) f(t) + e(t)
+ |      Known variable: y(t)
+ |      Unknown variables: X(t), f(t), e(t)
+ |  
+ |  Bayesian analysis of time-varing factor model
+ |      all variables, y(t), f(t), X(t), e(t)
+ |      and their variances, P(t), U(t), R(t),
+ |      are Randomly Distributed variables
+ |  
+ |  Simplest random distributions for Bayesian analysis of tvFM
+ |      v ~ N(E(v), V(v)), normal distribution
+ |      v ~ IGd(a, B(v)), diagonal inverse-gamma distribution
+ |      v    : random vector
+ |      E(v) : mean of v
+ |      V(v) : variance of v
+ |      a    : shape parameter of all variables
+ |      B(v) : diagonal matrix of scale parameters of v
+ |  
+ |  Random variables assumed in this module of Bayesian analysis
+ |      f(t)  ~ N(E(ft), Pt)
+ |      P(t)  ~ IGd(at, B(Pt))
+ |      Xj(t) ~ N(E(Xjt), V(Xjt))
+ |      Uj(t) ~ IGd(at, B(Ujt))
+ |      e(t)  ~ N(0, Rt)
+ |      R(t)  ~ IGd(at, B(Rt))
+ |  
+ |  Bayesian formulation
+ |      posterior = likelihood X prior
+ |  
+ |  Bayesian formulation of time-varying factor model tvFM
+ |      posterior = joint distribution: p( ft, Pt, Xt, Ut, Rt | yt )
+ |      likelihood = conditional distribution: p( yt | Xt, ft, Rt )
+ |      prior = joint distribuion: p(ft|pt) p(Pt) p(Xt|Ut) p(Ut) p(Rt)
+ |  
+ |  Variational Bayesian approximation (VBA) of tvFM
+ |      VBA iteration at each time stamp t
+ |          f(t) = fvba( y(t), f(t), P(t), X(t), U(t), R(t) )
+ |          P(t) = Pvba(       f(t), P(t), X(t), U(t), R(t) )
+ |          X(t) = Xvba( y(t), f(t), P(t), X(t), U(t), R(t) )
+ |          U(t) = Uvba(       f(t), P(t), X(t), U(t), R(t) )
+ |          R(t) = Rvba( y(t), f(t), P(t), X(t), U(t), R(t) )
+ |      Analytical functions,
+ |          fvba(), Pvba(), Xvba(), Uvba(), and Rvba(),
+ |          are VBA functions
+ |  
+ |  Filtering by variational "sequential" Bayes
+ |      posterior of time t-1 is prior at time t, or
+ |      prior at time t equals to posterior of time t-1
+ |  
+ |  Variational Bayesian filtering Factor Analysis (VBfFA)
+ |      Applying derived VBA functions,
+ |          fvba(), Pvba(), Xvba(), Uvba(), and Rvba(),
+ |  
+ |  References
+ |  ----------
+ |  
+ |  HFL & CF. (2017) "Online learning of time-varying stochastic
+ |  factor structure by variational sequential Bayesian factor
+ |  analysis", Quantitative Finance, Vol. 17 (8), pp. 1277-1304.
+ |  Publication,
+ |  https://doi.org/10.1080/14697688.2016.1268708, or,
+ |  https://www.tandfonline.com/doi/abs/10.1080/14697688.2016.1268708.
+ |  Manuscript,
+ |  https://github.com/i4cast/aws/blob/main/variational_Bayesian_filtering_factor_analysis/publication/Online_learning_of_time-varying_stochastic_factor_structure_by_variational_sequential_Bayesian_factor_analysis.pdf.
+ |  
+ |  Notes on data type
+ |  ------------------
+ |  
+ |  Types of time-series data
+ |      Scalar time-series:
+ |          pd.Series, index=asof_list
+ |      Vector time-series:
+ |          pd.DataFrame, index=ts_list, columns=asof_list
+ |      Matrix time-series:
+ |          dict, keys=asof_list,
+ |          dict_obj[key], DataFrame, index=ts_list, columns=col_list
+ |      Notes:
+ |          asof_list: list of time stamps of time-series
+ |          ts_list: list of time-series labels, names, or symbols
+ |          col_list: list of columns, e.g. list of factors
+ |  
+ |  Input data
+ |  ----------
+ |  
+ |  VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |      Vector time-series: row time-series of column vector
+ |          First column as the oldest, last column as the latest
+ |      For VBfFA model learning, analysis and inference
+ |  
+ |  ts_list : list, VTS.index.tolist()
+ |      List of labels of time-series
+ |  
+ |  asof_list : list, VTS.columns.tolist()
+ |      List of as-of time stamps of time-series
+ |  
+ |  num_ts, n : int > 1
+ |      Number of time-series
+ |  
+ |  len_ts : int > 1
+ |      Length of time-series
+ |  
+ |  input_VTS_info : dict, 
+ |          {'ts_list': ts_list, 'asof_list': asof_list}
+ |      Information of input vector time-series data
+ |  
+ |  prior_dict : dict {
+ |          'asof_time': prior_asof,
+ |          'at': mean_vec_ts.loc[:, prior_asof],
+ |          'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |          'ft': factor_score_ts.loc[:, prior_asof],
+ |          'Pt': factor_variance_ts.loc[:, prior_asof],
+ |          'Xt': factor_loading_ts[prior_asof],
+ |          'Ut': loading_variance_ts[prior_asof],
+ |          'Rt': residual_variance_ts.loc[:, prior_asof],
+ |          'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |          'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |      Prior for variational Bayesian filtering (VBf) in
+ |          VBF factor analysis (VBfFA)
+ |  
+ |  avail_fit_output_dict : dict
+ |          keys ('learn_param_dict',
+ |              'input_VTS_info', 'output_asof_list',
+ |              'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |              'factor_score_ts', 'factor_variance_ts',
+ |              'factor_loading_ts', 'loading_variance_ts',
+ |              'residual_variance_ts', 'mean_sq_estimate_ts',
+ |              'mean_sq_error_ts')
+ |      Collection of dict type of available previous/earlier
+ |          output time-series from fitting variational
+ |          Bayesian filtering factor analysis (VBfFA) model
+ |  
+ |  Parameters
+ |  ----------
+ |  
+ |  num_factors, m : int >= 1
+ |      Number of factors in variational Bayesian filtering
+ |          factor analysis VBfFA modeling
+ |  
+ |  error_reduct_target, h : float, 0 << h < 1
+ |      Working as factor analysis output residual-to-specific
+ |          error variance ratio target
+ |      Functioning as filter estimation-to-prediction error
+ |          variance ratio target
+ |      Serving as filter estimation error variance reduction
+ |          target
+ |      If targetting a lower ratio: larger error reduction,
+ |          faster learning, likely over-fitting
+ |      If targetting a higher ratio: smaller error reduction,
+ |          slower learning, likely under-fitting
+ |  
+ |  num_data_points, Tp : int, Tp >= 1
+ |      Assumed number of data points of Bayesian prior in
+ |          variational Bayesian filtering factor analysis
+ |      Note on exponential weight defined by Tp:
+ |          Decay factor of exponential weight = Tp / (Tp + 1)
+ |  
+ |  num_va_iteration, Lv : int, Lv >= 1
+ |      Number of iterations of variational approximation
+ |          estimate in VBfFA modeling
+ |  
+ |  len_moving_window : int >> 1
+ |      Length of moving/rolling time windows for data in time-
+ |          varying frequentist model learning
+ |      Notes:
+ |          num_factors < min(len_moving_window, num_ts)
+ |  
+ |  ts_standardization : str, in list
+ |          ['win', 'exp', '...win...', '...exp...']
+ |      Data point weighting method for time-series
+ |          standardization
+ |      If 'win' or '...win[dow]...':
+ |          Standardizing time-series with equally weighted data
+ |          points in trailing window of length len_moving_window
+ |      If 'exp' or '...exp[onential]...':
+ |          Standardizing time-series with exponential weights
+ |          defined by num_data_points Tp
+ |  
+ |  len_leaveout_window : int >= 0
+ |      Length, if any, of leave-out time window, ending at last
+ |          time-stamp of input vector time-series, containing
+ |          data to be left out of VBfFA model fitting and
+ |          inference, and to be used later for model vailation
+ |          or test
+ |  
+ |  max_len_output_ts : int >= 1
+ |      Maximum length of variational Bayesian filtering factor
+ |          analysis output (i.e. f, P, X, U, R and varcov)
+ |          time-series
+ |  
+ |  score_target_type : str, in list
+ |          ['standardized', 's', 'S', 'original', 'o', 'O']
+ |      Type of vector time-series serving as VBfFA model
+ |          prediction target in estimation of score time-series
+ |          for evaluation of VBfFA model
+ |      If 's', 'S' or 'standardized':
+ |          using input VTS rescaled to unit standard deviation
+ |      If 'o', 'O' or 'origional':
+ |          using original input vector time-series VTS
+ |  
+ |  max_predict_step : int >= 1
+ |      Maximum steps of prediction in estimation of score time-
+ |          series for evaluation of VBfFA model
+ |  
+ |  weight_dict : dict {'*': v, ts1id: v1, ts2id: v2, ...}
+ |      Non-negative weight levels to be applied to input or
+ |          rescaled vector time-series to estimate aggregate
+ |          score time-series for VBfFA model evaluation
+ |      weight_dict = None:
+ |          positive uniform or equal weight
+ |      weight_dict['*']:
+ |          non-negative default weight of time-series
+ |      Keys ts1id, ts2id, ...:
+ |          labels of time-series in VTS.index, as keys of
+ |          alternative weight levels applied to specified
+ |          time-series
+ |  
+ |  max_num_ts_add_del : int >= 0
+ |      Maximum number of time-series added or deleted to be
+ |          able to use/update, otherwise not to use/update,
+ |          previously trained VBfFA model
+ |  
+ |  learn_param_dict : dict, {
+ |          'num_factors': num_factors,
+ |          'error_reduct_target': error_reduct_target,
+ |          'num_data_points': num_data_points,
+ |          'num_va_iteration': num_va_iteration,
+ |          'len_moving_window': len_moving_window,
+ |          'ts_standardization': ts_standardization}
+ |      Colleciton of dict type of parameters for variational
+ |          Bayesian filtering factor analysis (VBfFA) model
+ |          learning
+ |  
+ |  Notes on as-of time of time-series
+ |  ----------------------------------
+ |  
+ |  input_asof : type(VTS.columns[-1])
+ |      The last as-of time-stamp of input vector time-series
+ |  
+ |  input_asof_list : list, VTS.columns.tolist()
+ |      List of as-of time-stamps of input vector time-series
+ |  
+ |  len_input_ts : int, len(input_asof_list)
+ |      Length of time-series of input vector time-series
+ |  
+ |  sample_asof : type(input_asof)
+ |      The last as-of time-stamp of available sample data vector
+ |          time-series before the beginning of leave-out data
+ |          window
+ |  
+ |  sample_asof_list : list, a subset of input_asof_list
+ |      List of as-of time-stamps of available sample data vector
+ |          time-series
+ |  
+ |  len_sample_ts : int, len(sample_asof_list)
+ |      Length of time-series of available sample data vector
+ |          time-series
+ |  
+ |  prior_asof : type(input_asof)
+ |      The last as-of time-stamp of prior f, P, X, U, R, SX and
+ |          SE time-series
+ |      As-of time-stamp of prior ft, Pt, Xt, Ut, Rt, SXt and
+ |          SEt in prior_dict for variational Bayesian filtering
+ |  
+ |  prior_asof_list : list, a subset of sample_asof_list
+ |      List of as-of time-stamps of prior f, P, X, U, R, SX and
+ |          SE time-series
+ |  
+ |  len_prior_ts : int, len(prior_asof_list)
+ |      Length of time-series of prior f, P, X, U, R, SX and SE
+ |          time-series
+ |  
+ |  posterior_asof : type(input_asof)
+ |      The last as-of time-stamp of posterior f, P, X, U, R, SX
+ |          and SE time-series
+ |      As-of time-stamp of posterior ft, Pt, Xt, Ut, Rt, SXt and
+ |          SEt in posterior_dict
+ |  
+ |  posterior_asof_list : list, a subset of sample_asof_list
+ |      List of as-of time-stamps of posterior f, P, X, U, R, SX
+ |          dnd SE time-series
+ |  
+ |  len_posterior_ts : int, len(posterior_asof_list)
+ |      Length of time-series of posterior f, P, X, U, R, SX and
+ |          SE time-series
+ |  
+ |  fit_asof : type(input_asof)
+ |      The last as-of time-stamp of fitted f, P, X, U, R, SX and
+ |          SE time-series
+ |  
+ |  fit_asof_list : list, combining previous, if loaded, and
+ |          current posterior_asof_list
+ |      List of as-of time-stamps of fitted f, P, X, U, R, SX and
+ |          SE time-series
+ |  
+ |  len_fit_ts : int, len(fit_asof_list)
+ |      Length of time-series of fitted f, P, X, U, R, SX and SE
+ |          time-series
+ |  
+ |  output_asof : type(input_asof)
+ |      The last as-of time-stamp of variational Bayesian
+ |          filtering factor analysis (VBfFA) output time-series
+ |  
+ |  output_asof_list : list, a subset of fit_asof_list
+ |      List of as-of time-stamps of variational Bayesian
+ |          filtering factor analysis (VBfFA) output time-series
+ |  
+ |  len_output_ts : int, len(output_asof_list)
+ |      Length of time-series of variational Bayesian
+ |          filtering factor analysis (VBfFA) output time-series
+ |  
+ |  Notes on time-series as-of time-stamp:
+ |      output_asof = fit_asof = posterior_asof = sample_asof
+ |  
+ |  Notes on length of time-series:
+ |      len_sample_ts = len_input_ts - len_leaveout_window
+ |      len_prior_ts = 
+ |             len_moving_window, for initial prior by PCA
+ |          or len_moving_win, if ts_standardization is '..win..'
+ |          or int(1), if ts_standardization is '...exp...'
+ |  
+ |  When prior (prior_dict & avail_fit_output_dict) NOT available:
+ |      Intial prior will be generated by PCA (principal
+ |          components analysis) on sample data in the earliest
+ |          moving window
+ |      len_prior_ts = len_moving_window
+ |      len_posterior_ts = len_sample_ts - len_moving_window
+ |  
+ |  When prior (prior_dict or avail_fit_output_dict) Available:
+ |      prior_asof = avail_output_asof <= sample_asof
+ |      len(sample_asof_list <= prior_asof) >= len_moving_window
+ |      len_posterior_ts = len(sample_asof_list > prior_asof) >= 0
+ |  
+ |  data_asof_dict : dict {
+ |          'input_asof': input_asof,
+ |          'input_asof_list': input_asof_list,
+ |          'len_input_ts': len_input_ts,
+ |          'sample_asof': sample_asof,
+ |          'sample_asof_list': sample_asof_list,
+ |          'len_sample_ts': len_sample_ts,
+ |          'prior_asof': prior_asof,
+ |          'prior_asof_list': prior_asof_list,
+ |          'len_prior_ts': len_prior_ts,
+ |          'posterior_asof': posterior_asof,
+ |          'posterior_asof_list': posterior_asof_list,
+ |          'len_posterior_ts': len_posterior_ts,
+ |          'fit_asof': fit_asof,
+ |          'fit_asof_list': fit_asof_list,
+ |          'len_fit_ts': len_fit_ts,
+ |          'output_asof': output_asof,
+ |          'output_asof_list': output_asof_list,
+ |          'len_output_ts': len_output_ts}
+ |      Collection of dict type of lists of as-of time-stamps of
+ |          input, sample, prior, posterior and output time-series
+ |  
+ |  Notes on available previous model outputs
+ |  -----------------------------------------
+ |  
+ |  avail_output_asof : type(input_asof)
+ |      The last as-of time-stamp of available previous/earlier
+ |          VBfFA output time-series
+ |  
+ |  avail_output_asof_list : list
+ |      List of as-of time-stamps of available previous/earlier
+ |          VBfFA output time-series
+ |  
+ |  len_avail_output_ts : int
+ |          len(avail_output_asof_list)
+ |      Length of time-series of available previous/earlier
+ |          VBfFA output time-series
+ |  
+ |  Attributes: fit & predict
+ |  -------------------------
+ |  
+ |  mean_vec_ts : pandas.DataFrame, shape
+ |          (num_ts, len_sample_ts)
+ |      Rolling sample mean vector time-series of input
+ |          vector time-series VTS
+ |  
+ |  stdev_vec_ts : pandas.DataFrame, shape
+ |          (num_ts, len_sample_ts)
+ |      Rolling sample standard deviation vector time-series
+ |          of input VTS
+ |  
+ |  vts_standard : pandas.DataFrame, shape
+ |          (num_ts, len_sample_ts)
+ |      Rolling standardized vector time-series of input VTS
+ |          (estimated by mean_vec_ts and stdev_vec_ts)
+ |  
+ |  factor_score_ts, f : pandas.DataFrame, shape
+ |          (num_factors, len_fit_ts)
+ |      Time-series of factor scores vector
+ |  
+ |  factor_variance_ts, P : pandas.DataFrame, shape
+ |          (num_factors, len_fit_ts)
+ |      Time-series of variances (vector) of factor scores
+ |  
+ |  factor_loading_ts, X : dict, keys (fit_asof_list)
+ |          X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |      Time-series of factor loadings matrix
+ |  
+ |  loading_variance_ts, U : dict, keys (fit_asof_list)
+ |          U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |      Time-series of variances (matrix) of factor loadings
+ |  
+ |  residual_variance_ts, R : pandas.DataFrame, shape
+ |          (num_ts, len_fit_ts)
+ |      Time-series of variances (vector) of residual errors
+ |  
+ |  mean_sq_estimate_ts, SX : pandas.DataFrame, shape
+ |          (num_ts, len_fit_ts)
+ |      Time-series of sample mean squares of estimated
+ |          conditional mean
+ |  
+ |  mean_sq_error_ts, SE : pandas.DataFrame, shape
+ |          (num_ts, len_fit_ts)
+ |      Time-series of sample mean squares of errors of
+ |          estimated conditional mean
+ |  
+ |  posterior_dict : dict {
+ |          'asof_time': fit_asof,
+ |          'at': mean_vec_ts.loc[:, fit_asof],
+ |          'Dt': stdev_vec_ts.loc[:, fit_asof],
+ |          'ft': factor_score_ts.loc[:, fit_asof],
+ |          'Pt': factor_variance_ts.loc[:, fit_asof],
+ |          'Xt': factor_loading_ts[fit_asof],
+ |          'Ut': loading_variance_ts[fit_asof],
+ |          'Rt': residual_variance_ts.loc[:, fit_asof],
+ |          'SXt': mean_sq_estimate_ts.loc[:, fit_asof],
+ |          'SEt': mean_sq_error_ts.loc[:, fit_asof]}
+ |      Posterior of variational Bayesian filtering as of the
+ |          last time stamp of sample data vector time-series
+ |  
+ |  fit_output_dict : dict
+ |          keys ('learn_param_dict',
+ |              'input_VTS_info', 'output_asof_list',
+ |              'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |              'factor_score_ts', 'factor_variance_ts',
+ |              'factor_loading_ts', 'loading_variance_ts',
+ |              'residual_variance_ts', 'mean_sq_estimate_ts',
+ |              'mean_sq_error_ts')
+ |      Collection of dict type of output time-series from
+ |          fitting variational Bayesian filtering factor
+ |          analysis (VBfFA) model
+ |  
+ |  vts_loading_ts : dict, keys (output_asof_list)
+ |          dict_obj[key] : pd.DataFrame, shape (num_ts, num_factors)
+ |      Time-series of factor loadings matrix of vector time-series
+ |  
+ |  vts_ldg_variance_ts : dict, keys (output_asof_list)
+ |          dict_obj[key] : pd.DataFrame, shape (num_ts, num_factors)
+ |      Time-series of variances of factor loadings of vector
+ |          time-series
+ |  
+ |  vts_residual_ts : pd.DataFrame, shape (num_ts, len_output_ts)
+ |      Time-series of variances of residual errors of vector
+ |          time-series
+ |  
+ |  fit_varcov_ts, VCM : dict, keys (fit_asof_list)
+ |          VCM[asof] : pd.DataFrame, shape (num_ts, num_ts)
+ |      Time-series of variance-covariance matrix of standardized
+ |          input vector time-series estimated by fitted output
+ |          of variational Bayesian filtering factor analysis
+ |          (VBfFA)
+ |  
+ |  vts_varcov_ts : dict, keys (output_asof_list)
+ |          dict_obj[key] : pd.DataFrame, shape (num_ts, num_ts)
+ |      Time-series of variance-covariance matrix of input vector
+ |          time-series estimated by Bayesian filtering factor
+ |          analysis (VBfFA)
+ |  
+ |  pred_output_dict : dict
+ |          keys ('mean_vec_ts', 'stdev_vec_ts',
+ |              'factor_score_ts', 'factor_variance_ts',
+ |              'vts_loading_ts', 'vts_ldg_variance_ts',
+ |              'vts_residual_ts', 'fit_varcov_ts',
+ |              'vts_varcov_ts')
+ |      Collection of dict type of output time-series from
+ |          prediction by fitted variational Bayesian filtering
+ |          factor analysis (VBffA) model
+ |  
+ |  last_prediction : dict {
+ |          'asof_time': output_asof,
+ |          'mean_vec': mean_vec_ts.loc[:, output_asof],
+ |          'stdev_vec': stdev_vec_ts.loc[:, output_asof],
+ |          'factor_score': factor_score_ts.loc[:, output_asof],
+ |          'factor_variance': factor_variance_ts.loc[:, output_asof],
+ |          'vts_loading': vts_loading_ts[output_asof],
+ |          'vts_ldg_variance': vts_ldg_variance_ts[output_asof],
+ |          'vts_residual': vts_residual_ts.loc[:, output_asof],
+ |          'fit_varcov': fit_varcov_ts[output_asof],
+ |          'vts_varcov': vts_varcov_ts[output_asof]}
+ |      Collection of dict type of predictions as of the last
+ |          output time-stamp by fitted variational Bayesian
+ |          filtering factor analysis (VBffA) model
+ |  
+ |  Attributes: evaluate & compare
+ |  ------------------------------
+ |  
+ |  fit_variance_ts : pd.DataFrame,
+ |          shape (num_ts, len_fit_ts)
+ |      Time-series of variance of standardized input vector
+ |          time-series estimated by fitted output of variational
+ |          Bayesian filtering factor analysis (VBfFA)
+ |      Values of fit_variance_ts < 1 or > 1 indicates under- or
+ |          over-estimation of variance of individual input time-
+ |          series
+ |  
+ |  weight_vec, w : pd.Series, shape (num_ts,)
+ |      Weight vector to be applied to input or rescaled vector
+ |          time-series data to estimate score time-series for
+ |          VBfFA model evaluation
+ |  
+ |  agg_variance_ts, pVa : pd.Series, shape (len_fit_ts,)
+ |      Aggregate variance time-series predicted by VBfFA model
+ |          based on predicted variance and covariance of input
+ |          vector time-series
+ |  
+ |  agg_zscore_ts, ZSa : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_fit_ts)
+ |      Aggregate z-score time-series of VBfFA modeling, based
+ |          on predicted mean, variance and covariance
+ |  
+ |  agg_bias_ts, BSa : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_fit_ts)
+ |      Aggregate bias score time-series of VBfFA modeling,
+ |          based on predicted mean, variance and covariance,
+ |          equals to "z-score squared"
+ |      BSa < 1 or > 1 indicates over- or under-prediction of
+ |          aggregate variance, reflecting accuracy of predicted
+ |          mean, variance and covariance
+ |  
+ |  agg_loglik_ts, LLa : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_fit_ts)
+ |      Aggregate log likelihood time-series of VBfFA modeling,
+ |          based on predicted mean, variance and covariance
+ |      Greater LLa indicates more accurate forecast of aggreage
+ |          variance, reflecting accuracy of predicted mean,
+ |          variance and covariance
+ |  
+ |  agg_qstat_ts, QSa : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_fit_ts)
+ |      Aggregate Q-statistic time-series of VBfFA modeling,
+ |          based on predicted mean, variance and covariance
+ |      Smaller QSa indicates more accurate forecast of aggregate
+ |          variance, reflecting accuracy of predicted mean,
+ |          variance and covariance
+ |  
+ |  eval_score_dict : dict
+ |          keys ('fit_variance_ts', 'agg_variance_ts',
+ |              'agg_zscore_ts', 'agg_bias_ts', 'agg_loglik_ts',
+ |              'agg_qstat_ts')
+ |      Collection of dict type of variational Bayesian filtering
+ |          factor analysis (VBfFA) model evaluation score time-
+ |          series
+ |  
+ |  Notes on OBS model
+ |      OBS model: observations-based exponentially weighted
+ |          simulation model
+ |  
+ |  Notes on OBS model evaluation score time-series
+ |      Aggregate time-series obs_agg_[label]_ts: aggregate
+ |          evaluation score time-series predicted by OBS model,
+ |          parallel to VBfFA evaluation score time-series
+ |          agg_[label]_ts
+ |  
+ |  obs_agg_variance_ts : pd.Series,
+ |          shape (len_output_ts,)
+ |      Aggregate variance time-series predicted by OBS model
+ |  
+ |  obs_agg_zscore_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Aggregate z-score time-series predicted by OBS model
+ |  
+ |  obs_agg_bias_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Aggregate bias score time-series predicted by OBS model
+ |      Value < 1 or > 1 indicates over- or under-prediction of
+ |          aggregate variance
+ |  
+ |  obs_agg_loglik_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Aggregate log likelihood time-series predicted by OBS 
+ |          model
+ |      Greater value indicates more accurate forecast of
+ |          aggreage variance
+ |  
+ |  obs_agg_qstat_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Aggregate Q-statistic time-series predicted by OBS
+ |          model
+ |      Smaller value indicates more accurate forecast of
+ |          aggregate variance
+ |  
+ |  obs_score_dict : dict
+ |          keys ('obs_agg_variance_ts', 'obs_agg_zscore_ts',
+ |              'obs_agg_bias_ts', 'obs_agg_loglik_ts',
+ |              'obs_agg_qstat_ts')
+ |      Collection of dict type of observations-based
+ |          exponentially weighted simulation (OBS) model
+ |          evaluation score time-series
+ |  
+ |  Notes on VBfFA vs. OBS model
+ |      Forecast model to be evaluated: VBfFA (variational
+ |          Bayesian filtering factor analysis) model
+ |      Benchmark model for evaluation: OBS (observations-based
+ |          exponentially weighted simulation) model
+ |  
+ |  Notes on VBfFA minus OBS model evaluation score time-series
+ |      Time-series diff_[label]_ts: arithmetic or logarithmic
+ |          difference of VBfFA model evaluation score time-
+ |          series minus OBS model evaluation score time-series
+ |  
+ |  diff_fit_variance_ts : pd.DataFrame,
+ |          shape (num_ts, len_fit_ts)
+ |      Logarithmic difference =
+ |          log( fit_variance_ts / 1.0 ) =
+ |          log( fit_variance_ts ) =
+ |  
+ |  diff_agg_variance_ts : pd.Series,
+ |          shape (len_output_ts,)
+ |      Logarithmic difference =
+ |          log( agg_variance_ts / obs_agg_variance_ts )
+ |  
+ |  diff_agg_zscore_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Arithmetic difference =
+ |          agg_zscore_ts - obs_agg_zscore_ts
+ |  
+ |  diff_agg_bias_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Logarithmic difference =
+ |          log( agg_bias_ts / obs_agg_bias_ts )
+ |  
+ |  diff_agg_loglik_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Arithmetic difference =
+ |          agg_loglik_ts - obs_agg_loglik_ts
+ |  
+ |  diff_agg_qstat_ts : pd.DataFrame,
+ |          shape (max_predict_step + 1, len_output_ts)
+ |      Arithmetic difference =
+ |          agg_qstat_ts - obs_agg_qstat_ts
+ |  
+ |  diff_score_dict : dict
+ |          keys ('diff_fit_variance_ts', 'diff_agg_variance_ts',
+ |              'diff_agg_zscore_ts', 'diff_agg_bias_ts',
+ |              'diff_agg_loglik_ts', 'diff_agg_qstat_ts')
+ |      Collection of dict type of arithmetic or logarithmic
+ |          difference of VBfFA model evaluation score time-
+ |          series minus OBS model evaluation score time-series
+ |  
+ |  Notes on VBfFA model evaluation statistics
+ |      VBfFA model evaluation statistics: average(s) over time
+ |          of VBffA model evaluation score time-series
+ |  
+ |  avg_fitvar : pd.Series, shape (num_ts,)
+ |      Averages over time of fit_variance_ts time-series
+ |  
+ |  avg_aggvar : float
+ |      Average over time of agg_variance_ts time-series
+ |  
+ |  avg_zscore : pd.Series, shape (max_predict_step + 1,)
+ |      Averages over time of agg_zscore_ts, ZSa, time-series
+ |  
+ |  avg_bias : pd.Series, shape (max_predict_step + 1,)
+ |      Averages over time of agg_bias_ts, BSa, time-series
+ |  
+ |  avg_loglik : pd.Series, shape (max_predict_step + 1,)
+ |      Averages over time of agg_loglik_ts, LLa, time-series
+ |  
+ |  avg_qstat : pd.Series, shape (max_predict_step + 1,)
+ |      Averages over time of agg_qstat_ts, QSa, time-series
+ |  
+ |  eval_stats_dict : dict
+ |          keys ('fit_asof', 'len_fit_ts',
+ |              'avg_fitvar', 'avg_aggvar', 'avg_zscore',
+ |              'avg_bias', 'avg_loglik', 'avg_qstat')
+ |      Collection of dict type of variational Bayesian filtering
+ |          factor analysis (VBfFA) model evaluation statistics,
+ |          by averages over time of VBffA model evaluation score
+ |          time-series
+ |  
+ |  Notes on OBS model evaluation statistics
+ |      OBS model evaluation statistics: average(s) over time
+ |          of OBS model evaluation score time-series
+ |  
+ |  Notes on specific OBS evaluation statistics
+ |      OBS model evaluation statistics, obs_avg_[label]: parallel
+ |          to VBfFA model evaluation statistics, avg_[label]
+ |  
+ |  obs_stats_dict : dict
+ |          keys ('output_asof', 'len_output_ts',
+ |              'obs_avg_aggvar', 'obs_avg_zscore',
+ |              'obs_avg_bias', 'obs_avg_loglik',
+ |              'obs_avg_qstat')
+ |      Collection of dict type of observations-based
+ |          exponentially weighted simulation (OBS) model
+ |          evaluation statistics, by averages over time
+ |          of OBS model evaluation score time-series
+ |  
+ |  Notes on VBfFA vs. OBS model evaluation statistics
+ |      VBfFA vs. OBS model evaluation statistics: average(s)
+ |          over time of arithmetic or logarithmic difference
+ |          of VBfFA model evaluation score time-series minus
+ |          OBS model evaluation score time-series            
+ |  
+ |  Notes on specific VBfFA vs. OBS evaluation statistics
+ |      VBfFA vs. OBS model evaluation statistics,
+ |          diff_avg_[label]: parallel to VBfFA model
+ |          evaluation statistics, avg_[label]
+ |  
+ |  diff_stats_dict : dict
+ |          keys ('output_asof', 'len_output_ts',
+ |              'diff_avg_fitvar', 'diff_avg_aggvar',
+ |              'diff_avg_zscore', 'diff_avg_bias',
+ |              'diff_avg_loglik', 'diff_avg_qstat')
+ |      Collection of dict type of VBfFA vs. OBS model
+ |          evaluation statistics, by averages over time of
+ |          arithmetic or logarithmic difference of VBfFA
+ |          model evaluation score time-series minus OBS
+ |          model evaluation score time-series
+ |  
+ |  Methods
+ |  -------
+ |  
+ |  For model initiation (parameters):
+ |      VBfFA_obj = VBfFA()
+ |      VBfFA_obj = VBfFA(num_factors, error_reduct_target,
+ |          num_data_points, num_va_iteration, len_moving_window,
+ |          ts_standardization, len_leaveout_window,
+ |          max_len_output_ts, score_target_type, max_predict_step,
+ |          weight_dict, max_num_ts_add_del)
+ |      VBfFA_obj.set_param(**kwargs)
+ |      VBfFA_obj.set_param(num_factors, error_reduct_target,
+ |          num_data_points, num_va_iteration, len_moving_window,
+ |          ts_standardization, len_leaveout_window,
+ |          max_len_output_ts, score_target_type, max_predict_step,
+ |          weight_dict, max_num_ts_add_del)
+ |      VBfFA_obj.get_param(param_name_list)
+ |  
+ |  For model initiation (data):
+ |      VBfFA_obj.set_data(VTS)
+ |      VBfFA_obj.set_prior(prior_dict)
+ |      VBfFA_obj.load_fit_output(...)
+ |      VBfFA_obj.get_data_asof_info()
+ |  
+ |  For model learning:
+ |      VBfFA_obj.fit(VTS)
+ |      VBfFA_obj.get_posterior()
+ |      VBfFA_obj.get_fit_output()
+ |  
+ |  For model inference:
+ |      VBfFA_obj.predict()
+ |      VBfFA_obj.get_pred_output()
+ |      VBfFA_obj.get_last_pred()
+ |  
+ |  For model evaluation:
+ |      VBfFA_obj.evaluate()
+ |      VBfFA_obj.get_eval_score()
+ |      VBfFA_obj.get_eval_stats()
+ |  
+ |  For model differentiation
+ |      VBfFA_obj.compare()
+ |      VBfFA_obj.get_diff_score()
+ |      VBfFA_obj.get_diff_stats()
+ |  
+ |  Methods defined here:
+ |  
+ |  __aggregate_OBS_scores__(self)
+ |      Calculate time-series of aggregate scores with observations-
+ |          based exponentially weighted simulation (OBS) model
+ |          to serve as benchmark score time-series in evaluating
+ |          variational Bayesian filtering factor analysis (VBfFA)
+ |          model
+ |      
+ |      Calculate arithmetic or logarithmic difference of VBfFA
+ |          model evaluation score time-series minus OBS model
+ |          evaluation score time-series
+ |      
+ |      Aggregate time-series obs_agg_[label]_ts: aggregate
+ |          evaluation score time-series predicted by OBS model,
+ |          parallel to VBfFA evaluation score time-series
+ |          agg_[label]_ts
+ |      
+ |      Aggregate time-series diff_[label]_ts: arithmetic or
+ |          logarithmic difference of VBfFA model evaluation score
+ |          time-series, diff_[label]_ts, minus OBS model evaluation
+ |          score time-series, obs_agg_[label]_ts
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      len_moving_window : int >> 1
+ |          Length of moving/rolling time windows for data in time-
+ |              varying frequentist model learning
+ |      
+ |      num_data_points, Tp : int, Tp >= 1
+ |          Assumed number of data points of Bayesian prior in
+ |              variational Bayesian filtering factor analysis
+ |          Note on exponential weight defined by Tp:
+ |              Decay factor of exponential weight = Tp / (Tp + 1)
+ |      
+ |      score_target_type : str, in list
+ |              ['standardized', 's', 'S', 'original', 'o', 'O']
+ |          Type of vector time-series serving as VBfFA model
+ |              prediction target in estimation of score time-series
+ |              for evaluation of VBfFA model
+ |          If 's', 'S' or 'standardized':
+ |              using input VTS rescaled to unit standard deviation
+ |          If 'o', 'O' or 'origional':
+ |              using original input vector time-series VTS
+ |      
+ |      max_predict_step : int >= 1
+ |          Maximum steps of prediction in estimation of score time-
+ |              series for evaluation of VBfFA model
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      weight_vec, w : pd.Series, shape (num_ts,)
+ |          Weight vector to be applied to input or rescaled vector
+ |              time-series data to estimate score time-series for
+ |              VBfFA model evaluation
+ |      
+ |      input_asof_list : list, VTS.columns.tolist()
+ |          List of as-of time-stamps of input vector time-series
+ |      
+ |      len_input_ts : int, lne(input_asof_list)
+ |          Length of time-series of input vector time-series
+ |      
+ |      output_asof_list : list, a subset of fit_asof_list
+ |          List of as-of time-stamps of variational Bayesian
+ |              filtering factor analysis (VBfFA) output time-series
+ |      
+ |      len_output_ts : int, len(output_asof_list)
+ |          Length of time-series of variational Bayesian
+ |              filtering factor analysis (VBfFA) output time-series
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      obs_agg_variance_ts : pd.Series, shape (len_output_ts,)
+ |          Time-series of aggregated variance predicted by 
+ |              OBS model
+ |      
+ |      obs_agg_zscore_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate z-score time-series predicted by OBS model
+ |      
+ |      obs_agg_bias_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate bias score time-series predicted by OBS model
+ |          Value < 1 or > 1 indicates over- or under-prediction of
+ |              aggregate variance
+ |      
+ |      obs_agg_loglik_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate log likelihood time-series predicted by OBS
+ |              model
+ |          Greater value indicates more accurate forecast of
+ |              aggreage variance
+ |      
+ |      obs_agg_qstat_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate Q-statistic time-series predicted by OBS
+ |              model
+ |          Smaller value indicates more accurate forecast of
+ |              aggregate variance
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__aggregate_OBS_scores__()
+ |  
+ |  __aggregate_VBfFA_scores__(self)
+ |      Calculate time-series of aggregate scores to be used to
+ |          evaluate variational Bayesian filtering factor analysis
+ |          (VBfFA) model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      score_target_type : str, in list
+ |              ['standardized', 's', 'S', 'original', 'o', 'O']
+ |          Type of vector time-series serving as VBfFA model
+ |              prediction target in estimation of score time-series
+ |              for evaluation of VBfFA model
+ |          If 's', 'S' or 'standardized':
+ |              using input VTS rescaled to unit standard deviation
+ |          If 'o', 'O' or 'origional':
+ |              using original input vector time-series VTS
+ |      
+ |      max_predict_step : int >= 1
+ |          Maximum steps of prediction in estimation of score time-
+ |              series for evaluation of VBfFA model
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      weight_vec, w : pd.Series, shape (num_ts,)
+ |          Weight vector to be applied to input or rescaled vector
+ |              time-series data to estimate score time-series for
+ |              VBfFA model evaluation
+ |      
+ |      input_asof_list : list, VTS.columns.tolist()
+ |          List of as-of time-stamps of input vector time-series
+ |      
+ |      len_input_ts : int, lne(input_asof_list)
+ |          Length of time-series of input vector time-series
+ |      
+ |      fit_asof_list : list, combining previous, if loaded, and
+ |              current posterior_asof_list
+ |          List of as-of time-stamps of fitted f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      len_fit_ts : int, len(fit_asof_list)
+ |          Length of time-series of fitted f, P, X, U, R, SX and SE
+ |              time-series
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample mean vector time-series of input
+ |              vector time-series VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      factor_loading_ts, X : dict, keys (fit_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (fit_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      agg_variance_ts, pVa : pd.Series, shape (len_fit_ts,)
+ |          Aggregate variance time-series predicted by VBfFA model
+ |              based on predicted variance and covariance of input
+ |              vector time-series
+ |      
+ |      agg_zscore_ts, ZSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate z-score time-series of VBfFA modeling, based
+ |              on predicted mean, variance and covariance
+ |      
+ |      agg_bias_ts, BSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate bias score time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance,
+ |              equals to "z-score squared"
+ |          BSa < 1 or > 1 indicates over- or under-prediction of
+ |              aggregate variance, reflecting accuracy of predicted
+ |              mean, variance and covariance
+ |      
+ |      agg_loglik_ts, LLa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate log likelihood time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance
+ |          Greater LLa indicates more accurate forecast of aggreage
+ |              variance, reflecting accuracy of predicted mean,
+ |              variance and covariance
+ |      
+ |      agg_qstat_ts, QSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate Q-statistic time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance
+ |          Smaller QSa indicates more accurate forecast of aggregate
+ |              variance, reflecting accuracy of predicted mean,
+ |              variance and covariance
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__aggregate_VBfFA_scores__()
+ |  
+ |  __data_asof_list__(self)
+ |      Generate as-of time-stamps and lists of time-stamps of
+ |          input, sample, prior, posterior, fitted, and output
+ |          data time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      len_moving_window : int >> 1
+ |          Length of moving/rolling time windows for data in time-
+ |              varying frequentist model learning
+ |          Notes:
+ |              num_factors < min(len_moving_window, num_ts)
+ |      
+ |      ts_standardization : str, in list
+ |              ['win', 'exp', '...win...', '...exp...']
+ |          Data point weighting method for time-series
+ |              standardization
+ |          If 'win' or '...win[dow]...':
+ |              Standardizing time-series with equally weighted data
+ |              points in trailing window of length len_moving_window
+ |          If 'exp' or '...exp[onential]...':
+ |              Standardizing time-series with exponential weights
+ |              defined by num_data_points Tp
+ |      
+ |      len_leaveout_window : int >= 0
+ |          Length, if any, of leave-out time window, ending at last
+ |              time-stamp of input vector time-series, containing
+ |              data to be left out of VBfFA model fitting and
+ |              inference, and to be used later for model vailation
+ |              or test
+ |      
+ |      max_len_output_ts : int >= 1
+ |          Maximum length of variational Bayesian filtering factor
+ |              analysis output (i.e. f, P, X, U, R and varcov)
+ |              time-series
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      avail_fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of available previous/earlier
+ |              output time-series from fitting variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |      
+ |      Notes on model fitting outputs
+ |      ------------------------------
+ |      
+ |      fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of output time-series from
+ |              fitting variational Bayesian filtering factor
+ |              analysis (VBfFA) model
+ |      
+ |      posterior_dict : dict {
+ |              'asof_time': fit_asof,
+ |              'at': mean_vec_ts.loc[:, fit_asof],
+ |              'Dt': stdev_vec_ts.loc[:, fit_asof],
+ |              'ft': factor_score_ts.loc[:, fit_asof],
+ |              'Pt': factor_variance_ts.loc[:, fit_asof],
+ |              'Xt': factor_loading_ts[fit_asof],
+ |              'Ut': loading_variance_ts[fit_asof],
+ |              'Rt': residual_variance_ts.loc[:, fit_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, fit_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, fit_asof]}
+ |          Posterior of variational Bayesian filtering as of the
+ |              last time stamp of sample data vector time-series
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      input_asof : type(VTS.columns[-1])
+ |          The last as-of time-stamp of input vector time-series
+ |      
+ |      input_asof_list : list, VTS.columns.tolist()
+ |          List of as-of time-stamps of input vector time-series
+ |      
+ |      len_input_ts : int, lne(input_asof_list)
+ |          Length of time-series of input vector time-series
+ |      
+ |      sample_asof : type(input_asof)
+ |          The last as-of time-stamp of available sample data vector
+ |              time-series before the beginning of leave-out data
+ |              window
+ |      
+ |      sample_asof_list : list, a subset of input_asof_list
+ |          List of as-of time-stamps of available sample data vector
+ |              time-series
+ |      
+ |      len_sample_ts : int, len(sample_asof_list)
+ |          Length of time-series of available sample data vector
+ |              time-series
+ |      
+ |      prior_asof : type(input_asof)
+ |          The last as-of time-stamp of prior f, P, X, U, R, SX and
+ |              SE time-series
+ |          As-of time-stamp of prior ft, Pt, Xt, Ut, Rt, SXt and
+ |              SEt in prior_dict for variational Bayesian filtering
+ |      
+ |      prior_asof_list : list, a subset of sample_asof_list
+ |          List of as-of time-stamps of prior f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      len_prior_ts : int, len(prior_asof_list)
+ |          Length of time-series of prior f, P, X, U, R, SX and SE
+ |              time-series
+ |      
+ |      posterior_asof : type(input_asof)
+ |          The last as-of time-stamp of posterior f, P, X, U, R, SX
+ |              and SE time-series
+ |          As-of time-stamp of posterior ft, Pt, Xt, Ut, Rt, SXt and
+ |              SEt in posterior_dict
+ |      
+ |      posterior_asof_list : list, a subset of sample_asof_list
+ |          List of as-of time-stamps of posterior f, P, X, U, R, SX
+ |              dnd SE time-series
+ |      
+ |      len_posterior_ts : int, len(posterior_asof_list)
+ |          Length of time-series of posterior f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      fit_asof : type(input_asof)
+ |          The last as-of time-stamp of fitted f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      fit_asof_list : list, combining previous, if loaded, and
+ |              current posterior_asof_list
+ |          List of as-of time-stamps of fitted f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      len_fit_ts : int, len(fit_asof_list)
+ |          Length of time-series of fitted f, P, X, U, R, SX and SE
+ |              time-series
+ |      
+ |      output_asof : type(input_asof)
+ |          The last as-of time-stamp of variational Bayesian
+ |              filtering factor analysis (VBfFA) output time-series
+ |      
+ |      output_asof_list : list, a subset of fit_asof_list
+ |          List of as-of time-stamps of variational Bayesian
+ |              filtering factor analysis (VBfFA) output time-series
+ |      
+ |      len_output_ts : int, len(output_asof_list)
+ |          Length of time-series of variational Bayesian
+ |              filtering factor analysis (VBfFA) output time-series
+ |      
+ |      data_asof_dict : dict {
+ |              'input_asof': input_asof,
+ |              'input_asof_list': input_asof_list,
+ |              'len_input_ts': len_input_ts,
+ |              'sample_asof': sample_asof,
+ |              'sample_asof_list': sample_asof_list,
+ |              'len_sample_ts': len_sample_ts,
+ |              'prior_asof': prior_asof,
+ |              'prior_asof_list': prior_asof_list,
+ |              'len_prior_ts': len_prior_ts,
+ |              'posterior_asof': posterior_asof,
+ |              'posterior_asof_list': posterior_asof_list,
+ |              'len_posterior_ts': len_posterior_ts,
+ |              'fit_asof': fit_asof,
+ |              'fit_asof_list': fit_asof_list,
+ |              'len_fit_ts': len_fit_ts,
+ |              'output_asof': output_asof,
+ |              'output_asof_list': output_asof_list,
+ |              'len_output_ts': len_output_ts}
+ |          Collection of dict type of lists of as-of time-stamps of
+ |              input, sample, prior, posterior and output time-series
+ |      
+ |      Notes on lengths of time-seres
+ |      ------------------------------
+ |      
+ |      Time-series as-of time-stamps:
+ |          output_asof = fit_asof = posterior_asof = sample_asof
+ |      
+ |      Lengths of time-series:
+ |          len_sample_ts = len_input_ts - len_leaveout_window
+ |          len_prior_ts = 
+ |                 len_moving_window, for initial prior by PCA
+ |              or len_moving_win, if ts_standardization is '..win..'
+ |              or int(1), if ts_standardization is '...exp...'
+ |          len_posterior_ts = len_sample_ts - len_prior_ts
+ |      
+ |      When prior (prior_dict & avail_fit_output_dict) NOT available:
+ |          Intial prior will be generated by PCA (principal
+ |              components analysis) on sample data in the earliest
+ |              moving window
+ |          len_prior_ts = len_moving_window
+ |          len_posterior_ts = len_sample_ts - len_moving_window
+ |      
+ |      When prior (prior_dict or avail_fit_output_dict) Available:
+ |          prior_asof = avail_output_asof <= sample_asof
+ |          len(sample_asof_list <= prior_asof) >= len_moving_window
+ |          len_posterior_ts = len(sample_asof_list > prior_asof) >= 0
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__data_asof_list__()
+ |  
+ |  __estimate_data_holder__(self)
+ |      Initialize or reset estimated data items of variational
+ |          Bayesian filtering factor analysis modeling
+ |      
+ |      Time-series as-of data
+ |      ----------------------
+ |      
+ |      input_asof : object
+ |      input_asof_list : list
+ |      len_input_ts : int
+ |      
+ |      sample_asof : object
+ |      sample_asof_list : list
+ |      len_sample_ts : int
+ |      
+ |      prior_asof : object
+ |      prior_asof_list : list
+ |      len_prior_ts : int
+ |      
+ |      posterior_asof : object
+ |      posterior_asof_list : list
+ |      len_posterior_ts : int
+ |      
+ |      fit_asof : object
+ |      fit_asof_list : list
+ |      len_fit_ts : int
+ |      
+ |      output_asof : object
+ |      output_asof_list : list
+ |      len_output_ts : int
+ |      
+ |      data_asof_dict : dict
+ |      
+ |      Fit and predict output
+ |      ----------------------
+ |      
+ |      mean_vec_ts : pandas.DataFrame
+ |      stdev_vec_ts : pandas.DataFrame
+ |      vts_standard : pandas.DataFrame
+ |      
+ |      factor_score_ts, f : pd.DataFrame
+ |      factor_variance_ts, P : pd.DataFrame
+ |      
+ |      factor_loading_ts, X : dict
+ |      loading_variance_ts, U : dict
+ |      
+ |      residual_variance_ts, R : pd.DataFrame
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame
+ |      mean_sq_error_ts, SE : pandas.DataFrame
+ |      
+ |      fit_output_dict : dict
+ |      posterior_dict : dict
+ |      
+ |      vts_loading_ts : dict
+ |      vts_ldg_variance_ts : dict
+ |      vts_residual_ts : pd.DataFrame
+ |      
+ |      fit_varcov_ts, VCM : dict
+ |      vts_varcov_ts : dict
+ |      
+ |      pred_output_dict : dict
+ |      
+ |      Evaluate and compare output
+ |      ---------------------------
+ |      
+ |      weight_vec, w : pd.Series
+ |      
+ |      fit_variance_ts : pd.DataFrame
+ |      agg_variance_ts, pVa : pd.Series
+ |      agg_zscore_ts, ZSa : pd.DataFrame
+ |      agg_bias_ts, BSa : pd.DataFrame
+ |      agg_loglik_ts, LLa : pd.DataFrame
+ |      agg_qstat_ts, QSa : pd.DataFrame
+ |      
+ |      eval_score_dict : dict
+ |      eval_stats_dict : dict
+ |      
+ |      obs_agg_variance_ts : pd.Series
+ |      obs_agg_zscore_ts : pd.DataFrame
+ |      obs_agg_bias_ts : pd.DataFrame
+ |      obs_agg_loglik_ts : pd.DataFrame
+ |      obs_agg_qstat_ts : pd.DataFrame
+ |      
+ |      obs_score_dict : dict
+ |      obs_stats_dict : dict
+ |      
+ |      diff_fit_variance_ts : pd.DataFrame
+ |      diff_agg_variance_ts : pd.Series
+ |      diff_agg_zscore_ts : pd.DataFrame
+ |      diff_agg_bias_ts : pd.DataFrame
+ |      diff_agg_loglik_ts : pd.DataFrame
+ |      diff_agg_qstat_ts : pd.DataFrame
+ |      
+ |      diff_score_dict : dict
+ |      diff_stats_dict : dict
+ |      
+ |      time-series template
+ |      --------------------
+ |      
+ |      val_ts : pandas.Series
+ |      vec_ts : pandas.DataFrame
+ |      mat_ts : dict
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__estimate_data_holder__()
+ |  
+ |  __fit_output_prep__(self)
+ |      Set or re-set data holders of VBfFA model fitting output
+ |          time-series
+ |      
+ |      Inputs and outputs
+ |      ------------------
+ |      
+ |      mean_vec_ts : pandas.DataFrame
+ |      stdev_vec_ts : pandas.DataFrame
+ |      vts_standard : pandas.DataFrame
+ |      
+ |      factor_score_ts, f : pd.DataFrame
+ |      factor_variance_ts, P : pd.DataFrame
+ |      
+ |      factor_loading_ts, X : dict
+ |      loading_variance_ts, U : dict
+ |      
+ |      residual_variance_ts, R : pd.DataFrame
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame
+ |      mean_sq_error_ts, SE : pandas.DataFrame
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      avail_fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of available previous/earlier
+ |              output time-series from fitting variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__fit_output_prep__()
+ |  
+ |  __fit_varcov__(self)
+ |      Generate time-series of predicted variance-covariance matrix
+ |          of standardized input vector time-series estimated by
+ |          fitted output of variational Bayesian filtering factor
+ |          analysis (VBfFA)
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      fit_asof_list : list, combining previous, if loaded, and
+ |              current posterior_asof_list
+ |          List of as-of time-stamps of fitted f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      factor_loading_ts, X : dict, keys (fit_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (fit_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      fit_varcov_ts, VCM : dict, keys (fit_asof_list)
+ |              VCM[asof] : pd.DataFrame, shape (num_ts, num_ts)
+ |          Time-series of variance-covariance matrix of standardized
+ |              input vector time-series estimated by fitted output
+ |              of variational Bayesian filtering factor analysis
+ |              (VBfFA)
+ |      
+ |      fit_variance_ts : pd.DataFrame,
+ |              shape (num_ts, len_fit_ts)
+ |          Time-series of variance of standardized input vector
+ |              time-series estimated by fitted output of variational
+ |              Bayesian filtering factor analysis (VBfFA)
+ |          Values of fit_variance_ts < 1 or > 1 indicates under- or
+ |              over-estimation of variance of individual input time-
+ |              series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__fit_varcov__()
+ |  
+ |  __have_data__(self)
+ |      Check availability of input vector time-series data
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__have_data__()
+ |  
+ |  __have_diff_score__(self)
+ |      Raise Exception if VBfFA minu OBS model difference
+ |          scores not calculated by method VBfFA_obj.compare()
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      diff_fit_variance_ts : pd.DataFrame
+ |      diff_agg_variance_ts : pd.Series
+ |      diff_agg_zscore_ts : pd.DataFrame
+ |      diff_agg_bias_ts : pd.DataFrame
+ |      diff_agg_loglik_ts : pd.DataFrame
+ |      diff_agg_qstat_ts : pd.DataFrame
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__have_diff_score__()
+ |  
+ |  __have_param__(self)
+ |      Check availability of a parameter set
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      num_factors, m : int >= 1
+ |      error_reduct_target, h : float, 0 << h < 1
+ |      num_data_points, Tp : int, Tp >= 1
+ |      num_va_iteration, Lv : int, Lv >= 1
+ |      len_moving_window : int >> 1
+ |      ts_standardization : str
+ |      
+ |      len_leaveout_window : int >= 0
+ |      max_len_output_ts : int >= 1
+ |      score_target_type : str, in ['s', 'S', 'o', 'O']
+ |      max_predict_step : int >= 1
+ |      weight_dict : dict {'*': v, ts1id: v1, ts2id: v2, ...}
+ |      max_num_ts_add_del : int >= 0
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__have_param__()
+ |  
+ |  __have_pred__(self)
+ |      Raise Exception if model prediction not made by method
+ |          VBfFA_obj.predict()
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape (num_ts, len_sample_ts)
+ |      stdev_vec_ts : pandas.DataFrame, shape (num_ts, len_sample_ts)
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |      
+ |      vts_loading_ts : dict, keys (output_asof_list)
+ |      vts_ldg_variance_ts : dict, keys (output_asof_list)
+ |      
+ |      vts_residual_ts : pd.DataFrame, shape (num_ts, len_output_ts)
+ |      
+ |      fit_varcov_ts, VCM : dict, keys (fit_asof_list)
+ |      vts_varcov_ts : dict, keys (output_asof_list)
+ |      fit_variance_ts : pd.DataFrame, shape
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__have_pred__()
+ |  
+ |  __have_score__(self)
+ |      Raise Exception if model scores for evaluation not made by
+ |          method VBfFA_obj.evaluate()
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      agg_variance_ts, pVa : pd.Series
+ |      agg_zscore_ts, ZSa : pd.DataFrame
+ |      agg_bias_ts, BSa : pd.DataFrame
+ |      agg_loglik_ts, LLa : pd.DataFrame
+ |      agg_qstat_ts, QSa : pd.DataFrame
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__have_score__()
+ |  
+ |  __init__(self, num_factors=None, error_reduct_target=None, num_data_points=None, num_va_iteration=None, len_moving_window=None, ts_standardization=None, len_leaveout_window=None, max_len_output_ts=None, score_target_type=None, max_predict_step=None, weight_dict=None, max_num_ts_add_del=None)
+ |      VBfFA object initialization
+ |      
+ |      Parameters
+ |      ----------
+ |      
+ |      num_factors, m : int >= 1
+ |          Number of factors in variational Bayesian filtering
+ |              factor analysis VBfFA modeling
+ |      
+ |      error_reduct_target, h : float, 0 << h < 1
+ |          Working as factor analysis output residual-to-specific
+ |              error variance ratio target
+ |          Functioning as filter estimation-to-prediction error
+ |              variance ratio target
+ |          Serving as filter estimation error variance reduction
+ |              target
+ |          If targetting a lower ratio: larger error reduction,
+ |              faster learning, likely over-fitting
+ |          If targetting a higher ratio: smaller error reduction,
+ |              slower learning, likely under-fitting
+ |      
+ |      num_data_points, Tp : int, Tp >= 1
+ |          Assumed number of data points of Bayesian prior in
+ |              variational Bayesian filtering factor analysis
+ |          Note on exponential weight defined by Tp:
+ |              Decay factor of exponential weight = Tp / (Tp + 1)
+ |      
+ |      num_va_iteration, Lv : int, Lv >= 1
+ |          Number of iterations of variational approximation
+ |              estimate in VBfFA modeling
+ |      
+ |      len_moving_window : int >> 1
+ |          Length of moving/rolling time windows for data in time-
+ |              varying frequentist model learning
+ |          Notes:
+ |              num_factors < min(len_moving_window, num_ts)
+ |      
+ |      ts_standardization : str, in list
+ |              ['win', 'exp', '...win...', '...exp...']
+ |          Data point weighting method for time-series
+ |              standardization
+ |          If 'win' or '...win[dow]...':
+ |              Standardizing time-series with equally weighted data
+ |              points in trailing window of length len_moving_window
+ |          If 'exp' or '...exp[onential]...':
+ |              Standardizing time-series with exponential weights
+ |              defined by num_data_points Tp
+ |      
+ |      len_leaveout_window : int >= 0
+ |          Length, if any, of leave-out time window, ending at last
+ |              time-stamp of input vector time-series, containing
+ |              data to be left out of VBfFA model fitting and
+ |              inference, and to be used later for model vailation
+ |              or test
+ |      
+ |      max_len_output_ts : int >= 1
+ |          Maximum length of variational Bayesian filtering factor
+ |              analysis output (i.e. f, P, X, U, R and varcov)
+ |              time-series
+ |      
+ |      score_target_type : str, in list
+ |              ['standardized', 's', 'S', 'original', 'o', 'O']
+ |          Type of vector time-series serving as VBfFA model
+ |              prediction target in estimation of score time-series
+ |              for evaluation of VBfFA model
+ |          If 's', 'S' or 'standardized':
+ |              using input VTS rescaled to unit standard deviation
+ |          If 'o', 'O' or 'origional':
+ |              using original input vector time-series VTS
+ |      
+ |      max_predict_step : int >= 1
+ |          Maximum steps of prediction in estimation of score time-
+ |              series for evaluation of VBfFA model
+ |      
+ |      weight_dict : dict {'*': v, ts1id: v1, ts2id: v2, ...}
+ |          Non-negative weight levels to be applied to input or
+ |              rescaled vector time-series to estimate aggregate
+ |              score time-series for VBfFA model evaluation
+ |          weight_dict = None:
+ |              positive uniform or equal weight
+ |          weight_dict['*']:
+ |              non-negative default weight of time-series
+ |          Keys ts1id, ts2id, ...:
+ |              labels of time-series in VTS.index, as keys of
+ |              alternative weight levels applied to specified
+ |              time-series
+ |      
+ |      max_num_ts_add_del : int >= 0
+ |          Maximum number of time-series added or deleted to be
+ |              able to use/update, otherwise not to use/update,
+ |              previously trained VBfFA model
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      num_factors, m : int >= 1
+ |      error_reduct_target, h : float, 0 << h < 1
+ |      num_data_points, Tp : int, Tp >= 1
+ |      num_va_iteration, Lv : int, Lv >= 1
+ |      len_moving_window : int >> 1
+ |      ts_standardization : str
+ |      
+ |      len_leaveout_window : int >= 0
+ |      max_len_output_ts : int >= 1
+ |      score_target_type : str
+ |      max_predict_step : int >= 1
+ |      weight_dict : dict {'*': v, ts1id: v1, ts2id: v2, ...}
+ |      max_num_ts_add_del : int >= 0
+ |      
+ |      learn_param_dict : dict, {
+ |              'num_factors': num_factors,
+ |              'error_reduct_target': error_reduct_target,
+ |              'num_data_points': num_data_points,
+ |              'num_va_iteration': num_va_iteration,
+ |              'len_moving_window': len_moving_window,
+ |              'ts_standardization': ts_standardization}
+ |          Colleciton of dict type of parameters for variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |              learning
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      self : object
+ |          Instance itself
+ |      
+ |      Class initiation call
+ |      ---------------------
+ |      
+ |      VBfFA_obj = VBfFA()
+ |      
+ |      VBfFA_obj = VBfFA(
+ |          num_factors=num_factors,
+ |          error_reduct_target=error_reduct_target,
+ |          num_data_points=num_data_points,
+ |          num_va_iteration=num_va_iteration,
+ |          len_moving_window=len_moving_window,
+ |          ts_standardization=ts_standardization,
+ |          len_leaveout_window=len_leaveout_window,
+ |          max_len_output_ts=max_len_output_ts,
+ |          score_target_type=score_target_type,
+ |          max_predict_step=max_predict_step,
+ |          weight_dict=weight_dict,
+ |          max_num_ts_add_del=max_num_ts_add_del)
+ |  
+ |  __input_data_holder__(self)
+ |      Initialize or reset input data items of variational
+ |          Bayesian filtering factor analysis modeling
+ |      
+ |      VTS : pandas.DataFrame
+ |      ts_list : list
+ |      asof_list : list
+ |      num_ts : int
+ |      len_ts : int
+ |      input_VTS_info : dict
+ |      
+ |      prior_dict : dict
+ |      avail_fit_output_dict : dict
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__input_data_holder__()
+ |  
+ |  __is_fit__(self)
+ |      Raise Exception if model not learned with method
+ |          VBfFA_obj.fit(VTS=VTS)
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape (num_ts, len_sample_ts)
+ |      stdev_vec_ts : pandas.DataFrame, shape (num_ts, len_sample_ts)
+ |      vts_standard : pandas.DataFrame, shape (num_ts, len_sample_ts)
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |      
+ |      factor_loading_ts, X : dict, keys (fit_asof_list)
+ |      loading_variance_ts, U : dict, keys (fit_asof_list)
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |      
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame, shape
+ |      mean_sq_error_ts, SE : pandas.DataFrame, shape
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__is_fit__()
+ |  
+ |  __new_ts_prior__(self)
+ |      Estimate prior data values of newly added time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      len_moving_window : int >> 1
+ |          Length of moving/rolling time windows for data in time-
+ |              varying frequentist model learning
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      ts_list : list, VTS.index.tolist()
+ |          List of labels of time-series
+ |      
+ |      prior_asof : type(input_asof)
+ |          The last as-of time-stamp of prior f, P, X, U, R, SX and
+ |              SE time-series
+ |          As-of time-stamp of prior ft, Pt, Xt, Ut, Rt, SXt and
+ |              SEt in prior_dict for variational Bayesian filtering
+ |      
+ |      Inputs and Outputs
+ |      ------------------
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      prior_dict['asof_time'] = prior_asof
+ |          Prior as-of time_stamp
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |              (num_factors, len_prior_ts)
+ |          Time-series of factor scores vector
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_prior_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      factor_loading_ts, X : dict, keys (prior_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (prior_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_prior_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame, shape
+ |              (num_ts, len_prior_ts)
+ |          Time-series of sample mean squares of estimated
+ |              conditional mean
+ |      
+ |      mean_sq_error_ts, SE : pandas.DataFrame, shape
+ |              (num_ts, len_prior_ts)
+ |          Time-series of sample mean squares of errors of
+ |              estimated conditional mean
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__new_ts_prior__()
+ |  
+ |  __output_collect_holder__(self)
+ |      Set up or reset output collection data holder
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of output time-series from
+ |              fitting variational Bayesian filtering factor
+ |              analysis (VBfFA) model
+ |      
+ |      pred_output_dict : dict
+ |              keys ('mean_vec_ts', 'stdev_vec_ts',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'vts_loading_ts', 'vts_ldg_variance_ts',
+ |                  'vts_residual_ts', 'fit_varcov_ts',
+ |                  'vts_varcov_ts')
+ |          Collection of dict type of output time-series from
+ |              prediction by fitted variational Bayesian filtering
+ |              factor analysis (VBffA) model
+ |      
+ |      eval_score_dict : dict
+ |              keys ('fit_variance_ts', 'agg_variance_ts',
+ |                  'agg_zscore_ts', 'agg_bias_ts', 'agg_loglik_ts',
+ |                  'agg_qstat_ts')
+ |          Collection of dict type of variational Bayesian filtering
+ |              factor analysis (VBfFA) model evaluation score time-
+ |              series
+ |      
+ |      obs_score_dict : dict
+ |              keys ('obs_agg_variance_ts', 'obs_agg_zscore_ts',
+ |                  'obs_agg_bias_ts', 'obs_agg_loglik_ts',
+ |                  'obs_agg_qstat_ts')
+ |          Collection of dict type of observations-based
+ |              exponentially weighted simulation (OBS) model
+ |              evaluation score time-series
+ |      
+ |      diff_score_dict : dict
+ |              keys ('diff_fit_variance_ts', 'diff_agg_variance_ts',
+ |                  'diff_agg_zscore_ts', 'diff_agg_bias_ts',
+ |                  'diff_agg_loglik_ts', 'diff_agg_qstat_ts')
+ |          Collection of dict type of arithmetic or logarithmic
+ |              difference of VBfFA model evaluation score time-
+ |              series minus OBS model evaluation score time-series
+ |      
+ |      Notes on data type
+ |      ------------------
+ |      
+ |      learn_param_dict : dict
+ |      input_VTS_info : dict
+ |      output_asof : object
+ |      
+ |      mean_vec_ts : pandas.DataFrame
+ |      stdev_vec_ts : pandas.DataFrame
+ |      vts_standard : pandas.DataFrame
+ |      
+ |      factor_score_ts, f : pd.DataFrame
+ |      factor_variance_ts, P : pd.DataFrame
+ |      
+ |      factor_loading_ts, X : dict
+ |      loading_variance_ts, U : dict
+ |      
+ |      residual_variance_ts, R : pd.DataFrame
+ |      
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame
+ |      mean_sq_error_ts, SE : pandas.DataFrame
+ |      
+ |      vts_loading_ts : dict
+ |      vts_ldg_variance_ts : dict
+ |      vts_residual_ts : pd.DataFrame
+ |      
+ |      fit_varcov_ts, VCM : dict
+ |      vts_varcov_ts : dict
+ |      
+ |      fit_variance_ts : pd.DataFrame
+ |      agg_variance_ts, pVa : pd.Series
+ |      agg_zscore_ts, ZSa : pd.DataFrame
+ |      agg_bias_ts, BSa : pd.DataFrame
+ |      agg_loglik_ts, LLa : pd.DataFrame
+ |      agg_qstat_ts, QSa : pd.DataFrame
+ |      
+ |      obs_agg_variance_ts, pVa : pd.Series
+ |      obs_agg_zscore_ts, ZSa : pd.DataFrame
+ |      obs_agg_bias_ts, BSa : pd.DataFrame
+ |      obs_agg_loglik_ts, LLa : pd.DataFrame
+ |      obs_agg_qstat_ts, QSa : pd.DataFrame
+ |      
+ |      diff_fit_variance_ts : pandas.DataFrame
+ |      diff_agg_variance_ts, pVa : pd.Series
+ |      diff_agg_zscore_ts, ZSa : pd.DataFrame
+ |      diff_agg_bias_ts, BSa : pd.DataFrame
+ |      diff_agg_loglik_ts, LLa : pd.DataFrame
+ |      diff_agg_qstat_ts, QSa : pd.DataFrame
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__output_collect_holder__()
+ |  
+ |  __prior_by_pca__(self)
+ |      Generate PCA-based prior for variational Bayesian filtering
+ |          factor analysis on standardized vector time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      num_factors, m : int >= 1
+ |          Number of factors in variational Bayesian filtering
+ |              factor analysis VBfFA modeling
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      ts_list : list, VTS.index.tolist()
+ |          List of labels of time-series
+ |      
+ |      num_ts : int, len(ts_list)
+ |      
+ |      prior_asof : type(input_asof)
+ |          The last as-of time-stamp of prior f, P, X, U, R, SX and
+ |              SE time-series
+ |          As-of time-stamp of prior ft, Pt, Xt, Ut, Rt, SXt and
+ |              SEt in prior_dict for variational Bayesian filtering
+ |      
+ |      prior_asof_list : list, a subset of sample_asof_list
+ |          List of as-of time-stamps of prior f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      prior_dict['asof_time'] = prior_asof
+ |          Prior as-of time_stamp
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |              (num_factors, len_prior_ts)
+ |          Time-series of factor scores vector
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_prior_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      factor_loading_ts, X : dict, keys (prior_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (prior_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_prior_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame, shape
+ |              (num_ts, len_prior_ts)
+ |          Time-series of sample mean squares of estimated
+ |              conditional mean
+ |      
+ |      mean_sq_error_ts, SE : pandas.DataFrame, shape
+ |              (num_ts, len_prior_ts)
+ |          Time-series of sample mean squares of errors of
+ |              estimated conditional mean
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__prior_by_pca__()
+ |  
+ |  __rolling_standardize__(self)
+ |      Generate rolling standardized vector time-series of VTS
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      num_data_points, Tp : int, Tp >= 1
+ |          Assumed number of data points of Bayesian prior in
+ |              variational Bayesian filtering factor analysis
+ |          Note on exponential weight defined by Tp:
+ |              Decay factor of exponential weight = Tp / (Tp + 1)
+ |      
+ |      len_moving_window : int >> 1
+ |          Length of moving/rolling time windows for data in time-
+ |              varying frequentist model learning
+ |          Notes:
+ |              num_factors < min(len_moving_window, num_ts)
+ |      
+ |      ts_standardization : str, in list
+ |              ['win', 'exp', '...win...', '...exp...']
+ |          Data point weighting method for time-series
+ |              standardization
+ |          If 'win' or '...win[dow]...':
+ |              Standardizing time-series with equally weighted data
+ |              points in trailing window of length len_moving_window
+ |          If 'exp' or '...exp[onential]...':
+ |              Standardizing time-series with exponential weights
+ |              defined by num_data_points Tp
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      avail_fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of available previous/earlier
+ |              output time-series from fitting variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample mean vector time-series of input
+ |              vector time-series VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      vts_standard : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling standardized vector time-series of input VTS
+ |              (estimated by mean_vec_ts and stdev_vec_ts)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__rolling_standardize__()
+ |  
+ |  __timeseries_list__(self)
+ |      Comparing input vector time-series, VTS, with prior,
+ |          prior_dict, and with previous fit output time-series
+ |          data, avail_fit_output_dict
+ |      
+ |      Delete all individual time-series having missing values
+ |          located in sample data window defined by sample_asof_list
+ |      
+ |      Add prior data for new time-series added in input vector
+ |          time-series data
+ |      
+ |      Inputs and outputs
+ |      ------------------
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      avail_fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of available previous/earlier
+ |              output time-series from fitting variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      max_num_ts_add_del : int >= 0
+ |          Maximum number of time-series added or deleted to be
+ |              able to use/update, otherwise not to use/update,
+ |              previously trained VBfFA model
+ |      
+ |      Notes on outputs
+ |      ----------------
+ |      
+ |      prior_asof : object
+ |      learn_param_dict : dict
+ |      input_VTS_info : dict
+ |      output_asof_list : list
+ |      
+ |      mean_vec_ts : pd.DataFrame, shape (num_ts, len_ts)
+ |      stdev_vec_ts : pd.DataFrame, shape (num_ts, len_ts)
+ |      vts_standard : pandas.DataFrame, shape (num_ts, len_ts)
+ |      
+ |      factor_score_ts : pd.DataFrame, shape (n_factors, len_ts)
+ |      factor_variance_ts : pd.DataFrame, shape (n_factors, len_ts)
+ |      
+ |      factor_loading_ts : dict, keys (asof_list)
+ |          X[asof] : pd.DataFrame, shape (num_ts, num_factors)
+ |      loading_variance_ts : dict, keys (asof_list)
+ |          U[asof] : pd.DataFrame, shape (num_ts, num_factors)
+ |      
+ |      residual_variance_ts : pd.DataFrame, shape (num_ts, len_ts)
+ |      mean_sq_estimate_ts : pd.DataFrame, shape (num_ts, len_ts)
+ |      mean_sq_error_ts : pd.DataFrame, shape (num_ts, len_ts)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__timeseries_list__()
+ |  
+ |  __timeseries_output__(self, new_output=None)
+ |      return 1
+ |      review variable name
+ |      
+ |      
+ |      Generate fitting/predicting/scoring output time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      new_output : object
+ |          Fitting/predicting/scoring time-series generated by
+ |              VBfFA model
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      output_ts : object
+ |          Fitting/predicting/scoring OUTPUT time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      output_ts = self.__timeseries_output__(
+ |          new_output=new_output)
+ |  
+ |  __variational_Bayes_filter_of_vbffa__(self)
+ |      Variational Bayesian filter of VBfFA (variational Bayesian
+ |          filtering factor analysis) modeling on standardized
+ |          vector time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      num_factors, m : int >= 1
+ |          Number of factors in variational Bayesian filtering
+ |              factor analysis VBfFA modeling
+ |      
+ |      error_reduct_target, h : float, 0 << h < 1
+ |          Working as factor analysis output residual-to-specific
+ |              error variance ratio target
+ |          Functioning as filter estimation-to-prediction error
+ |              variance ratio target
+ |          Serving as filter estimation error variance reduction
+ |              target
+ |          If targetting a lower ratio: larger error reduction,
+ |              faster learning, likely over-fitting
+ |          If targetting a higher ratio: smaller error reduction,
+ |              slower learning, likely under-fitting
+ |      
+ |      num_data_points, Tp : int, Tp >= 1
+ |          Assumed number of data points of Bayesian prior in
+ |              variational Bayesian filtering factor analysis
+ |          Note on exponential weight defined by Tp:
+ |              Decay factor of exponential weight = Tp / (Tp + 1)
+ |      
+ |      num_va_iteration, Lv : int, Lv >= 1
+ |          Number of iterations of variational approximation
+ |              estimate in VBfFA modeling
+ |      
+ |      vts_standard : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling standardized vector time-series of input VTS
+ |              (estimated by mean_vec_ts and stdev_vec_ts)
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      input_asof : type(VTS.columns[-1])
+ |          The last as-of time-stamp of input vector time-series
+ |      
+ |      prior_asof : type(input_asof)
+ |          The last as-of time-stamp of prior f, P, X, U, R, SX and
+ |              SE time-series
+ |          As-of time-stamp of prior ft, Pt, Xt, Ut, Rt, SXt and
+ |              SEt in prior_dict for variational Bayesian filtering
+ |      
+ |      posterior_asof : type(input_asof)
+ |          The last as-of time-stamp of posterior f, P, X, U, R, SX
+ |              and SE time-series
+ |          As-of time-stamp of posterior ft, Pt, Xt, Ut, Rt, SXt and
+ |              SEt in posterior_dict
+ |      
+ |      posterior_asof_list : list, a subset of sample_asof_list
+ |          List of as-of time-stamps of posterior f, P, X, U, R, SX
+ |              dnd SE time-series
+ |      
+ |      len_posterior_ts : int, len(posterior_asof_list)
+ |          Length of time-series of posterior f, P, X, U, R, SX and
+ |              SE time-series
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of factor scores vector
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      factor_loading_ts, X : dict, keys (fit_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (fit_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of sample mean squares of estimated
+ |              conditional mean
+ |      
+ |      mean_sq_error_ts, SE : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of sample mean squares of errors of
+ |              estimated conditional mean
+ |      
+ |      posterior_dict : dict {
+ |              'asof_time': fit_asof,
+ |              'at': mean_vec_ts.loc[:, fit_asof],
+ |              'Dt': stdev_vec_ts.loc[:, fit_asof],
+ |              'ft': factor_score_ts.loc[:, fit_asof],
+ |              'Pt': factor_variance_ts.loc[:, fit_asof],
+ |              'Xt': factor_loading_ts[fit_asof],
+ |              'Ut': loading_variance_ts[fit_asof],
+ |              'Rt': residual_variance_ts.loc[:, fit_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, fit_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, fit_asof]}
+ |          Posterior of variational Bayesian filtering as of the
+ |              last time stamp of sample data vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__variational_Bayes_filter_of_vbffa__()
+ |  
+ |  __weight_vector__(self)
+ |      Calculate weight vector to be applied to input or rescaled
+ |          vector time-series data to estimate score time-series
+ |          for VBfFA model evaluation
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      weight_dict : dict {'*': v, ts1id: v1, ts2id: v2, ...}
+ |          Non-negative weight levels to be applied to input or
+ |              rescaled vector time-series to estimate aggregate
+ |              score time-series for VBfFA model evaluation
+ |          weight_dict = None:
+ |              positive uniform or equal weight
+ |          weight_dict['*']:
+ |              non-negative default weight of time-series
+ |          Keys ts1id, ts2id, ...:
+ |              labels of time-series in VTS.index, as keys of
+ |              alternative weight levels applied to specified
+ |              time-series
+ |      
+ |      ts_list : list, VTS.index.tolist()
+ |          List of labels of time-series
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      weight_vec, w : pd.Series, shape (num_ts,)
+ |          Weight vector to be applied to input or rescaled vector
+ |              time-series data to estimate score time-series for
+ |              VBfFA model evaluation
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__weight_vector__()
+ |  
+ |  compare(self)
+ |      Generate time-series of aggregate scores with observations-
+ |          based exponentially weighted simulation (OBS) model
+ |          to serve as benchmark score time-series in evaluating
+ |          variational Bayesian filtering factor analysis (VBfFA)
+ |          model
+ |      
+ |      Generate arithmetic or logarithmic difference of VBfFA
+ |          model evaluation score time-series minus OBS model
+ |          evaluation score time-series
+ |      
+ |      Outputs: OBS
+ |      ------------
+ |      
+ |      obs_agg_variance_ts : pd.Series, shape (len_output_ts,)
+ |          Time-series of aggregated variance predicted by 
+ |              OBS model
+ |      
+ |      obs_agg_zscore_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate z-score time-series predicted by OBS model
+ |      
+ |      obs_agg_bias_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate bias score time-series predicted by OBS model
+ |          Value < 1 or > 1 indicates over- or under-prediction of
+ |              aggregate variance
+ |      
+ |      obs_agg_loglik_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate log likelihood time-series predicted by OBS
+ |              model
+ |          Greater value indicates more accurate forecast of
+ |              aggreage variance
+ |      
+ |      obs_agg_qstat_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate Q-statistic time-series predicted by OBS
+ |              model
+ |          Smaller value indicates more accurate forecast of
+ |              aggregate variance
+ |      
+ |      Outputs: difference
+ |      -------------------
+ |      
+ |      diff_fit_variance_ts : pd.DataFrame,
+ |              shape (num_ts, len_fit_ts)
+ |          Logarithmic difference =
+ |              log( fit_variance_ts / 1.0 ) =
+ |              log( fit_variance_ts ) =
+ |      
+ |      diff_agg_variance_ts : pd.Series,
+ |              shape (len_output_ts,)
+ |          Logarithmic difference =
+ |              log( agg_variance_ts / obs_agg_variance_ts )
+ |      
+ |      diff_agg_zscore_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Arithmetic difference =
+ |              agg_zscore_ts - obs_agg_zscore_ts
+ |      
+ |      diff_agg_bias_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Logarithmic difference =
+ |              log( agg_bias_ts / obs_agg_bias_ts )
+ |      
+ |      diff_agg_loglik_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Arithmetic difference =
+ |              agg_loglik_ts - obs_agg_loglik_ts
+ |      
+ |      diff_agg_qstat_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Arithmetic difference =
+ |              agg_qstat_ts - obs_agg_qstat_ts
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      VBfFA_obj.compare()
+ |  
+ |  evaluate(self)
+ |      Generate time-series of scores to evaluate variational
+ |          Bayesian filtering factor analysis (VBfFA) model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      weight_vec, w : pd.Series, shape (num_ts,)
+ |          Weight vector to be applied to input or rescaled vector
+ |              time-series data to estimate score time-series for
+ |              VBfFA model evaluation
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      agg_variance_ts, pVa : pd.Series, shape (len_fit_ts,)
+ |          Aggregate variance time-series predicted by VBfFA model
+ |              based on predicted variance and covariance of input
+ |              vector time-series
+ |      
+ |      agg_zscore_ts, ZSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate z-score time-series of VBfFA modeling, based
+ |              on predicted mean, variance and covariance
+ |      
+ |      agg_bias_ts, BSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate bias score time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance,
+ |              equals to "z-score squared"
+ |          BSa < 1 or > 1 indicates over- or under-prediction of
+ |              aggregate variance, reflecting accuracy of predicted
+ |              mean, variance and covariance
+ |      
+ |      agg_loglik_ts, LLa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate log likelihood time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance
+ |          Greater LLa indicates more accurate forecast of aggreage
+ |              variance, reflecting accuracy of predicted mean,
+ |              variance and covariance
+ |      
+ |      agg_qstat_ts, QSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate Q-statistic time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance
+ |          Smaller QSa indicates more accurate forecast of aggregate
+ |              variance, reflecting accuracy of predicted mean,
+ |              variance and covariance
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      VBfFA_obj.evaluate()
+ |  
+ |  fit(self, VTS=None)
+ |      Fit variational Bayesian filter factor analysis (VBfFA) Model
+ |          and generate variational Bayesian posterior of factors
+ |          (f and P), loadings (X and U) and residuals (R)
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      ts_list : list, VTS.index.tolist()
+ |          List of labels of time-series
+ |      
+ |      asof_list : list, VTS.columns.tolist()
+ |          List of as-of time stamps of time-series
+ |      
+ |      num_ts, n : int > 1
+ |          Number of time-series
+ |      
+ |      len_ts : int > 1
+ |          Length of time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      num_factors, m : int >= 1
+ |          Number of factors in variational Bayesian filtering
+ |              factor analysis VBfFA modeling
+ |      
+ |      error_reduct_target, h : float, 0 << h < 1
+ |          Working as factor analysis output residual-to-specific
+ |              error variance ratio target
+ |          Functioning as filter estimation-to-prediction error
+ |              variance ratio target
+ |          Serving as filter estimation error variance reduction
+ |              target
+ |          If targetting a lower ratio: larger error reduction,
+ |              faster learning, likely over-fitting
+ |          If targetting a higher ratio: smaller error reduction,
+ |              slower learning, likely under-fitting
+ |      
+ |      num_data_points, Tp : int, Tp >= 1
+ |          Assumed number of data points of Bayesian prior in
+ |              variational Bayesian filtering factor analysis
+ |          Note on exponential weight defined by Tp:
+ |              Decay factor of exponential weight = Tp / (Tp + 1)
+ |      
+ |      num_va_iteration, Lv : int, Lv >= 1
+ |          Number of iterations of variational approximation
+ |              estimate in VBfFA modeling
+ |      
+ |      len_moving_window : int >> 1
+ |          Length of moving/rolling time windows for data in time-
+ |              varying frequentist model learning
+ |          Notes:
+ |              num_factors < min(len_moving_window, num_ts)
+ |      
+ |      ts_standardization : str, in list
+ |              ['win', 'exp', '...win...', '...exp...']
+ |          Data point weighting method for time-series
+ |              standardization
+ |          If 'win' or '...win[dow]...':
+ |              Standardizing time-series with equally weighted data
+ |              points in trailing window of length len_moving_window
+ |          If 'exp' or '...exp[onential]...':
+ |              Standardizing time-series with exponential weights
+ |              defined by num_data_points Tp
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample mean vector time-series of input
+ |              vector time-series VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      vts_standard : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling standardized vector time-series of input VTS
+ |              (estimated by mean_vec_ts and stdev_vec_ts)
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of factor scores vector
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      factor_loading_ts, X : dict, keys (fit_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (fit_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of sample mean squares of estimated
+ |              conditional mean
+ |      
+ |      mean_sq_error_ts, SE : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of sample mean squares of errors of
+ |              estimated conditional mean
+ |      
+ |      posterior_dict : dict {
+ |              'asof_time': fit_asof,
+ |              'at': mean_vec_ts.loc[:, fit_asof],
+ |              'Dt': stdev_vec_ts.loc[:, fit_asof],
+ |              'ft': factor_score_ts.loc[:, fit_asof],
+ |              'Pt': factor_variance_ts.loc[:, fit_asof],
+ |              'Xt': factor_loading_ts[fit_asof],
+ |              'Ut': loading_variance_ts[fit_asof],
+ |              'Rt': residual_variance_ts.loc[:, fit_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, fit_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, fit_asof]}
+ |          Posterior of variational Bayesian filtering as of the
+ |              last time stamp of sample data vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      VBfFA_obj.fit()
+ |      
+ |      VBfFA_obj.fit(VTS=VTS)
+ |  
+ |  get_data_asof_info(self)
+ |      Get as-of time-stamps and lists of time-stamps of input,
+ |          sample, prior, posterior and output data time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      data_asof_dict : dict
+ |              keys ('input_asof', 'input_asof_list', 'len_input_ts',
+ |                  'sample_asof', 'sample_asof_list', 'len_sample_ts',
+ |                  'prior_asof', 'prior_asof_list', 'len_prior_ts',
+ |                  'posterior_asof', 'posterior_asof_list', 'len_posterior_ts',
+ |                  'fit_asof', 'fit_asof_list', 'len_fit_ts',
+ |                  'output_asof', 'output_asof_list', 'len_output_ts')
+ |          Collection of dict type of lists of as-of time-stamps of
+ |              input, sample, prior, posterior and output time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      data_asof_dict = VBfFA_obj.get_data_asof_info()
+ |  
+ |  get_diff_score(self)
+ |      Get dict type collection of arithmetic or logarithmic
+ |          difference of VBfFA model evaluation score time-
+ |          series minus OBS model evaluation score time-series
+ |      
+ |      Inputs: OBS
+ |      -----------
+ |      
+ |      obs_agg_variance_ts : pd.Series, shape (len_output_ts,)
+ |          Time-series of aggregated variance predicted by 
+ |              OBS model
+ |      
+ |      obs_agg_zscore_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate z-score time-series predicted by OBS model
+ |      
+ |      obs_agg_bias_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate bias score time-series predicted by OBS model
+ |          Value < 1 or > 1 indicates over- or under-prediction of
+ |              aggregate variance
+ |      
+ |      obs_agg_loglik_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate log likelihood time-series predicted by OBS
+ |              model
+ |          Greater value indicates more accurate forecast of
+ |              aggreage variance
+ |      
+ |      obs_agg_qstat_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Aggregate Q-statistic time-series predicted by OBS
+ |              model
+ |          Smaller value indicates more accurate forecast of
+ |              aggregate variance
+ |      
+ |      Inputs: difference
+ |      ------------------
+ |      
+ |      diff_fit_variance_ts : pd.DataFrame,
+ |              shape (num_ts, len_fit_ts)
+ |          Logarithmic difference =
+ |              log( fit_variance_ts / 1.0 ) =
+ |              log( fit_variance_ts ) =
+ |      
+ |      diff_agg_variance_ts : pd.Series,
+ |              shape (len_output_ts,)
+ |          Logarithmic difference =
+ |              log( agg_variance_ts / obs_agg_variance_ts )
+ |      
+ |      diff_agg_zscore_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Arithmetic difference =
+ |              agg_zscore_ts - obs_agg_zscore_ts
+ |      
+ |      diff_agg_bias_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Logarithmic difference =
+ |              log( agg_bias_ts / obs_agg_bias_ts )
+ |      
+ |      diff_agg_loglik_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Arithmetic difference =
+ |              agg_loglik_ts - obs_agg_loglik_ts
+ |      
+ |      diff_agg_qstat_ts : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_output_ts)
+ |          Arithmetic difference =
+ |              agg_qstat_ts - obs_agg_qstat_ts
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      diff_score_dict : dict
+ |              keys ('diff_fit_variance_ts', 'diff_agg_variance_ts',
+ |                  'diff_agg_zscore_ts', 'diff_agg_bias_ts',
+ |                  'diff_agg_loglik_ts', 'diff_agg_qstat_ts')
+ |          Collection of dict type of arithmetic or logarithmic
+ |              difference of VBfFA model evaluation score time-
+ |              series minus OBS model evaluation score time-series
+ |      
+ |      obs_score_dict : dict
+ |              keys ('obs_agg_variance_ts', 'obs_agg_zscore_ts',
+ |                  'obs_agg_bias_ts', 'obs_agg_loglik_ts',
+ |                  'obs_agg_qstat_ts')
+ |          Collection of dict type of observations-based
+ |              exponentially weighted simulation (OBS) model
+ |              evaluation score time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      diff_score_dict, obs_score_dict = (
+ |          VBfFA_obj.get_diff_score())
+ |  
+ |  get_diff_stats(self)
+ |      Get averages over time of arithmetic or logarithmic
+ |          difference of VBfFA model evaluation score time-
+ |          series minus OBS model evaluation score time-series
+ |      
+ |      Inputs: OBS
+ |      -----------
+ |      
+ |      Same input data items as those of method
+ |          diff_score_dict, obs_score_dict = VBfFA_obj.get_diff_score()        
+ |      
+ |      Inputs: difference
+ |      ------------------
+ |      
+ |      Same input data items as those of method
+ |          diff_score_dict, obs_score_dict = VBfFA_obj.get_diff_score()        
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      diff_stats_dict : dict
+ |              keys ('output_asof', 'len_output_ts',
+ |                  'diff_avg_fitvar', 'diff_avg_aggvar',
+ |                  'diff_avg_zscore', 'diff_avg_bias',
+ |                  'diff_avg_loglik', 'diff_avg_qstat')
+ |          Collection of dict type of VBfFA minus OBS model
+ |              evaluation statistics, by averages over time of
+ |              arithmetic or logarithmic difference of VBfFA
+ |              model evaluation score time-series minus OBS
+ |              model evaluation score time-series
+ |      
+ |      obs_stats_dict : dict
+ |              keys ('output_asof', 'len_output_ts',
+ |                  'obs_avg_aggvar', 'obs_avg_zscore',
+ |                  'obs_avg_bias', 'obs_avg_loglik',
+ |                  'obs_avg_qstat')
+ |          Collection of dict type of observations-based
+ |              exponentially weighted simulation (OBS) model
+ |              evaluation statistics, by averages over time
+ |              of OBS model evaluation score time-series
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      diff_avg_fitvar : pd.Series, shape (num_ts,)
+ |          Averages of diff_fit_variance_ts time-series over time
+ |      
+ |      diff_avg_aggvar : float
+ |          Averages of diff_agg_variance_ts time-series over time
+ |      
+ |      diff_avg_zscore : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of diff_agg_zscore_ts, ZSa, time-series over time
+ |      
+ |      diff_avg_bias : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of diff_agg_bias_ts, BSa, time-series over time
+ |      
+ |      diff_avg_loglik : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of diff_agg_loglik_ts, LLa, time-series over time
+ |      
+ |      diff_avg_qstat : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of diff_agg_qstat_ts, QSa, time-series over time
+ |      
+ |      obs_avg_aggvar : float
+ |          Averages of obs_agg_variance_ts time-series over time
+ |      
+ |      obs_avg_zscore : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of obs_agg_zscore_ts, ZSa, time-series over time
+ |      
+ |      obs_avg_bias : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of obs_agg_bias_ts, BSa, time-series over time
+ |      
+ |      obs_avg_loglik : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of obs_agg_loglik_ts, LLa, time-series over time
+ |      
+ |      obs_avg_qstat : pd.Series, shape (max_predict_step + 1,)
+ |          Averages of obs_agg_qstat_ts, QSa, time-series over time
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      diff_stats_dict, obs_stats_dict = (
+ |          VBfFA_obj.get_diff_stats())
+ |  
+ |  get_eval_score(self)
+ |      Get dict type collection of aggregate score time-series
+ |          for evaluation of variational Bayesian filtering factor
+ |          analysis (VBffA) model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      fit_variance_ts : pd.DataFrame,
+ |              shape (num_ts, len_fit_ts)
+ |          Time-series of variance of standardized input vector
+ |              time-series estimated by fitted output of variational
+ |              Bayesian filtering factor analysis (VBfFA)
+ |          Values of fit_variance_ts < 1 or > 1 indicates under- or
+ |              over-estimation of variance of individual input time-
+ |              series
+ |      
+ |      agg_variance_ts, pVa : pd.Series, shape (len_fit_ts,)
+ |          Aggregate variance time-series predicted by VBfFA model
+ |              based on predicted variance and covariance of input
+ |              vector time-series
+ |      
+ |      agg_zscore_ts, ZSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate z-score time-series of VBfFA modeling, based
+ |              on predicted mean, variance and covariance
+ |      
+ |      agg_bias_ts, BSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate bias score time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance,
+ |              equals to "z-score squared"
+ |          BSa < 1 or > 1 indicates over- or under-prediction of
+ |              aggregate variance, reflecting accuracy of predicted
+ |              mean, variance and covariance
+ |      
+ |      agg_loglik_ts, LLa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate log likelihood time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance
+ |          Greater LLa indicates more accurate forecast of aggreage
+ |              variance, reflecting accuracy of predicted mean,
+ |              variance and covariance
+ |      
+ |      agg_qstat_ts, QSa : pd.DataFrame,
+ |              shape (max_predict_step + 1, len_fit_ts)
+ |          Aggregate Q-statistic time-series of VBfFA modeling,
+ |              based on predicted mean, variance and covariance
+ |          Smaller QSa indicates more accurate forecast of aggregate
+ |              variance, reflecting accuracy of predicted mean,
+ |              variance and covariance
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      eval_score_dict : dict
+ |              keys ('fit_variance_ts', 'agg_variance_ts',
+ |                  'agg_zscore_ts', 'agg_bias_ts', 'agg_loglik_ts',
+ |                  'agg_qstat_ts')
+ |          Collection of dict type of variational Bayesian filtering
+ |              factor analysis (VBfFA) model evaluation score time-
+ |              series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      eval_score_dict = VBfFA_obj.get_eval_score()
+ |      
+ |      self.get_eval_score()
+ |  
+ |  get_eval_stats(self)
+ |      Get averages over time of VBffA (variational Bayesian
+ |          filtering factor analysis) model evaluation score
+ |          time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      Same input data items as those of method
+ |          eval_score_dict = VBfFA_obj.get_eval_score()
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      eval_stats_dict : dict
+ |              keys ('fit_asof', 'len_fit_ts',
+ |                  'avg_fitvar', 'avg_aggvar', 'avg_zscore',
+ |                  'avg_bias', 'avg_loglik', 'avg_qstat')
+ |          Collection of dict type of variational Bayesian filtering
+ |              factor analysis (VBfFA) model evaluation statistics,
+ |              by averages over time of VBffA model evaluation score
+ |              time-series
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      avg_fitvar : pd.Series, shape (num_ts,)
+ |          Averages over time of fit_variance_ts time-series
+ |      
+ |      avg_aggvar : float
+ |          Average over time of agg_variance_ts time-series
+ |      
+ |      avg_zscore : pd.Series, shape (max_predict_step + 1,)
+ |          Averages over time of agg_zscore_ts, ZSa, time-series
+ |      
+ |      avg_bias : pd.Series, shape (max_predict_step + 1,)
+ |          Averages over time of agg_bias_ts, BSa, time-series
+ |      
+ |      avg_loglik : pd.Series, shape (max_predict_step + 1,)
+ |          Averages over time of agg_loglik_ts, LLa, time-series
+ |      
+ |      avg_qstat : pd.Series, shape (max_predict_step + 1,)
+ |          Averages over time of agg_qstat_ts, QSa, time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      eval_stats_dict = VBfFA_obj.get_eval_stats()
+ |  
+ |  get_fit_output(self)
+ |      Get dict type collection of output time-series from fitting
+ |          variational Bayesian filtering factor analysis (VBfFA)
+ |          model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      learn_param_dict : dict, {
+ |              'num_factors': num_factors,
+ |              'error_reduct_target': error_reduct_target,
+ |              'num_data_points': num_data_points,
+ |              'num_va_iteration': num_va_iteration,
+ |              'len_moving_window': len_moving_window,
+ |              'ts_standardization': ts_standardization}
+ |          Colleciton of dict type of parameters for variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |              learning
+ |      
+ |      input_VTS_info : dict, 
+ |              {'ts_list': ts_list, 'asof_list': asof_list}
+ |          Information of input vector time-series data
+ |      
+ |      output_asof : type(input_asof)
+ |          The last as-of time-stamp of variational Bayesian
+ |              filtering factor analysis output time-series
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample mean vector time-series of input
+ |              vector time-series VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      vts_standard : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling standardized vector time-series of input VTS
+ |              (estimated by mean_vec_ts and stdev_vec_ts)
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of factor scores vector
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_fit_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      factor_loading_ts, X : dict, keys (fit_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (fit_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      mean_sq_estimate_ts, SX : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of sample mean squares of estimated
+ |              conditional mean
+ |      
+ |      mean_sq_error_ts, SE : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of sample mean squares of errors of
+ |              estimated conditional mean
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of output time-series from
+ |              fitting variational Bayesian filtering factor
+ |              analysis (VBfFA) model
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.get_fit_output()
+ |      
+ |      fit_output_dict = VBfFA_obj.get_fit_output()
+ |  
+ |  get_last_pred(self)
+ |      Get dict type collection of predictions as of the last
+ |          output time-stamp by fitted variational Bayesian
+ |          filtering factor analysis (VBffA) model
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      last_prediction : dict {
+ |              'asof_time': output_asof,
+ |              'mean_vec': mean_vec_ts.loc[:, output_asof],
+ |              'stdev_vec': stdev_vec_ts.loc[:, output_asof],
+ |              'factor_score': factor_score_ts.loc[:, output_asof],
+ |              'factor_variance': factor_variance_ts.loc[:, output_asof],
+ |              'vts_loading': vts_loading_ts[output_asof],
+ |              'vts_ldg_variance': vts_ldg_variance_ts[output_asof],
+ |              'vts_residual': vts_residual_ts.loc[:, output_asof],
+ |              'fit_varcov': fit_varcov_ts[output_asof],
+ |              'vts_varcov': vts_varcov_ts[output_asof]}
+ |          Collection of dict type of predictions as of the last
+ |              output time-stamp by fitted variational Bayesian
+ |              filtering factor analysis (VBffA) model
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      last_prediction = VBfFA_obj.get_last_pred()
+ |  
+ |  get_param(self, param_name_list)
+ |      Get value of specified parameter set
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      param_name_list : list [str]
+ |          list of names of parameters
+ |      
+ |      Valid parameters
+ |      ----------------
+ |      
+ |      num_factors, m : int
+ |      error_reduct_target, h : float
+ |      num_data_points, Tp : int
+ |      num_va_iteration, Lv : int
+ |      len_moving_window : int
+ |      ts_standardization : str
+ |      
+ |      len_leaveout_window : int
+ |      max_len_output_ts : int
+ |      score_target_type : str
+ |      max_predict_step : int
+ |      weight_dict : dict
+ |      max_num_ts_add_del : int
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      param_dict : dict {str: obj}
+ |          dict of name and value of specified parameters
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      param_dict = VBfFA_obj.get_param(param_name_list)
+ |  
+ |  get_posterior(self)
+ |      Get the last available posterior of variational Bayesian
+ |          filtering factor analysis (VBfFA) model on standardized
+ |          vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      posterior_dict : dict {
+ |              'asof_time': fit_asof,
+ |              'at': mean_vec_ts.loc[:, fit_asof],
+ |              'Dt': stdev_vec_ts.loc[:, fit_asof],
+ |              'ft': factor_score_ts.loc[:, fit_asof],
+ |              'Pt': factor_variance_ts.loc[:, fit_asof],
+ |              'Xt': factor_loading_ts[fit_asof],
+ |              'Ut': loading_variance_ts[fit_asof],
+ |              'Rt': residual_variance_ts.loc[:, fit_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, fit_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, fit_asof]}
+ |          Posterior of variational Bayesian filtering as of the
+ |              last time stamp of sample data vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      posterior_dict = VBfFA_obj.get_posterior()
+ |  
+ |  get_pred_output(self)
+ |      Get dict type collection of prediction output time-series
+ |          of fitted variational Bayesian filtering factor analysis
+ |          (VBfFA) model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample mean vector time-series of input
+ |              vector time-series VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |              (num_factors, len_posterior_ts)
+ |          Time-series of factor scores vector
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_posterior_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      vts_loading_ts : dict, keys (output_asof_list)
+ |              dict_obj[key] : pd.DataFrame, shape (num_ts, num_factors)
+ |          Time-series of factor loadings matrix of vector time-series
+ |      
+ |      vts_ldg_variance_ts : dict, keys (output_asof_list)
+ |              dict_obj[key] : pd.DataFrame, shape (num_ts, num_factors)
+ |          Time-series of variances of factor loadings of vector
+ |              time-series
+ |      
+ |      vts_residual_ts : pd.DataFrame, shape (num_ts, len_output_ts)
+ |          Time-series of variances of residual errors of vector
+ |              time-series
+ |      
+ |      fit_varcov_ts, VCM : dict, keys (fit_asof_list)
+ |              VCM[asof] : pd.DataFrame, shape (num_ts, num_ts)
+ |          Time-series of variance-covariance matrix of standardized
+ |              input vector time-series estimated by fitted output
+ |              of variational Bayesian filtering factor analysis
+ |              (VBfFA)
+ |      
+ |      vts_varcov_ts : dict, keys (output_asof_list)
+ |              dict_obj[key] : pd.DataFrame, shape (num_ts, num_ts)
+ |          Time-series of variance-covariance matrix of input vector
+ |              time-series estimated by Bayesian filtering factor
+ |              analysis (VBfFA)
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      pred_output_dict : dict
+ |              keys ('mean_vec_ts', 'stdev_vec_ts',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'vts_loading_ts', 'vts_ldg_variance_ts',
+ |                  'vts_residual_ts', 'fit_varcov_ts',
+ |                  'vts_varcov_ts')
+ |          Collection of dict type of output time-series from
+ |              prediction by fitted variational Bayesian filtering
+ |              factor analysis (VBffA) model
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.get_pred_output()
+ |      
+ |      pred_output_dict = VBfFA_obj.get_pred_output()
+ |  
+ |  load_fit_output(self, avail_fit_output_dict)
+ |      Set or reset available previous/earlier output time-
+ |          series of fitting variational Bayesian filtering
+ |          factor analysis (VBfFA) model in order to use and
+ |          update previously trained VBfFA model
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      avail_fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of available previous/earlier
+ |              output time-series from fitting variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      learn_param_dict : dict, {
+ |              'num_factors': num_factors,
+ |              'error_reduct_target': error_reduct_target,
+ |              'num_data_points': num_data_points,
+ |              'num_va_iteration': num_va_iteration,
+ |              'len_moving_window': len_moving_window,
+ |              'ts_standardization': ts_standardization}
+ |          Colleciton of dict type of parameters for variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |              learning
+ |      
+ |      input_VTS_info : dict, 
+ |              {'ts_list': ts_list, 'asof_list': asof_list}
+ |          Information of input vector time-series data
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      avail_fit_output_dict : dict
+ |              keys ('learn_param_dict',
+ |                  'input_VTS_info', 'output_asof_list',
+ |                  'mean_vec_ts', 'stdev_vec_ts', 'vts_standard',
+ |                  'factor_score_ts', 'factor_variance_ts',
+ |                  'factor_loading_ts', 'loading_variance_ts',
+ |                  'residual_variance_ts', 'mean_sq_estimate_ts',
+ |                  'mean_sq_error_ts')
+ |          Collection of dict type of available previous/earlier
+ |              output time-series from fitting variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      VBfFA_obj.load_fit_output(avail_fit_output_dict)
+ |  
+ |  predict(self)
+ |      Generate prediction output time-series by fitted variational
+ |          Bayesian filtering factor analysis (VBffA) model
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      factor_loading_ts, X : dict, keys (fit_asof_list)
+ |              X[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of factor loadings matrix
+ |      
+ |      loading_variance_ts, U : dict, keys (fit_asof_list)
+ |              U[asof] : pd.DataFrame, shape (n_ts, n_factors)
+ |          Time-series of variances (matrix) of factor loadings
+ |      
+ |      residual_variance_ts, R : pandas.DataFrame, shape
+ |              (num_ts, len_fit_ts)
+ |          Time-series of variances (vector) of residual errors
+ |      
+ |      Outputs by passing inputs
+ |      -------------------------
+ |      
+ |      mean_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample mean vector time-series of input
+ |              vector time-series VTS
+ |      
+ |      stdev_vec_ts : pandas.DataFrame, shape
+ |              (num_ts, len_sample_ts)
+ |          Rolling sample standard deviation vector time-series
+ |              of input VTS
+ |      
+ |      factor_score_ts, f : pandas.DataFrame, shape
+ |              (num_factors, len_posterior_ts)
+ |          Time-series of factor scores vector
+ |      
+ |      factor_variance_ts, P : pandas.DataFrame, shape
+ |              (num_factors, len_posterior_ts)
+ |          Time-series of variances (vector) of factor scores
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      vts_loading_ts : dict, keys (output_asof_list)
+ |              dict_obj[key] : pd.DataFrame, shape (num_ts, num_factors)
+ |          Time-series of factor loadings matrix of vector time-series
+ |      
+ |      vts_ldg_variance_ts : dict, keys (output_asof_list)
+ |              dict_obj[key] : pd.DataFrame, shape (num_ts, num_factors)
+ |          Time-series of variances of factor loadings of vector
+ |              time-series
+ |      
+ |      vts_residual_ts : pd.DataFrame, shape (num_ts, len_output_ts)
+ |          Time-series of variances of residual errors of vector
+ |              time-series
+ |      
+ |      fit_varcov_ts, VCM : dict, keys (fit_asof_list)
+ |              VCM[asof] : pd.DataFrame, shape (num_ts, num_ts)
+ |          Time-series of variance-covariance matrix of standardized
+ |              input vector time-series estimated by fitted output
+ |              of variational Bayesian filtering factor analysis
+ |              (VBfFA)
+ |      
+ |      vts_varcov_ts : dict, keys (output_asof_list)
+ |              dict_obj[key] : pd.DataFrame, shape (num_ts, num_ts)
+ |          Time-series of variance-covariance matrix of input vector
+ |              time-series estimated by Bayesian filtering factor
+ |              analysis (VBfFA)
+ |      
+ |      fit_variance_ts : pd.DataFrame,
+ |              shape (num_ts, len_fit_ts)
+ |          Time-series of variance of standardized input vector
+ |              time-series estimated by fitted output of variational
+ |              Bayesian filtering factor analysis (VBfFA)
+ |          Values of fit_variance_ts < 1 or > 1 indicates under- or
+ |              over-estimation of variance of individual input time-
+ |              series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      VBfFA_obj.predict()
+ |  
+ |  set_data(self, VTS)
+ |      Set or reset input vector time-series data, VTS, for
+ |          VBfFA model learning, analysis and inference
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
+ |          Vector time-series: row time-series of column vector
+ |              First column as the oldest, last column as the latest
+ |          For VBfFA model learning, analysis and inference
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      ts_list : list, VTS.index.tolist()
+ |          List of labels of time-series
+ |      
+ |      asof_list : list, VTS.columns.tolist()
+ |          List of as-of time stamps of time-series
+ |      
+ |      num_ts, n : int > 1
+ |          Number of time-series
+ |      
+ |      len_ts : int > 1
+ |          Length of time-series
+ |      
+ |      input_VTS_info : dict, 
+ |              {'ts_list': ts_list, 'asof_list': asof_list}
+ |          Information of input vector time-series data
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.set_data(VTS)
+ |      
+ |      VBfFA_obj.set_data(VTS)
+ |  
+ |  set_param(self, **kwargs)
+ |      Set, update or reset value(s) of any, some or all parameter
+ |          list(s) or dict(s)
+ |      
+ |      Parameters
+ |      ----------
+ |      
+ |      num_factors, m : int >= 1
+ |          Number of factors in variational Bayesian filtering
+ |              factor analysis VBfFA modeling
+ |      
+ |      error_reduct_target, h : float, 0 << h < 1
+ |          Working as factor analysis output residual-to-specific
+ |              error variance ratio target
+ |          Functioning as filter estimation-to-prediction error
+ |              variance ratio target
+ |          Serving as filter estimation error variance reduction
+ |              target
+ |          If targetting a lower ratio: larger error reduction,
+ |              faster learning, likely over-fitting
+ |          If targetting a higher ratio: smaller error reduction,
+ |              slower learning, likely under-fitting
+ |      
+ |      num_data_points, Tp : int, Tp >= 1
+ |          Assumed number of data points of Bayesian prior in
+ |              variational Bayesian filtering factor analysis
+ |          Note on exponential weight defined by Tp:
+ |              Decay factor of exponential weight = Tp / (Tp + 1)
+ |      
+ |      num_va_iteration, Lv : int, Lv >= 1
+ |          Number of iterations of variational approximation
+ |              estimate in VBfFA modeling
+ |      
+ |      len_moving_window : int >> 1
+ |          Length of moving/rolling time windows for data in time-
+ |              varying frequentist model learning
+ |          Notes:
+ |              num_factors < min(len_moving_window, num_ts)
+ |      
+ |      ts_standardization : str, in list
+ |              ['win', 'exp', '...win...', '...exp...']
+ |          Data point weighting method for time-series
+ |              standardization
+ |          If 'win' or '...win[dow]...':
+ |              Standardizing time-series with equally weighted data
+ |              points in trailing window of length len_moving_window
+ |          If 'exp' or '...exp[onential]...':
+ |              Standardizing time-series with exponential weights
+ |              defined by num_data_points Tp
+ |      
+ |      len_leaveout_window : int >= 0
+ |          Length, if any, of leave-out time window, ending at last
+ |              time-stamp of input vector time-series, containing
+ |              data to be left out of VBfFA model fitting and
+ |              inference, and to be used later for model vailation
+ |              or test
+ |      
+ |      max_len_output_ts : int >= 1
+ |          Maximum length of variational Bayesian filtering factor
+ |              analysis output (i.e. f, P, X, U, R and varcov)
+ |              time-series
+ |      
+ |      score_target_type : str, in list
+ |              ['standardized', 's', 'S', 'original', 'o', 'O']
+ |          Type of vector time-series serving as VBfFA model
+ |              prediction target in estimation of score time-series
+ |              for evaluation of VBfFA model
+ |          If 's', 'S' or 'standardized':
+ |              using input VTS rescaled to unit standard deviation
+ |          If 'o', 'O' or 'origional':
+ |              using original input vector time-series VTS
+ |      
+ |      max_predict_step : int >= 1
+ |          Maximum steps of prediction in estimation of score time-
+ |              series for evaluation of VBfFA model
+ |      
+ |      weight_dict : dict {'*': v, ts1id: v1, ts2id: v2, ...}
+ |          Non-negative weight levels to be applied to input or
+ |              rescaled vector time-series to estimate aggregate
+ |              score time-series for VBfFA model evaluation
+ |          weight_dict = None:
+ |              positive uniform or equal weight
+ |          weight_dict['*']:
+ |              non-negative default weight of time-series
+ |          Keys ts1id, ts2id, ...:
+ |              labels of time-series in VTS.index, as keys of
+ |              alternative weight levels applied to specified
+ |              time-series
+ |      
+ |      max_num_ts_add_del : int >= 0
+ |          Maximum number of time-series added or deleted to be
+ |              able to use/update, otherwise not to use/update,
+ |              previously trained VBfFA model
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      num_factors, m : int >= 1
+ |      error_reduct_target, h : float, 0 << h < 1
+ |      num_data_points, Tp : int, Tp >= 1
+ |      num_va_iteration, Lv : int, Lv >= 1
+ |      len_moving_window : int >> 1
+ |      ts_standardization : str
+ |      
+ |      len_leaveout_window : int >= 0
+ |      max_len_output_ts : int >= 1
+ |      score_target_type : str
+ |      max_predict_step : int >= 1
+ |      weight_dict : dict {'*': v, ts1id: v1, ts2id: v2, ...}
+ |      max_num_ts_add_del : int >= 0
+ |      
+ |      learn_param_dict : dict, {
+ |              'num_factors': num_factors,
+ |              'error_reduct_target': error_reduct_target,
+ |              'num_data_points': num_data_points,
+ |              'num_va_iteration': num_va_iteration,
+ |              'len_moving_window': len_moving_window,
+ |              'ts_standardization': ts_standardization}
+ |          Colleciton of dict type of parameters for variational
+ |              Bayesian filtering factor analysis (VBfFA) model
+ |              learning
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      VBfFA_obj.set_param(**kwargs)
+ |      
+ |      VBfFA_obj.set_param(
+ |          param_name=param_value)
+ |      
+ |      VBfFA_obj.set_param(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |      
+ |      VBfFA_obj.set_param(
+ |          num_factors=num_factors,
+ |          error_reduct_target=error_reduct_target,
+ |          num_data_points=num_data_points,
+ |          num_va_iteration=num_va_iteration,
+ |          len_moving_window=len_moving_window,
+ |          ts_standardization=ts_standardization,
+ |          len_leaveout_window=len_leaveout_window,
+ |          max_len_output_ts=max_len_output_ts,
+ |          score_target_type=score_target_type,
+ |          max_predict_step=max_predict_step,
+ |          weight_dict=weight_dict,
+ |          max_num_ts_add_del=max_num_ts_add_del)
+ |  
+ |  set_prior(self, prior_dict)
+ |      Set or reset prior data for variational Bayesian filtering
+ |          factor analysis (VBfFA) model learning
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      prior_dict : dict {
+ |              'asof_time': prior_asof,
+ |              'at': mean_vec_ts.loc[:, prior_asof],
+ |              'Dt': stdev_vec_ts.loc[:, prior_asof],
+ |              'ft': factor_score_ts.loc[:, prior_asof],
+ |              'Pt': factor_variance_ts.loc[:, prior_asof],
+ |              'Xt': factor_loading_ts[prior_asof],
+ |              'Ut': loading_variance_ts[prior_asof],
+ |              'Rt': residual_variance_ts.loc[:, prior_asof],
+ |              'SXt': mean_sq_estimate_ts.loc[:, prior_asof],
+ |              'SEt': mean_sq_error_ts.loc[:, prior_asof]}
+ |          Prior for variational Bayesian filtering (VBf) in
+ |              VBF factor analysis (VBfFA)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.set_prior(prior_dict)
+ |      
+ |      VBfFA_obj.set_prior(prior_dict)
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+
+>>>
