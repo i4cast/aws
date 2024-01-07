@@ -1,0 +1,2205 @@
+>>> help(DFVCM)
+
+Help on class DFVCM in module DFVCM:
+
+class DFVCM(builtins.object)
+ |  DFVCM(len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order={}, alt_num_pcs={}, max_forecast_step=1, target_type='Original')
+ |  
+ |  Dynamic Factor Variance-Covariance Model (DFVCM) for
+ |  analyzing and forecasting variance-covariance matrix
+ |  of observed large vector (or number of) time-series
+ |  
+ |  Observed VTS y(t)
+ |  -----------------
+ |  
+ |  Observed vector (multiple individual) time-series
+ |      y(t) : time-series of n-by-1 observed data vector y with
+ |             time index t
+ |      c : n-by-1 mean vector of observed time-series y(t)
+ |      n : number of observed time-series represented by y(t)
+ |  
+ |  Parameter values
+ |      c = 0 : assuming y(t) are zero-mean vector time-series
+ |      t = 0, 1, 2, ..., T
+ |      T : last time-stamp
+ |  
+ |  Volatility forecast
+ |  -------------------
+ |  
+ |  Notation of forecast
+ |      s-Step forecast of vector time-series y(t):
+ |          y(t+s|t) = y(t+s)
+ |              given data y(tau), tau = 0, 1, ..., t
+ |          for s = 1, 2, ...
+ |  
+ |  Forecast by DFVCM model 
+ |      s-Step forecast of variance-covariance matrix of VTS y(t):
+ |          Var( y(t+s|t) ) = Var( y(t+s) )
+ |              given data y(tau), tau = 0, 1, ..., t
+ |          for s = 1, 2, ...
+ |  
+ |  LMDFM of VTS y(t)
+ |  -----------------
+ |  
+ |  Acronyms - models of multiple time-series
+ |      VAR : vector autoregressive (VAR) model of multiple
+ |            time-series
+ |      DFM : dynamic factor model (DFM) of multiple time-series
+ |      LMDFM : long-memory DFM of multivariate, vector, time-
+ |              series
+ |  
+ |  Notations - dynamic factor loadings and scores
+ |      f(t) : time-series of m-by-1 dynamic factor score vector
+ |             f with time index t
+ |      X : n-by-m matrix of loadings of factor score time-series
+ |          f(t) on observed vector time-series y(t)
+ |      m : number of dynamic factors or factor score time-series
+ |          1 <= m < n
+ |  
+ |  Notations – VAR coefficients of factor score f(t)
+ |      p : vector autoregressive (VAR) order
+ |      A(j) : m-by-m matrix of vector autoregressive (VAR)
+ |             coefficients of dynamic factor score time-series
+ |             f(t); j = 1,2,...,p
+ |  
+ |  Dynamic factor model (DFM) estimated by LMDFM algorithm
+ |      y(t) = X f(t) + u(t)
+ |      f(t) = A(1) f(t-1) + A(2) f(t-2) + ... + A(p) f(t-p) + v(t)
+ |  
+ |  Notations - estimated time-series
+ |      z(t) : time-series of n-by-1 common component vector z,
+ |             z(t) = X f(t), of observed data y(t)
+ |      u(t) : time-series of n-by-1 idiosyncratic component
+ |             vector of observed data y(t) = z(t) + u(t)
+ |      v(t) : time-series of m-by-1 variance vector of error
+ |             in VAR prediction of dynamic factor score f(t)
+ |  
+ |  LMDFM Method
+ |      * LMDFM is estimated by an implementation of dynamic
+ |        principal components analysis (DPCA) with 2-dimensional
+ |        discrete Fourier transforms (2D-DFTs) summarized as
+ |        follows:
+ |      * Estimating variance-covariance matrixes (VCMs) and
+ |        autocovariance matrixes (ACMs) of observed multiple
+ |        (vector) time-series.
+ |      * Combining VCMs and ACMs by applying 2-dimensional
+ |        discrete Fourier transforms (2D-DFTs) on VCMs and ACMs.
+ |      * Referring resulted transforms (by 2D-DFT) as spectral
+ |        density matrixes (SDMs).
+ |      * Applying principal components analysis (PCA) on each
+ |        of SDMs.
+ |      * Estimating principal components (PCs) of original VCMs
+ |        and ACMs by applying inverse 2D-DFTs on PC-represented
+ |        (dimension-reduced) SDMs.
+ |      * This way, PCs of each of original VCMs and ACMs contain
+ |        dynamic information from all of VCMs and ACMs.        
+ |      * If observed multiple (vector) time-series can be
+ |        reasonably assumed as locally stationary, 2D-DFTs
+ |        become simplified as weighted 1D-DFTs.
+ |  
+ |  YWpcAR of idiosyncratic u(t)
+ |  ----------------------------
+ |  
+ |  Acronyms - models of univariate time-series
+ |      AR : autoregressive (AR) model of univariate time-series
+ |      YWpcAR : Yule-Walker-PCA autoregressive (YWpcAR) model
+ |               of univariate time-series
+ |  
+ |  Notations - YWpcAR model
+ |      q : univariate autoregressive (AR) order of YWpcAR
+ |      l : number of PCs of univariate YWpcAR model 
+ |      0 < l < q
+ |  
+ |  Notations - YWpcAR model of idiosyncratic time-series u(t)
+ |      D(j) : PC-based autoregression (AR) coefficients
+ |      B(j) : PC-based filter coefficients to generate unobserved
+ |             dynamic component (UDC) time-series g(t)
+ |             j = 0,1,...,q
+ |  
+ |  Notations - UDC
+ |      g(t) : PC-based unobserved dynamic component (UDC) time-
+ |             series of data u(t)
+ |      g(t) = B(0) u(t) + B(1) u(t-1) + ... + B(q) u(t-q)
+ |  
+ |  Autoregressive model of u(t) estimated by YWpcAR algorithm
+ |      u(t) = g(t) + r(t)
+ |      g(t) = D(1) g(t-1) + D(2) g(t-2) + ... + D(q) g(t-q) + e(t)
+ |  
+ |  Notations - error time-series
+ |      r(t) : time-series of n-by-1 residual error vector of
+ |             idiosyncratic time-series u(t)
+ |      e(t) : time-series of n-by-1 variance vector of error in
+ |             AR prediction of unobserved dynamic component g(t)
+ |  
+ |  YWpcAR Method
+ |      * YWpcAR (Yule-Walker-PCA autoregression model is
+ |        estimated by an implementation of principal components
+ |        analysis (PCA) on Yule-Walker (YW) equation summarized
+ |        as follows.
+ |      * Applying principal components analysis (PCA) on sample
+ |        variance-autocovariance matrix (VACM) in Yule-Walker
+ |        (YW) equation.
+ |      * Replacing elements of sample VACM by PCA-based common
+ |        components.
+ |      * Constructing PCA-based YW equation with replacing
+ |        elements of matrix and vector in YW equation by
+ |        correspondent PCA-based common components of VACM.
+ |      * Estimating AR model coefficients by PCA-based YW
+ |        equation.
+ |      * Combining individual principal component score time-
+ |        series into an unobserved dynamic component (UDC)
+ |        time-series.
+ |      * Forecasting expected value and variance of observed
+ |        time-series with UDC time-series of YW-PCA AR model.
+ |  
+ |  LMDFM + YWpcAR of VTS y(t)
+ |  --------------------------
+ |  
+ |  Observed (data) vector time-series
+ |      y(t); t = 0, 1, ..., T
+ |  
+ |  Estimated by LMDFM model of y(t)
+ |      X, f(t), A(j), u(t), v(t); j = 1,2,...,p
+ |  
+ |  Estimated by YWpcAR model of u(t)
+ |      g(g), a(j), r(t), e(t); j = 1,2,...,q
+ |  
+ |  Combined LMDFM + YWpcAR model of observed vector time-series y(t)
+ |      y(t) = z(t) + u(t)
+ |      z(t) = X f(t) 
+ |      f(t) = A(1) f(t-1) + A(2) f(t-2) + ... + A(p) f(t-p) + v(t)
+ |      u(t) = g(t) + r(t)
+ |      g(t) = D(1) g(t-1) + D(2) g(t-2) + ... + D(q) g(t-q) + e(t)
+ |  
+ |  LMDFM forecasts
+ |  ---------------
+ |  
+ |  Model approximation assumption and constraint:
+ |      covariance of j-th factor and k-th residual is zero
+ |          Cov( f(j,t1), u(k,t2) ) = E( f(j,t1) u(k,t2) ) = 0
+ |              for all j, k, t1, t2 
+ |  
+ |  Model approximation assumption and constraint:
+ |      factor f(j2,t) = linear combination of u(k,t) of all k
+ |          Cov( f(j1,t1), f(j2,t2) ) = E( f(j1,t1) f(j2,t2) ) = 0
+ |              for j2 > j1, and for all t1, t2 
+ |  
+ |  Variance of dynamic factor score time-series f(t)
+ |      Var( f(t-j) ) = V(t-j,0) : m-by-m diagonal matrix
+ |      time-index-lag j = 0, 1, ..., p
+ |  
+ |  k-Lag autocovariance of dynamic factor scores f(t)
+ |      Cov( f(t-j), f(t-j-k) ) = V(t-j,k) : m-by-m diagonal matrix
+ |      time-sample-lag k = 1, 2, ..., p; j+k <= p
+ |  
+ |  Autocovariance of dynamic factor scores f(t)
+ |      Cov( f(t-j-k), f(t-j) ) = Cov( f(t-j), f(t-j-k) ) = V(t-j,k)
+ |      Cov( f(t-j1), f(t-j2) ) = V(t-min(j1,j2), abs(j1-j2))
+ |      j1, j2 = 1, 2, ..., p
+ |  
+ |  Dynamic factor model (DFM) estimated by LMDFM algorithm
+ |      y(t) = X f(t) + u(t)
+ |      f(t) = A(1) f(t-1) + A(2) f(t-2) + ... + A(p) f(t-p) + v(t)
+ |  
+ |  s-Step forecast of dynamic factor scores f(t)
+ |      f(t+s|t) = A(1) f(t+s-1) + ... + A(p) f(t+s-p) + v(t+s|t)
+ |  
+ |  Notes on error in VAR prediction of dynamic factor scores
+ |      Var( v(t) ) = Var(
+ |          A(1) f(t-1) + A(2) f(t-2) + ... + A(p) f(t-p) - f(t) )
+ |      if not calculated, Var( v(t+s) ) = Var( v(t) )
+ |  
+ |  Notes on idiosyncratic component vector time-series
+ |      if not calculated, Var( u(t+s) ) = Var( u(t) )
+ |      if not calculated, E( u(t+s) u(t+s-k)' ) = 0
+ |  
+ |  s-Step forecast of variance of dynamic factor scores f(t)
+ |      V(t+s,0) = diag( sum(
+ |          A(min(j1,j2)) V(t+s-min(j1,j2), abs(j1-j2)) A(max(j1,j2))' ;
+ |          j1, j2 = 1, 2, ..., p ) + Var( v(t) ) )
+ |  
+ |  s-Step forecast of k-lag autocovariance of factors
+ |      V(t+s,k) = diag( sum(
+ |          A(j) V(t+s-min(j,k), abs(j-k)) ; j = 1, 2, ..., p ) )
+ |      k = 1, 2, ..., p
+ |  
+ |  s-Step forecast of variance-covariance matrix of observed data y(t)
+ |        Var( y(t+s) ) = E( y(t+s) y(t+s)' )
+ |      = E( X f(t+s) f(t+s)' X' ) + Var( u(t+s) )
+ |      = X V(t+s,0) X' + Var( u(t+s) )
+ |  
+ |  s-Step forecast of k-lag autocovariance matrix of observed y(t)
+ |        Cov( y(t+s), y(t+s-k) ) = E( y(t+s) y(t+s-k)' )
+ |      = E( X f(t+s) f(t+s-k)' X' ) + E( u(t+s) u(t+s-k)' )
+ |      = X V(t+s,k) X'
+ |  
+ |  YWpcAR forecasts
+ |  ----------------
+ |  
+ |  Variance of UDC time-series
+ |      Var( g(t-j) ) = w(t-j,0)
+ |      time-index-lag j = 0, 1, ..., q
+ |  
+ |  k-Lag autocovariance of UDC time-series
+ |      Cov( g(t-j), g(t-j-k) ) = w(t-j,k)
+ |      time-sample-lag k = 1, 2, ..., q; j = 0, 1, ..., q-k
+ |  
+ |  Autocovariance of UDC time-series
+ |      Cov( g(t-j-k), g(t-j) ) = Cov( g(t-j), g(t-j-k) ) = w(t-j,k)
+ |      Cov( g(t-j1), g(t-j2) ) = w(t-min(j1,j2), abs(j1-j2))
+ |      j1, j2 = 1, 2, ..., q
+ |  
+ |  s-Step forecast of observed time-series by forecasted UDC
+ |      g(t+s|t) = a(1) g(t+s-1) + ... + a(q) g(t+s-q) + e(t+s|t)
+ |      y(t+s|t) = g(t+s) + r(t+s|t)
+ |  
+ |  Notes on error in AR prediction of unobserved dynamic component
+ |      Var( e(t) ) = Var(
+ |          a(1) g(t-1) + a(2) g(t-2) + ... + a(p) g(t-p) - g(t) )
+ |      if not calculated, Var( e(t+s) ) = Var( e(t) )
+ |  
+ |  Notes on AR model residual error
+ |      if not calculated, Var( r(t+s) ) = Var( r(t) )
+ |      if not calculated, Cov( r(t+s), r(t+s-k) ) = 0
+ |  
+ |  s-Step forecast of variance of UDC time-series
+ |      w(t+s,0) = sum(
+ |          a(min(j1,j2)) w(t+s-min(j1,j2), abs(j1-j2)) a(max(j1,j2));
+ |          j1, j2 = 1, 2, ..., q ) + Var( e(t) )
+ |  
+ |  s-Step forecast of k-lag autocovariance of UDC
+ |      w(t+s,k) = sum(
+ |         a(j) w(t+s-min(j,k), abs(j-k)); j = 1, ..., q );
+ |      k = 1, 2, ..., q
+ |  
+ |  s-Step forecast of variance of observed time-series y(t)
+ |        Var( y(t+s) ) = E( y(t+s) y(t+s) )
+ |      = E( g(t+s) g(t+s) ) + Var( r(t+s) )
+ |      = w(t+s,0) + Var( r(t) )
+ |  
+ |  s-Step forecast of k-lag autocovariance of time-series y(t)
+ |        Cov( y(t+s), y(t+s-k) ) = E( y(t+s) y(t+s-k) )
+ |      = E( g(t+s) g(t+s-k) ) + E( r(t+s) r(t+s-k) )
+ |      = w(t+s,k)
+ |  
+ |  Forecasted volatility of y(t)
+ |  -----------------------------
+ |  
+ |  Acronyms - volatility model of multiple time-series
+ |      DFMCM : dynamic factor variance-covariance model (DFVCM)
+ |      MDVF : multivariate dynamic volatility forecast (MDVF)
+ |  
+ |  Assumptions of simple DFM + YWpcAR model
+ |      E( y(t), z(t), u(t), g(t), e(t) ) = 0
+ |      Var( f[i](t) u[j](s) ) = E( f[i](t) u[j](s) ) = 0
+ |      Var( g[i](t) r[j](s) ) = E( g[i](t) r[j](s) ) = 0
+ |      for all i and j
+ |  
+ |  s-Step forecast of variance-covariance matrix of observed data y(t)
+ |        Var( y(t+s) ) = E( y(t+s) y(t+s)' )
+ |      = E( X f(t+s) f(t+s)' X' ) + Var( u(t+s) )
+ |      = X V(t+s,0) X' + Var( u(t+s) )
+ |  
+ |  s-Step forecast of variance of idiosyncratic time-series u(t)
+ |        Var( u(t+s) ) = E( u(t+s) u(t+s) )
+ |      = E( g(t+s) g(t+s) ) + Var( r(t+s) )
+ |      = w(t+s,0) + Var( r(t) )
+ |  
+ |  s-Step forecast of variance-covariance matrix of observed data y(t)
+ |        Var( y(t+s) )
+ |      = X V(t+s,0) X' + w(t+s,0) + Var( r(t) )
+ |  
+ |  s-Step forecast of k-lag autocovariance matrix of observed y(t)
+ |        Cov( y(t+s), y(t+s-k) ) = E( y(t+s) y(t+s-k)' )
+ |      = E( X f(t+s) f(t+s-k)' X' ) + E( u(t+s) u(t+s-k)' )
+ |      = X V(t+s,k) X' + Cov( u(t+s), u(t+s-k) )
+ |  
+ |  s-Step forecast of k-lag autocovariance of idiosyncratic u(t)
+ |        Cov( u(t+s), u(t+s-k) ) = E( u(t+s) u(t+s-k) )
+ |      = E( g(t+s) g(t+s-k) ) + E( r(t+s) r(t+s-k) )
+ |      = w(t+s,k)
+ |  
+ |  s-Step forecast of k-lag autocovariance matrix of observed y(t)
+ |        Cov( y(t+s), y(t+s-k) )
+ |      = X V(t+s,k) X' + w(t+s,k)
+ |  
+ |  References
+ |  ----------
+ |  
+ |  i4cast LLC (2023). "Dynamic Factor Variance-Covariance Model
+ |  (DFVCM) and Multivariate Dynamic Volatility Analysis (MDVA)".
+ |  https://github.com/i4cast/aws/
+ |  
+ |  Data (vector time-series)
+ |  -------------------------
+ |  
+ |  VTS : pandas.DataFrame,
+ |          index (ts_list), columns (observed_asof_list)
+ |      Observed vector time-series
+ |      Row time-series of column vector with first column
+ |          as oldest and last one as latest
+ |      Input of method set_data(VTS) for DFVCM model learning
+ |          and inference
+ |  
+ |  ts_list : list
+ |      List of time-series name/symbol/label string
+ |  
+ |  observed_asof_list : list
+ |      List of as-of time-stamp of observed time-series
+ |  
+ |  num_ts : int >= 1
+ |      Number of time-series = len(ts_list)
+ |  
+ |  len_ts : int > 1
+ |      Length of time-series = len(observed_asof_list)
+ |  
+ |  Learning parameters
+ |  -------------------
+ |  
+ |  len_learn_window : int >> 1
+ |      Length of trailing time window of data points
+ |          for model learning
+ |  
+ |  var_order : int >= 1
+ |      Vector autoregressive (VAR) order, p, of dynamic
+ |          factor model (LMDFM) for common components of
+ |          vector time-series
+ |      Notes:
+ |          var_order <= len_learn_window
+ |          len_ts >= len_learn_window + (3 var_order)
+ |  
+ |  num_factors : int >= 1
+ |      Number of factors of dynamic factor model (LMDFM)
+ |          for common components of vector time-series
+ |      Notes:
+ |          num_factors < min(len_learn_window, num_ts)
+ |  
+ |  ar_order_idio : int >= 1
+ |      Autoregressive (AR) order, q, of YWpcAR model for
+ |          idiosyncratic components of time-series, here
+ |          q applied to all time-series other than those
+ |          specified, if any, in alt_ar_order
+ |      Notes:
+ |          ar_order_idio <= len_learn_window
+ |          len_ts >= len_learn_window + (2 ar_order_idio)
+ |  
+ |  num_pcs : int >= 1
+ |      Number of principal components (PCs), m, of YWpcAR
+ |          model for idiosyncratic components of time-
+ |          series, here m applied to all time-series other
+ |          than those specified, if any, in alt_num_pcs
+ |      Notes:
+ |          num_pcs < ar_order_idio
+ |  
+ |  alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |      Autoregressive (AR) orders, q1, q2, ..., applied
+ |          to Specified time-series ts1, ts2, ...
+ |      Notes:
+ |          ts1id, ts2id, ...: labels of time-series in
+ |          VTS.index, as key of alternative AR order value
+ |          applied to the specified time-series
+ |  
+ |  alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |      Numbers of principal components (PCs), m1, m2, ...,
+ |          applied to specified time-series ts1, ts2, ...
+ |      Notes:
+ |          ts1id, ts2id, ...: labels of time-series in
+ |          VTS.index, as key of alternative number of PCs
+ |          applied to the specified time-series
+ |  
+ |  Inference parameters
+ |  --------------------
+ |  
+ |  max_forecast_step : int >= 1
+ |      Maximum number of forecasting steps of variance-
+ |          covariance matrix forecasts
+ |  
+ |  target_type : str, in [
+ |          's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |          'o', 'O', 'original']
+ |      Specified type of vector, or multiple, time-series data
+ |          on which model inferences, predictions or forecasts
+ |          are made, and are evaluated
+ |      If 's', 'S', 'standardized', 'b', 'B' or 'base-case':
+ |          Inferences/forecasts are made/evaluated on
+ |          standardized, or base-case, values of observed
+ |          vector time-series
+ |      If 'o', 'O' or 'original':
+ |          Inferences/forecasts are made/evaluated on values
+ |          of original/observed vector time-series
+ |  
+ |  Attributes
+ |  ----------
+ |  
+ |  asof : time-stamp object
+ |      Last time-stamp of observed vector time-series data
+ |          utilized in estimation of values in object obj
+ |      Examples:
+ |          obj['asof'] = asof
+ |              when isinstance(obj, type(dict()))
+ |          obj.loc['asof'] = asof
+ |              when isinstance(obj, type(pd.Series()))
+ |          obj.loc[:, 'asof'] = asof
+ |              when isinstance(obj, type(pd.DataFrame()))
+ |          obj.name = asof
+ |              when isinstance(obj, type(pd.Series()))
+ |  
+ |  mean_vec : pandas.Series, index (ts_list)
+ |      Sample mean vector of observed vector time-series
+ |          of data points in last learning window
+ |      mean_vec.name = asof
+ |  
+ |  stdev_vec : pandas.Series, index (ts_list)
+ |      Sample standard deviation vector of observed
+ |          vector time-series of data points in last
+ |          learning window
+ |      stdev_vec.name = asof
+ |  
+ |  loadings_mat : pd.DataFrame,
+ |          index (ts_list), columns (factor_list)
+ |      Loadings matrix (of DFM Form-II in this LMDFM
+ |          algorithm) of (0-lag) common dynamic factors
+ |          on observed vector time-series
+ |      loadings_mat = dfm_loadings['DFM-II']
+ |  
+ |  Notes on dfm_loadings
+ |      dfm_loadings : dict, 
+ |                  keys (0, 1,..., var_order, 'DFM-II', 'asof')
+ |              obj[key] : pd.DataFrame,
+ |                  index (ts_list), columns (factor_list)
+ |          Loadings matrix of k-lag factors on observed vector
+ |              time-series
+ |          Estimated loadings matrix X(k) of DFM Form-I, and
+ |              loadings matrix X of Form-II
+ |  
+ |  dfs_variance : pd.DataFrame, index (factor_list),
+ |          columns (0, 1, ..., max_forecast_step, 'asof')
+ |      Out-of-sample multi-step forecasts of variance vectors
+ |          of dynamic factor score time-series of observed
+ |          vector time-series
+ |      Notes:
+ |          obj.loc[:, 0]: Estimated current, or nowcast of
+ |              variance vector
+ |  
+ |  comm_varcov : dict, 
+ |              keys (0, 1, ..., max_forecast_step, 'asof')
+ |          obj[key] : pd.DataFrame,
+ |              index (ts_list), columns (ts_list)
+ |      Forecasted variance-covariance matrix of factor-based
+ |          common component time-series of observed vector
+ |          time-series
+ |      Notes:
+ |          obj[0]: Estimated current variance-covariance
+ |  
+ |  idio_variance : pd.DataFrame, index (ts_list),
+ |          columns (0, 1, ..., max_forecast_step, 'asof')
+ |      Forecasted variance vector of idiosyncratic component
+ |          time-series of observed vector time-series
+ |      Notes:
+ |          obj.loc[:, 0]: Estimated current variance vector
+ |      idio_variance = udc_variance + err_variance
+ |  
+ |  Notes on udc_variance
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple unobserved
+ |              dynamic component (UDC) time-series of observed
+ |              time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |  
+ |  Notes on err_variance
+ |      err_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple residual
+ |              error time-series of observed time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |  
+ |  agg_variance : pd.Series,
+ |          index (0, 1, ..., max_forecast_step, 'asof')
+ |      Forecasted variances of aggregate value of target_type
+ |          values of observed vector time-series, serving as
+ |          aggregate variance forecasts
+ |  
+ |  indiv_variance : pd.DataFrame,
+ |          index (ts_list),
+ |          columns (0, 1, ..., max_forecast_step, 'asof')
+ |      Out-of-sample multi-step forecasts of variance vectors
+ |          of target_type values of individual observed
+ |          multiple time-series, forecasted by common dynamic
+ |          factors plus idiosyncratic variances of all observed
+ |          time-series
+ |      Notes:
+ |          obj.loc[:, 0]: Estimated current, or nowcast of
+ |              variance vector
+ |  
+ |  vts_varcov : dict,
+ |              keys (0, 1, ..., max_forecast_step, 'asof')
+ |          obj[key] : pd.DataFrame,
+ |              index (ts_list), columns (ts_list)
+ |      Forecasted variance-covariance matrix of observed
+ |          vector time-series
+ |      Notes:
+ |          obj[0]: Estimated current variance-covariance
+ |  
+ |  Attributes (components of VTS)
+ |  ------------------------------
+ |  
+ |  modeling_vts_list : list(['vts_base_case',
+ |          'vts_base_comm', 'vts_base_idio', 'ts_base_udc',
+ |          'vts_common', 'vts_idiosync', 'ts_unobsdync'])
+ |      List of modeling data vector time-series: factor-based
+ |          common components and idiosyncratic components of
+ |          observed vector time-series
+ |  
+ |  vts_base_case : pd.DataFrame, 
+ |          index (ts_list), columns (asof_list)
+ |      Standardized value, serving as base-case value, of
+ |          observed vector time-series for dynamic factor
+ |          model learning and inference
+ |      vts_base_case = LMDFM_obj.get_base_vts()
+ |  
+ |  vts_base_comm : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Common components, represented by dynamic common
+ |          factors, of Standardized, or base-case, values
+ |          of observed vector time-series
+ |      vts_base_comm = LMDFM_obj.get_base_comm()
+ |  
+ |  vts_base_idio : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Idiosyncratic components, not represented by dynamic
+ |          factors, of Standardized, or base-case, values
+ |          of observed vector time-series
+ |      vts_base_idio = LMDFM_obj.get_base_idio()
+ |  
+ |  ts_base_udc : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Multiple unobserved dynamic component (UDC) time-
+ |          series of correspondent base-case idiosyncratic
+ |          components time-series
+ |      ts_base_udc = YWpcAR_obj.get_unobs()
+ |  
+ |  vts_common : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Common components of Standardized or Zero-mean or
+ |          Original value of observed vector time-series
+ |  
+ |  vts_idiosync : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Idiosyncratic components of Standardized or Zero-
+ |          mean or Original value of observed vector
+ |          time-series
+ |  
+ |  ts_unobsdync : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Multiple unobserved dynamic component (UDC) time-
+ |          series of correspondent observed multiple time-
+ |          series
+ |  
+ |  Attributes (by LMDFM)
+ |  ---------------------
+ |  
+ |  comm_vm_data_list : list (['loadings_mat', 'var_dfm',
+ |          'dfs_serialcov', 'dfs_autocov'])
+ |      List of volatility modeling data objects related to
+ |          variance-covariance estimated and forecasted by
+ |          LMDFM module on factor-based common components
+ |          of observed vector time-series
+ |  
+ |  loadings_mat : pd.DataFrame,
+ |          index (ts_list), columns (factor_list)
+ |      Loadings matrix (of DFM Form-II in this LMDFM
+ |          algorithm) of (0-lag) common dynamic factors
+ |          on observed vector time-series
+ |  
+ |  var_dfm : dict, keys (1, 2, ..., var_order, 'asof')
+ |          obj[k] : pd.DataFrame,
+ |              index (factor_list), columns (factor_list)
+ |      Vector autoregressive coefficient matrixes of dynamic
+ |          common factor score vector time-series
+ |      var_dfm = LMDFM_obj.var_dfm = LMDFM_obj.get_dfmVAR()
+ |  
+ |  dfs_serialcov : dict,
+ |              keys (-var_order, ..., -1, 0, 'R', 'asof')
+ |          obj[key] : pd.DataFrame, index (factor_list),
+ |              columns (0, 1, ..., var_order): time-sample-lag
+ |      Estimated current (key = 0) and past (key <= -1)
+ |          diagonal autocovariance (serial-covariance) matrix
+ |          with time-sample-lag of dynamic factor score time-
+ |          series
+ |      Estimated current/past diagonal autocovariance matrix,
+ |          Cov(f(t-j),f(t-j-k)), of dynamic factor score f(t)
+ |      Notes:
+ |          obj['R']: variance of error (pd.Series) in VAR
+ |              prediction of dynamic factor scores
+ |      dfs_serialcov = LMDFM_obj.dfs_serialcov =
+ |          LMDFM_obj.get_dfsSCov()
+ |  
+ |  dfs_autocov : dict, keys ((s, k), ..., 'R', 'asof')
+ |              s in [0, 1, ..., mx_forec_stp]: forec step
+ |              k in [0, 1, 2, ..., var_order]: sample lag
+ |          obj[(j, 0)] : pd.Series, index (factor_list)
+ |          obj[(j, k)] : pd.DataFrame,
+ |              index / columns (factor_list), k >= 1
+ |      Forecasted (s >= 1) variance vector (k = 0) and
+ |          k-lag autocovariance matrix (k >= 1) of dynamic
+ |          factor score time-series
+ |      Forecasted variance/autocovariance,
+ |          Cov(f(t+s),f(t+s-k)), of dynamic factor scores
+ |      Notes:
+ |          obj['R']: variance of error (pd.Series) in VAR
+ |              prediction of dynamic factor scores
+ |      dfs_autocov = LMDFM_obj.dfs_autocov =
+ |          LMDFM_obj.get_dfsACov()
+ |  
+ |  Attributes (by YWpcAR)
+ |  ----------------------
+ |  
+ |  idio_vm_data_list : list (['ar_coefs', 'udc_serialcov',
+ |          'udc_variance', 'udc_autocov', 'err_variance'])
+ |      List of volatility modeling data objects related to
+ |          variance estimated and forecasted by YWpcAR module
+ |          on idiosyncratic components of observed vector
+ |          time-series
+ |  
+ |  ar_coefs : pd.DataFrame, index (ts_list),
+ |          columns (1, 2, ..., max_ar_order, 'asof')
+ |      Autoregressive (AR) model coefficients of observed
+ |          multiple time-series and of multiple unobserved
+ |          dynamic component (UDC) time-series 
+ |      ar_coefs = YWpcAR_obj.ar_coefs =
+ |          YWpcAR_obj.get_ARcoefs()
+ |  
+ |  udc_serialcov : dict,
+ |              keys (-mx_ar_order, ..., -1, 0, 'R', 'asof')
+ |          obj[key] : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., mx_ar_ord): t-sample-lag
+ |      Estimated current (key = 0) and past (key <= -1)
+ |          autocovariance (series-covariance) vector with
+ |          time-sample-lag of multiple unobserved dynamic
+ |          component (UDC) time-series
+ |      Notes:
+ |          obj['R']: variance of error (pd.Series) in AR
+ |              prediction of UDC
+ |      udc_serialcov = YWpcAR_obj.udc_serialcov =
+ |          YWpcAR_obj.get_udcSCov()
+ |  
+ |  udc_variance : pd.DataFrame, index (ts_list),
+ |          columns (0, 1, ..., max_forecast_step, 'asof')
+ |      Forecasted variance vectors of multiple unobserved
+ |          dynamic component (UDC) time-series of observed
+ |          time-series
+ |      Notes:
+ |          obj.loc[:, 0]: Estimated current variance vector
+ |      udc_variance = YWpcAR_obj.udc_variance =
+ |          YWpcAR_obj.get_udcVar()
+ |  
+ |  udc_autocov : dict,
+ |              keys (0, 1, ..., max_forec_step, 'R', 'asof')
+ |          obj[key] : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., mx_ar_ord): t-sample-lag
+ |      Forecasted autocovariance vector with time-sample-lag
+ |          of multiple unobserved dynamic component (UDC)
+ |          time-series of observed time-series
+ |      Notes:
+ |          obj['R']: variance of error (pd.Series) in AR
+ |              prediction of UDC
+ |      udc_autocov = YWpcAR_obj.udc_autocov =
+ |          YWpcAR_obj.get_udcACov()
+ |  
+ |  err_variance : pd.DataFrame, index (ts_list),
+ |          columns (0, 1, ..., max_forecast_step, 'asof')
+ |      Forecasted variance vectors of multiple residual
+ |          error time-series of observed time-series
+ |      Notes:
+ |          obj.loc[:, 0]: Estimated current variance vector
+ |      err_variance = YWpcAR_obj.err_variance =
+ |          YWpcAR_obj.get_errVar()
+ |  
+ |  Methods
+ |  -------
+ |  
+ |  For model initiation
+ |      DFVCM()
+ |      DFVCM(len_learn_window, var_order, num_factors,
+ |          ar_order_idio, num_pcs, alt_ar_order, alt_num_pcs,
+ |          max_forecast_step, target_type)
+ |      DFVCM_obj.set_param(len_learn_window, var_order,
+ |          num_factors, ar_order_idio, num_pcs, alt_ar_order,
+ |          alt_num_pcs, max_forecast_step, target_type)
+ |      DFVCM_obj.set_data(VTS)
+ |      DFVCM_obj.get_param(param_name_list)
+ |      DFVCM_obj.min_ts_len()
+ |      DFVCM_obj.get_data_info()
+ |  
+ |  For model learning
+ |      DFVCM_obj.fit()
+ |      DFVCM_obj.get_mean()
+ |      DFVCM_obj.get_stdev()
+ |      DFVCM_obj.get_modeling_vts()
+ |  
+ |  For model inference
+ |      DFVCM_obj.varcovar()
+ |      DFVCM_obj.get_varcov(target_type)
+ |      DFVCM_obj.get_aggVar(target_type)
+ |      DFVCM_obj.get_indivVar(target_type)
+ |      DFVCM_obj.get_vcMatrix(target_type)
+ |  
+ |  For variance-covariance benchmark
+ |      DFVCM_obj.get_asof()
+ |  
+ |  For volatility modeling data from LMDFM and YWpcAR module
+ |      DFVCM_obj.get_comm_vm_data(comm_data_item)
+ |      DFVCM_obj.get_idio_vm_data(idio_data_item)
+ |  
+ |  Notes on data
+ |  -------------
+ |  
+ |  * VTS, for learning and for inference, input of method
+ |    set_data(VTS)
+ |  
+ |  Class LMDFM
+ |  -----------
+ |  
+ |  This class, class DFVCM, initiates instances of "long-memory
+ |      dynamic factor model" class, class LMDFM, to analyze and
+ |      forecast common components of vector timeries.
+ |  
+ |  Setting methods of LMDFM object:
+ |      LMDFM()
+ |      LMDFM(len_learn_window, var_order, num_factors,
+ |          forecast_type, shock_list, max_forecast_step,
+ |          target_type, fwd_cumsum)
+ |      LMDFM_obj.set_param(len_learn_window, var_order,
+ |          num_factors, forecast_type, shock_list,
+ |          max_forecast_step, target_type, fwd_cumsum)
+ |      LMDFM_obj.check_data(VTS)
+ |      LMDFM_obj.set_data(VTS)
+ |      LMDFM_obj.get_param(param_name_list)
+ |      LMDFM_obj.min_ts_len()
+ |  
+ |  Learning methods of LMDFM object:
+ |      LMDFM_obj.fit()
+ |      LMDFM_obj.get_mean()
+ |      LMDFM_obj.get_stdev()
+ |      LMDFM_obj.get_base_vts()
+ |      LMDFM_obj.get_loadings(target_type)
+ |      LMDFM_obj.get_factors()
+ |      LMDFM_obj.get_base_comm()
+ |      LMDFM_obj.get_base_idio()
+ |      LMDFM_obj.get_dfmVAR()
+ |      LMDFM_obj.get_dfsSCov()
+ |  
+ |  Inference methods of LMDFM object:
+ |      LMDFM_obj.varcovar()
+ |      LMDFM_obj.get_varcov(target_type)
+ |      LMDFM_obj.get_aggVar(target_type)
+ |      LMDFM_obj.get_indivVar(target_type)
+ |      LMDFM_obj.get_vcMatrix(target_type)
+ |      LMDFM_obj.get_dfsACov()
+ |  
+ |  Benchmark method of LMDFM object:
+ |      LMDFM_obj.get_asof()
+ |  
+ |  For calculating var-cov matrix (static method)
+ |      LMDFM.varcov_matrix(dfs_variance, loadings_mat, idio_vartiance)
+ |  
+ |  Additional details can be obtained from help(LMDFM)
+ |  
+ |  Class YWpcAR
+ |  ------------
+ |  
+ |  This class, class DFVCM, initiates instances of "Yule-Walker-PCA
+ |      autoregressive model" class, class YWpcAR, to analyze and
+ |      forecast idiosyncratic components of individual time-series.
+ |  
+ |  Setting methods of YWpcAR object:
+ |      YWpcAR_obj = YWpcAR(len_learn_window, ar_order,
+ |          num_pcs, alt_ar_order, alt_num_pcs, est_autcov,
+ |          max_forecast_step, target_type, fwd_cumsum)
+ |      YWpcAR_obj.set_param(len_learn_window, ar_order,
+ |          num_pcs, alt_ar_order, alt_num_pcs,
+ |          max_forecast_step, target_type, fwd_cumsum)
+ |      YWpcAR_obj.set_data(VTS)
+ |      YWpcAR_obj.get_param(param_name_list)
+ |  
+ |  Learning methods of YWpcAR object:
+ |      YWpcAR_obj.fit()
+ |      YWpcAR_obj.get_ARcoefs()
+ |      YWpcAR_obj.get_udcFilt()
+ |      YWpcAR_obj.get_unobs()
+ |      YWpcAR_obj.get_udcSCov()
+ |  
+ |  Inference methods of YWpcAR object:
+ |      YWpcAR_obj.variance()
+ |      YWpcAR_obj.get_variance()
+ |      YWpcAR_obj.get_tsVar()
+ |      YWpcAR_obj.get_udcACov()
+ |  
+ |  Info method of YWpcAR object:
+ |      YWpcAR_obj.get_asof()
+ |  
+ |  Additional details can be obtained from help(YWpcAR)
+ |  
+ |  Methods defined here:
+ |  
+ |  __data_holder__(self)
+ |      Initialize or reset data and related items
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__data_holder__()
+ |  
+ |  __init__(self, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order={}, alt_num_pcs={}, max_forecast_step=1, target_type='Original')
+ |      Initialize object self
+ |      
+ |      Learning parameters
+ |      -------------------
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic
+ |              factor model (LMDFM) for common components of
+ |              vector time-series
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model (LMDFM)
+ |              for common components of vector time-series
+ |          Notes:
+ |              num_factors < min(len_learn_window, num_ts)
+ |      
+ |      ar_order_idio : int >= 1
+ |          Autoregressive (AR) order, q, of YWpcAR model for
+ |              idiosyncratic components of time-series, here
+ |              q applied to all time-series other than those
+ |              specified, if any, in alt_ar_order
+ |      
+ |      num_pcs : int >= 1
+ |          Number of principal components (PCs), m, of YWpcAR
+ |              model for idiosyncratic components of time-
+ |              series, here m applied to all time-series other
+ |              than those specified, if any, in alt_num_pcs
+ |      
+ |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |          Autoregressive (AR) orders, q1, q2, ..., applied
+ |              to Specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in
+ |              VTS.index 
+ |      
+ |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2, ...,
+ |              applied to specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in
+ |              VTS.index 
+ |      
+ |      Inference parameters
+ |      --------------------
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forecasting steps of variance-
+ |              covariance matrix forecasts
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          If 's', 'S', 'standardized', 'b', 'B' or 'base-case':
+ |              Inferences/forecasts are made/evaluated on
+ |              standardized, or base-case, values of observed
+ |              vector time-series
+ |          If 'o', 'O' or 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      self : object
+ |          Class instance itself
+ |      
+ |      Object initiation call
+ |      ----------------------
+ |      
+ |      DFVCM_obj = DFVCM(**kwargs)
+ |      
+ |      DFVCM_obj = DFVCM(
+ |          param_name=param_value)
+ |      
+ |      DFVCM_obj = DFVCM(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |      
+ |      DFVCM_obj = DFVCM(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          ar_order_idio=ar_order_idio,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          max_forecast_step=max_forecast_step,
+ |          target_type=target_type)
+ |  
+ |  __is_fit__(self)
+ |      Check whether model is learned with self.fit()
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__is_fit__()
+ |  
+ |  __lmdfm_ywpcar_object__(self)
+ |      Initialize LMDFM model object and YWpcAR model object
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      target_type : str
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          target_type = DFM_TARGET_TYPE ('Standardized')
+ |              for LMDFM model
+ |          target_type = AR_TARGET_TYPE ('Original') for
+ |              YWpcAR model
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      lmdfm : object
+ |          LMDFM model object with 'Standardized' target type
+ |      
+ |      ywpcar : object
+ |          YWpcAR model object with 'Original' target type
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__lmdfm_ywpcar_object__()
+ |  
+ |  __param_check__(self)
+ |      Check inference parameters
+ |      
+ |      Raises
+ |      ------
+ |      
+ |      TypeError
+ |          If data type of a parameter not as specified
+ |          
+ |      ValueError
+ |          If value of integer parameters not positive
+ |          If value of string parameters not valid
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__param_check__()
+ |  
+ |  __take_param__(self, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, max_forecast_step=None, target_type=None)
+ |      Take prameter values
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      len_learn_window : int
+ |      var_order : int
+ |      num_factors : int
+ |      
+ |      ar_order_idio : int
+ |      num_pcs : int
+ |      alt_ar_order : dict
+ |      alt_num_pcs : dict
+ |      
+ |      max_forecast_step : int
+ |      target_type : str
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.__take_param__(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          ar_order_idio=ar_order_idio,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          max_forecast_step=max_forecast_step,
+ |          target_type=target_type)
+ |  
+ |  __transform__(self, obj_in=None)
+ |      Transform learning or inference data item of standardized
+ |          base-case vector time-series back data item of zero-
+ |          mean or original observed vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      obj_in : dict, or pd.Series, or pd.DataFrame
+ |          Object of data item to be transformed
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      obj_out : type(obj_in)
+ |          Object of data item being transformed
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      obj_in = data 
+ |      obj_out = self.__transform__(obj_in=obj_in)
+ |      data = obj_out
+ |      
+ |      obj_in = [a1, a2, ...]
+ |      obj_out = ['a1', 'a2', ...]
+ |      for k in list(range(len(obj_in))):
+ |          obj_out[k] = self.__transform__(obj_in=obj_in[k])
+ |      [a1, a2, ...] = obj_out
+ |  
+ |  __transform_pd__(self, obj_in=None, add_mean=False)
+ |      Transform Pandas Series or DataFrame (learning or inference)
+ |          data item of standardized base-case vector time-series
+ |          back data item of zero-mean or original observed vector 
+ |          time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      obj_in : pd.Series, or pd.DataFrame
+ |          Object of data item to be transformed
+ |      
+ |      add_mean : bool
+ |          Whether to add mean_vec back into data
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      mean_vec : pandas.Series, index (ts_list)
+ |          Sample mean vector of observed vector time-series
+ |              of data points in last learning window
+ |          mean_vec.name = asof
+ |      
+ |      stdev_vec : pandas.Series, index (ts_list)
+ |          Sample standard deviation vector of observed
+ |              vector time-series of data points in last
+ |              learning window
+ |          stdev_vec.name = asof
+ |      
+ |      num_ts_input : int
+ |      
+ |      num_ts : int
+ |      
+ |      ts_list_input : list
+ |      
+ |      ts_list : list
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      obj_out : type(obj_in)
+ |          Object of data item being transformed
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      obj_out = self.__transform_pd__(
+ |          obj_in=obj_in)
+ |      
+ |      obj_out = self.__transform_pd__(
+ |          obj_in=obj_in, add_mean=add_mean)
+ |      
+ |      obj_in = data 
+ |      obj_out = self.__transform_pd__(
+ |          obj_in=obj_in, add_mean=True)
+ |      data = obj_out
+ |  
+ |  fit(self)
+ |      Fit DFVCM model, and its underlying LMDFM and YWpcAR models,
+ |          with observed vector time-series data VTS
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      lmdfm : object
+ |          LMDFM model object modeling 'Standardized' or
+ |          'Base-case' value of observed vector time-series
+ |          (target_type = 's', 'S', 'b', or 'B')
+ |      
+ |      ywpcar : object
+ |          YWpcAR model object modeling 'Original' multiple
+ |          time-series input (target_type = 'o', or 'O')
+ |      
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (observed_asof_list)
+ |          Observed vector time-series
+ |          Row time-series of column vector with first column
+ |              as oldest and last one as latest
+ |      
+ |      ts_list : list
+ |          List of time-series name/symbol/label string
+ |      
+ |      observed_asof_list : list
+ |          List of as-of time-stamp of observed time-series
+ |      
+ |      Notes on outputs
+ |      ----------------
+ |      
+ |      Outputs by LMDFM
+ |          mean_vec : pd.Series
+ |          stdev_vec : pd.Series
+ |          vts_base_comm : pd.DataFrame
+ |          vts_base_idio : pd.DataFrame
+ |          loadings_mat : pd.DataFrame
+ |          dfs_variance : pd.DataFrame
+ |          dfs_autocov : dict
+ |      
+ |      Outputs by YWpcAR
+ |          ts_base_udc : pd.DataFrame
+ |          udc_variance : pd.DataFrame
+ |          udc_autocov : dict
+ |          err_variance : pd.DataFrame
+ |      
+ |      Outputs by LMDFM
+ |      ----------------
+ |      
+ |      mean_vec : pandas.Series, index (ts_list)
+ |          Sample mean vector of observed vector time-series
+ |              of data points in last learning window
+ |          mean_vec.name = asof
+ |      
+ |      stdev_vec : pandas.Series, index (ts_list)
+ |          Sample standard deviation vector of observed
+ |              vector time-series of data points in last
+ |              learning window
+ |          stdev_vec.name = asof
+ |      
+ |      vts_base_comm : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Common components, represented by dynamic common
+ |              factors, of Standardized, or base-case, value
+ |              of observed vector time-series
+ |      
+ |      vts_base_idio : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Idiosyncratic components, not represented by dynamic
+ |              factors, of Standardized, or base-case, value of
+ |              observed vector time-series
+ |      
+ |      loadings_mat : pd.DataFrame,
+ |              index (ts_list), columns (factor_list)
+ |          Loadings matrix (of DFM Form-II in this LMDFM
+ |              algorithm) of (0-lag) common dynamic factors
+ |              on observed vector time-series
+ |          loadings_mat = dfm_loadings['DFM-II']
+ |      
+ |      dfs_variance : pd.DataFrame, index (factor_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of dynamic factor score
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |      
+ |      dfs_autocov : dict, keys ((s, k), ..., 'R', 'asof')
+ |                  s in [0, 1, ..., mx_forec_stp]: forec step
+ |                  k in [0, 1, 2, ..., var_order]: sample lag
+ |              obj[(j, 0)] : pd.Series, index (factor_list)
+ |              obj[(j, k)] : pd.DataFrame,
+ |                  index / columns (factor_list), k >= 1
+ |          Forecasted (s >= 1) variance vector (k = 0) and
+ |              k-lag autocovariance matrix (k >= 1) of dynamic
+ |              factor score time-series
+ |          Notes:
+ |              obj['R']: variance of error (pd.Series) in VAR
+ |                  prediction of dynamic factor scores
+ |      
+ |      Outputs by YWpcAR
+ |      -----------------
+ |      
+ |      ts_base_udc : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent base-case idiosyncratic
+ |              components time-series
+ |      
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple unobserved
+ |              dynamic component (UDC) time-series of observed
+ |              time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          udc_variance = YWpcAR_obj.udc_variance =
+ |              YWpcAR_obj.get_udcVar()
+ |      
+ |      udc_autocov : dict,
+ |                  keys (0, 1, ..., max_forec_step, 'R', 'asof')
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (0, 1, ..., mx_ar_ord): t-sample-lag
+ |          Forecasted autocovariance vector with time-sample-lag
+ |              of multiple unobserved dynamic component (UDC)
+ |              time-series of observed time-series
+ |          Notes:
+ |              obj['R']: variance of error (pd.Series) in AR
+ |                  prediction of UDC
+ |      
+ |      err_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple residual
+ |              error time-series of observed time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      self.fit()
+ |      
+ |      DFVCM_obj.fit()
+ |  
+ |  get_aggVar(self, target_type=None)
+ |      Generate forecasted variances of aggregate value of
+ |          target_type values of observed vector time-series,
+ |          serving as forecast and benchmark data inevaluation
+ |          of forecasted variance-covariance of observed vector
+ |          time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forecasting steps of variance-
+ |              covariance matrix forecasts
+ |      
+ |      agg_variance_comm : pd.Series,
+ |              index (0, 1, ..., max_forecast_step, 'asof')
+ |          Factor-based common components of forecasted variances
+ |              of aggregate value of target_type values of
+ |              observed vector time-series, forecasted by common
+ |              dynamic factors of all observed time-series
+ |          agg_variance_comm = LMDFM_obj.agg_variance_comm
+ |      
+ |      idio_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vector of idiosyncratic component
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          idio_variance = udc_variance + err_variance
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      agg_variance : pd.Series,
+ |              index (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variances of aggregate value of target_type
+ |              values of observed vector time-series, serving as
+ |              aggregate variance forecasts
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      agg_variance = DFVCM_obj.get_aggVar()
+ |      
+ |      agg_variance = DFVCM_obj.get_aggVar(
+ |          target_type=target_type)
+ |  
+ |  get_asof(self)
+ |      Get as-of times of estimates
+ |          by model learning and for model inference
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      asof : time-stamp object
+ |          Last time-stamp of observed vector time-series data
+ |              utilized in estimation of values in object obj
+ |          Examples:
+ |              obj['asof'] = asof
+ |                  when isinstance(obj, type(dict()))
+ |              obj.loc['asof'] = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |              obj.loc[:, 'asof'] = asof
+ |                  when isinstance(obj, type(pd.DataFrame()))
+ |              obj.name = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      asof = DFVCM_obj.get_asof()
+ |  
+ |  get_comm_vm_data(self, comm_data_item=None, target_type=None)
+ |      Get volatility modeling data objects related to variance-
+ |          covariance estimated and forecasted by LMDFM module
+ |          on factor-based common components of observed vector
+ |          time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      comm_data_item : str, in comm_vm_data_list
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      comm_vm_data_list : list (['loadings_mat', 'var_dfm',
+ |              'dfs_serialcov', 'dfs_autocov'])
+ |          List of volatility modeling data objects related to
+ |              variance-covariance estimated and forecasted by
+ |              LMDFM module on factor-based common components
+ |              of observed vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      a data object in comm_vm_data_list,
+ |          or comm_vm_data_list itself
+ |      
+ |      comm_vm_data_list : list (['loadings_mat', 'var_dfm',
+ |              'dfs_serialcov', 'dfs_autocov'])
+ |          List of volatility modeling data objects related to
+ |              variance-covariance estimated and forecasted by
+ |              LMDFM module on factor-based common components
+ |              of observed vector time-series
+ |      
+ |      loadings_mat : pd.DataFrame,
+ |              index (ts_list), columns (factor_list)
+ |          Loadings matrix (of DFM Form-II in this LMDFM
+ |              algorithm) of (0-lag) common dynamic factors
+ |              on observed vector time-series
+ |          loadings_mat = dfm_loadings['DFM-II']
+ |      
+ |      var_dfm : dict, keys (1, 2, ..., var_order, 'asof')
+ |              obj[k] : pd.DataFrame,
+ |                  index (factor_list), columns (factor_list)
+ |          Vector autoregressive coefficient matrixes of dynamic
+ |              common factor score vector time-series
+ |          var_dfm = LMDFM_obj.var_dfm = LMDFM_obj.get_dfmVAR()
+ |      
+ |      dfs_serialcov : dict,
+ |                  keys (-var_order, ..., -1, 0, 'R', 'asof')
+ |              obj[key] : pd.DataFrame, index (factor_list),
+ |                  columns (0, 1, ..., var_order): time-sample-lag
+ |          Estimated current (key = 0) and past (key <= -1)
+ |              diagonal autocovariance (serial-covariance) matrix
+ |              with time-sample-lag of dynamic factor score time-
+ |              series
+ |          Notes:
+ |              obj['R']: variance of error (pd.Series) in VAR
+ |                  prediction of dynamic factor scores
+ |          dfs_serialcov = LMDFM_obj.dfs_serialcov =
+ |              LMDFM_obj.get_dfsSCov()
+ |      
+ |      dfs_autocov : dict, keys ((s, k), ..., 'R', 'asof')
+ |                  s in [0, 1, ..., mx_forec_stp]: forec step
+ |                  k in [0, 1, 2, ..., var_order]: sample lag
+ |              obj[(j, 0)] : pd.Series, index (factor_list)
+ |              obj[(j, k)] : pd.DataFrame,
+ |                  index / columns (factor_list), k >= 1
+ |          Forecasted (s >= 1) variance vector (k = 0) and
+ |              k-lag autocovariance matrix (k >= 1) of dynamic
+ |              factor score time-series
+ |          Notes:
+ |              obj['R']: variance of error (pd.Series) in VAR
+ |                  prediction of dynamic factor scores
+ |          dfs_autocov = LMDFM_obj.dfs_autocov =
+ |              LMDFM_obj.get_dfsACov()
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      comm_vm_data_list = DFVCM_obj.get_comm_vm_data()
+ |      
+ |      loadings_mat = DFVCM_obj.get_comm_vm_data(
+ |          comm_data_item='loadings_mat',
+ |          target_type=target_type)
+ |      
+ |      var_dfm = DFVCM_obj.get_comm_vm_data(
+ |          comm_data_item='var_dfm')
+ |      
+ |      dfs_serialcov = DFVCM_obj.get_comm_vm_data(
+ |          comm_data_item='dfs_serialcov')
+ |      
+ |      dfs_autocov = DFVCM_obj.get_comm_vm_data(
+ |          comm_data_item='dfs_autocov')
+ |  
+ |  get_data_info(self)
+ |      Generate summary descriptions of observed vector
+ |          time-series (VTS) data
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      data_info_dict : dict
+ |          Summary description of dict type of observed
+ |          vector time-series (VTS) data
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      data_info_dict = DFVCM_obj.get_data_info()
+ |  
+ |  get_idio_vm_data(self, idio_data_item=None, target_type=None)
+ |      Get volatility modeling data objects related to variance
+ |          estimated and forecasted by YWpcAR module on
+ |          idiosyncratic components of observed vector time-
+ |          series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      idio_data_item : str, in idio_vm_data_list
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Notes
+ |      -----
+ |      
+ |      idio_vm_data_list : list (['ar_coefs', 'udc_serialcov',
+ |              'udc_variance', 'udc_autocov', 'err_variance'])
+ |          List of volatility modeling data objects related to
+ |              variance estimated and forecasted by YWpcAR module
+ |              on idiosyncratic components of observed vector
+ |              time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      a data object in idio_vm_data_list,
+ |          or idio_vm_data_list itself
+ |      
+ |      idio_vm_data_list : list (['ar_coefs', 'udc_serialcov',
+ |              'udc_variance', 'udc_autocov', 'err_variance'])
+ |          List of volatility modeling data objects related to
+ |              variance estimated and forecasted by YWpcAR module
+ |              on idiosyncratic components of observed vector
+ |              time-series
+ |      
+ |      ar_coefs : pd.DataFrame, index (ts_list),
+ |              columns (1, 2, ..., max_ar_order, 'asof')
+ |          Autoregressive (AR) model coefficients of observed
+ |              multiple time-series and of multiple unobserved
+ |              dynamic component (UDC) time-series 
+ |          ar_coefs = YWpcAR_obj.ar_coefs =
+ |              YWpcAR_obj.get_ARcoefs()
+ |      
+ |      udc_serialcov : dict,
+ |                  keys (-mx_ar_order, ..., -1, 0, 'R', 'asof')
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (0, 1, ..., mx_ar_ord): t-sample-lag
+ |          Estimated current (key = 0) and past (key <= -1)
+ |              autocovariance (series-covariance) vector with
+ |              time-sample-lag of multiple unobserved dynamic
+ |              component (UDC) time-series
+ |          Notes:
+ |              obj['R']: variance of error (pd.Series) in AR
+ |                  prediction of UDC
+ |          udc_serialcov = YWpcAR_obj.udc_serialcov =
+ |              YWpcAR_obj.get_udcSCov()
+ |      
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple unobserved
+ |              dynamic component (UDC) time-series of observed
+ |              time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          udc_variance = YWpcAR_obj.udc_variance =
+ |              YWpcAR_obj.get_udcVar()
+ |      
+ |      udc_autocov : dict,
+ |                  keys (0, 1, ..., max_forec_step, 'R', 'asof')
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (0, 1, ..., mx_ar_ord): t-sample-lag
+ |          Forecasted autocovariance vector with time-sample-lag
+ |              of multiple unobserved dynamic component (UDC)
+ |              time-series of observed time-series
+ |          Notes:
+ |              obj['R']: variance of error (pd.Series) in AR
+ |                  prediction of UDC
+ |          udc_autocov = YWpcAR_obj.udc_autocov =
+ |              YWpcAR_obj.get_udcACov()
+ |      
+ |      err_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple residual
+ |              error time-series of observed time-series
+ |          err_variance = YWpcAR_obj.err_variance =
+ |              YWpcAR_obj.get_errVar()
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      idio_vm_data_list = DFVCM_obj.get_idio_vm_data()
+ |      
+ |      ar_coefs = DFVCM_obj.get_idio_vm_data(
+ |          idio_data_item='ar_coefs', target_type=target_type)
+ |      
+ |      udc_serialcov = DFVCM_obj.get_idio_vm_data(
+ |          idio_data_item='udc_serialcov', target_type=target_type)
+ |      
+ |      udc_variance = DFVCM_obj.get_idio_vm_data(
+ |          idio_data_item='udc_variance', target_type=target_type)
+ |      
+ |      udc_autocov = DFVCM_obj.get_idio_vm_data(
+ |          idio_data_item='udc_autocov', target_type=target_type)
+ |      
+ |      err_variance = DFVCM_obj.get_idio_vm_data(
+ |          idio_data_item='err_variance', target_type=target_type)
+ |  
+ |  get_indivVar(self, target_type=None)
+ |      Generate forecasted variances of target_type values
+ |          of individual observed time-series, serving
+ |          as forecast and benchmark data in evaluation
+ |          of forecasted variances of observed individual
+ |          time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      indiv_variance_comm : pd.DataFrame,
+ |              index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Factor-based common components of forecasted variances
+ |              of target_type values of individual observed
+ |              multiple time-series, forecasted by common dynamic
+ |              factors of all observed time-series
+ |          indiv_variance_comm = LMDFM_obj.indiv_variance_comm
+ |      
+ |      idio_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vector of idiosyncratic component
+ |              time-series of observed vector time-series
+ |          idio_variance = udc_variance + err_variance
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      indiv_variance : pd.DataFrame,
+ |              index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of target_type values
+ |              of individual observed multiple time-series,
+ |              forecasted by common dynamic factors plus
+ |              idiosyncratic variances of all observed time-
+ |              series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      indiv_variance = DFVCM_obj.get_indivVar()
+ |      
+ |      indiv_variance = DFVCM_obj.get_indivVar(
+ |          target_type=target_type)
+ |  
+ |  get_mean(self)
+ |      Get sample mean vector of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      mean_vec : pandas.Series, index (ts_list)
+ |          Sample mean vector of observed vector time-series
+ |              of data points in last learning window
+ |          mean_vec.name = asof
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      mean_vec = DFVCM_obj.get_mean()
+ |  
+ |  get_modeling_vts(self, modeling_vts=None, target_type=None)
+ |      text
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      modeling_vts : str, in modeling_vts_list
+ |          A factor-based modeling data vector time-series
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      modeling_vts_list : list(['vts_base_case',
+ |              'vts_base_comm', 'vts_base_idio', 'ts_base_udc',
+ |              'vts_common', 'vts_idiosync', 'ts_unobsdync'])
+ |          List of modeling data vector time-series: factor-based
+ |              common components and idiosyncratic components of
+ |              observed vector time-series
+ |      
+ |      vts_base_case : pd.DataFrame, 
+ |              index (ts_list), columns (asof_list)
+ |          Standardized value, serving as base-case value, of
+ |              observed vector time-series for dynamic factor
+ |              model learning and inference
+ |          vts_base_case = LMDFM_obj.get_base_vts()
+ |      
+ |      vts_base_comm : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Common components, represented by dynamic common
+ |              factors, of Standardized, or base-case, values
+ |              of observed vector time-series
+ |          vts_base_comm = LMDFM_obj.get_base_comm()
+ |      
+ |      vts_base_idio : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Idiosyncratic components, not represented by dynamic
+ |              factors, of Standardized, or base-case, values
+ |              of observed vector time-series
+ |          vts_base_idio = LMDFM_obj.get_base_idio()
+ |      
+ |      ts_base_udc : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent base-case idiosyncratic
+ |              components time-series
+ |          ts_base_udc = YWpcAR_obj.get_unobs()
+ |      
+ |      vts_common : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Common components of Standardized or Zero-mean or
+ |              Original value of observed vector time-series
+ |          vts_common = LMDFM_obj.get_common(target_type)
+ |      
+ |      vts_idiosync : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Idiosyncratic components of Standardized or Zero-
+ |              mean or Original value of observed vector
+ |              time-series
+ |          vts_idiosync = LMDFM_obj.get_idiosync(target_type)
+ |      
+ |      ts_unobsdync : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent observed multiple time-
+ |              series
+ |          By applying target_type to
+ |              ts_unobsdync = YWpcAR_obj.get_unobs()
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      modeling_vts_list = DFVCM_obj.get_modeling_vts()
+ |      
+ |      vts_base_case = DFVCM_obj.get_modeling_vts(
+ |          modeling_vts='vts_base_case')
+ |      
+ |      vts_base_comm = DFVCM_obj.get_modeling_vts(
+ |          modeling_vts='vts_base_comm')
+ |      
+ |      vts_base_idio = DFVCM_obj.get_modeling_vts(
+ |          modeling_vts='vts_base_idio')
+ |      
+ |      ts_base_udc = DFVCM_obj.get_modeling_vts(
+ |          modeling_vts='ts_base_udc')
+ |      
+ |      vts_common = DFVCM_obj.get_modeling_vts(
+ |          modeling_vts='vts_common', target_type=target_type)
+ |      
+ |      vts_idiosync = DFVCM_obj.get_modeling_vts(
+ |          modeling_vts='vts_idiosync', target_type=target_type)
+ |      
+ |      ts_unobsdync = DFVCM_obj.get_modeling_vts(
+ |          modeling_vts='ts_unobsdync', target_type=target_type)
+ |  
+ |  get_param(self, param_name_list)
+ |      Get values of specified parameters
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      param_name_list : list [str]
+ |          list of names of parameters
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      param_dict : dict {str: obj}
+ |          dict of name and value of specified parameters
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      param_dict = DFVCM_obj.get_param(param_name_list)
+ |  
+ |  get_stdev(self)
+ |      Get sample standard deviation vector of vector time-series
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      stdev_vec : pandas.Series, index (ts_list)
+ |          Sample standard deviation vector of observed
+ |              vector time-series of data points in last
+ |              learning window
+ |          stdev_vec.name = asof
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      stdev_vec = DFVCM_obj.get_stdev()
+ |  
+ |  get_varcov(self, target_type=None)
+ |      Get data matrix and matrix time-series (factor loadings
+ |          matrix, forecasted variance vector of common dynamic
+ |          factors, and forecasted variance vector of
+ |          idiosyncratic component time-series) for calculating
+ |          forecasted variance-covariance matrixes of observed
+ |          vector time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      loadings_mat : pd.DataFrame,
+ |              index (ts_list), columns (factor_list)
+ |          Loadings matrix (of DFM Form-II in this LMDFM
+ |              algorithm) of (0-lag) common dynamic factors
+ |              on observed vector time-series
+ |      
+ |      dfs_variance : pd.DataFrame, index (factor_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of dynamic factor score
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |      
+ |      idio_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vector of idiosyncratic component
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          idio_variance = udc_variance + err_variance
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      loadings_mat, dfs_variance, idio_variance = (
+ |          self.get_varcov())
+ |      
+ |      loadings_mat, dfs_variance, idio_variance = (
+ |          self.get_varcov(target_type=target_type))
+ |      
+ |      loadings_mat, dfs_variance, idio_variance = (
+ |          DFVCM_obj.get_varcov())
+ |      
+ |      loadings_mat, dfs_variance, idio_variance = (
+ |          DFVCM_obj.get_varcov(target_type=target_type))
+ |  
+ |  get_vcMatrix(self, target_type=None)
+ |      Get forecasted variance-covariance matrix of observed
+ |          vector time-series and its two components, forecasted
+ |          variance-covariance matrix of factor-based common
+ |          component time-series and forecasted variance vector
+ |          of idiosyncratic component time-series
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      comm_varcov : dict, 
+ |                  keys (0, 1, ..., max_forecast_step, 'asof')
+ |              obj[key] : pd.DataFrame,
+ |                  index (ts_list), columns (ts_list)
+ |          Forecasted variance-covariance matrix of factor-based
+ |              common component time-series of observed vector
+ |              time-series
+ |          Notes:
+ |              obj[0]: Estimated current variance-covariance
+ |      
+ |      idio_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vector of idiosyncratic component
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          idio_variance = udc_variance + err_variance
+ |      
+ |      vts_varcov : dict,
+ |                  keys (0, 1, ..., max_forecast_step, 'asof')
+ |              obj[key] : pd.DataFrame,
+ |                  index (ts_list), columns (ts_list)
+ |          Forecasted variance-covariance matrix of observed
+ |              vector time-series
+ |          Notes:
+ |              obj[0]: Estimated current variance-covariance
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      comm_varcov, idio_variance, vts_varcov = (
+ |          DFVCM_obj.get_vcMatrix())
+ |      
+ |      comm_varcov, idio_variance, vts_varcov = (
+ |          DFVCM_obj.get_vcMatrix(target_type=target_type))
+ |  
+ |  min_ts_len(self)
+ |      Get minimum length of time-series to satisfy parameters
+ |          of vector autoregressive model analysis
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      min_len_ts : int
+ |          Minimum length of time-series for VAR analysis
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      min_len_ts = DFVCM_obj.min_ts_len()
+ |  
+ |  set_data(self, VTS)
+ |      Set, or reset, observed vector time-series (VTS) data
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (observed_asof_list)
+ |          Observed vector time-series
+ |          Row time-series of column vector with first column
+ |              as oldest and last one as latest
+ |      
+ |      ts_list : list
+ |          List of time-series name/symbol/label string
+ |      
+ |      observed_asof_list : list
+ |          List of as-of time-stamp of observed time-series
+ |      
+ |      num_ts : int >= 1
+ |          Number of time-series = len(ts_list)
+ |      
+ |      len_ts : int > 1
+ |          Length of time-series = len(observed_asof_list)
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      DFVCM_obj.set_data(VTS)
+ |  
+ |  set_param(self, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, max_forecast_step=None, target_type=None)
+ |      Set, update or reset value(s) of any, some or all parameter(s)
+ |      
+ |      Learning parameters
+ |      -------------------
+ |      
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |      
+ |      var_order : int >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic
+ |              factor model (LMDFM) for common components of
+ |              vector time-series
+ |      
+ |      num_factors : int >= 1
+ |          Number of factors of dynamic factor model (LMDFM)
+ |              for common components of vector time-series
+ |          Notes:
+ |              num_factors < min(len_learn_window, num_ts)
+ |      
+ |      ar_order_idio : int >= 1
+ |          Autoregressive (AR) order, q, of YWpcAR model for
+ |              idiosyncratic components of time-series, here
+ |              q applied to all time-series other than those
+ |              specified, if any, in alt_ar_order
+ |      
+ |      num_pcs : int >= 1
+ |          Number of principal components (PCs), m, of YWpcAR
+ |              model for idiosyncratic components of time-
+ |              series, here m applied to all time-series other
+ |              than those specified, if any, in alt_num_pcs
+ |      
+ |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |          Autoregressive (AR) orders, q1, q2, ..., applied
+ |              to Specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in
+ |              VTS.index 
+ |      
+ |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2, ...,
+ |              applied to specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: labels of time-series in
+ |              VTS.index 
+ |      
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forecasting steps of variance-
+ |              covariance matrix forecasts
+ |      
+ |      target_type : str, in [
+ |              's', 'S', 'standardized', 'b', 'B', 'base-case',
+ |              'o', 'O', 'original']
+ |          Specified type of vector, or multiple, time-series data
+ |              on which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          If 's', 'S', 'standardized', 'b', 'B' or 'base-case':
+ |              Inferences/forecasts are made/evaluated on
+ |              standardized, or base-case, values of observed
+ |              vector time-series
+ |          If 'o', 'O' or 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed vector time-series
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      DFVCM_obj.set_param(**kwargs)
+ |      
+ |      DFVCM_obj.set_param(
+ |          param_name=param_value)
+ |      
+ |      DFVCM_obj.set_param(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |      
+ |      DFVCM_obj.set_param(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          num_factors=num_factors,
+ |          ar_order_idio=ar_order_idio,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          max_forecast_step=max_forecast_step,
+ |          target_type=target_type)
+ |  
+ |  varcovar(self)
+ |      Generate (1) forecasted variance vector, and autocovariance
+ |          vectors, of common dynamic factor score time-series;
+ |          (2) components of forecasted variance-covariance matrix
+ |          of factor-based common component vector time-series;
+ |          (3) forecasted variance vector of idiosyncratic
+ |          component vector time-series; and (4) components of
+ |          forecasted variance vector of idiosyncratic time-series
+ |      
+ |      Inputs
+ |      ------
+ |      
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple unobserved
+ |              dynamic component (UDC) time-series of observed
+ |              time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          udc_variance = YWpcAR_obj.udc_variance =
+ |              YWpcAR_obj.get_udcVar()
+ |      
+ |      err_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of multiple residual
+ |              error time-series of observed time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          err_variance = YWpcAR_obj.err_variance =
+ |              YWpcAR_obj.get_errVar()
+ |      
+ |      Inputs and outputs
+ |      ------------------
+ |      
+ |      dfs_variance : pd.DataFrame, index (factor_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of dynamic factor score
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |      
+ |      dfs_autocov : dict, keys ((s, k), ..., 'R', 'asof')
+ |                  s in [0, 1, ..., mx_forec_stp]: forec step
+ |                  k in [0, 1, 2, ..., var_order]: sample lag
+ |              obj[(j, 0)] : pd.Series, index (factor_list)
+ |              obj[(j, k)] : pd.DataFrame,
+ |                  index / columns (factor_list), k >= 1
+ |          Forecasted (s >= 1) variance vector (k = 0) and
+ |              k-lag autocovariance matrix (k >= 1) of dynamic
+ |              factor score time-series
+ |          Notes:
+ |              obj['R']: variance of error (pd.Series) in VAR
+ |                  prediction of dynamic factor scores
+ |      
+ |      Outputs
+ |      -------
+ |      
+ |      idio_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vector of idiosyncratic component
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          idio_variance = udc_variance + err_variance
+ |      
+ |      Function call
+ |      -------------
+ |              
+ |      self.varcovar()
+ |      
+ |      DFVCM_obj.varcovar()
+ |  
+ |  ----------------------------------------------------------------------
+ |  Static methods defined here:
+ |  
+ |  varcov_matrix(loadings_mat=None, dfs_variance=None, idio_variance=None)
+ |      Calculate forecasted variance-covariance matrix of observed
+ |          vector time-series based on (1) single contemporary
+ |          common factor loadings matrix, (2) forecasted variance
+ |          vector of dynamic factor score time-series, and (3)
+ |          forecasted variance vector of idiosyncratic component
+ |          vector time-series
+ |      
+ |      Note: this is a static method
+ |      
+ |      Arguments
+ |      ---------
+ |      
+ |      loadings_mat : pd.DataFrame,
+ |              index (ts_list), columns (factor_list)
+ |          Loadings matrix (of DFM Form-II in this LMDFM
+ |              algorithm) of (0-lag) common dynamic factors
+ |              on observed vector time-series
+ |          loadings_mat = dfm_loadings['DFM-II']
+ |      
+ |      dfs_variance : pd.DataFrame, index (factor_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vectors of dynamic factor score
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |      
+ |      idio_variance : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, ..., max_forecast_step, 'asof')
+ |          Forecasted variance vector of idiosyncratic component
+ |              time-series of observed vector time-series
+ |          Notes:
+ |              obj.loc[:, 0]: Estimated current variance vector
+ |          idio_variance = udc_variance + err_variance
+ |      
+ |      Returns
+ |      -------
+ |      
+ |      vts_varcov : dict,
+ |                  keys (0, 1, ..., max_forecast_step, 'asof')
+ |              obj[key] : pd.DataFrame,
+ |                  index (ts_list), columns (ts_list)
+ |          Forecasted variance-covariance matrix of observed
+ |              vector time-series
+ |          Notes:
+ |              obj[0]: Estimated current variance-covariance
+ |      
+ |      comm_varcov : dict, 
+ |                  keys (0, 1, ..., max_forecast_step, 'asof')
+ |              obj[key] : pd.DataFrame,
+ |                  index (ts_list), columns (ts_list)
+ |          Forecasted variance-covariance matrix of factor-based
+ |              common component time-series of observed vector
+ |              time-series
+ |          Notes:
+ |              obj[0]: Estimated current variance-covariance
+ |      
+ |      Function call
+ |      -------------
+ |      
+ |      vts_varcov = DFVCM.varcov_matrix(
+ |          loadings_mat=loadings_mat, dfs_variance=dfs_variance,
+ |          idio_variance=idio_variance)
+ |      
+ |      comm_varcov = DFVCM.varcov_matrix(
+ |          loadings_mat=loadings_mat, dfs_variance=dfs_variance)
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+
+>>>
