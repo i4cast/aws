@@ -5,15 +5,15 @@
 
 # #### Overview of the algorithm
 #   
-# The dynamic factor variance-covariance model, [DFVCM](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa), is to make multi-step forecast of large variance-covariance matrix of large set of observed time-series, when the time-series are influenced by both (a) dynamic history of a set of unobserved factors commonly affecting all or many of the time-series and (b) dynamic histories of hidden components affecting idiosyncratic components of individual time-series.  
+# The dynamic factor variance-covariance model, [DFVCM](https://aws.amazon.com/marketplace/pp/prodview-yvaulquatt3v2?sr=0-6&ref_=beagle&applicationId=AWSMPContessa), is to make multi-step forecast of large variance-covariance matrix of large set of observed time-series, when the time-series are influenced by both (a) dynamic history of a set of unobserved factors commonly affecting all or many of the time-series and (b) dynamic histories of hidden components affecting idiosyncratic components of individual time-series.  
 # 
-# DFVCM applies [LMDFM](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa) algorithm to estimate and forecast volatility of common factors of all time-series. Then, DFVCM applies [YWpcAR](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa) algorithm to estimate and forecast volatility of idiosyncratic components of individual time-series.
+# DFVCM applies [LMDFM](https://aws.amazon.com/marketplace/pp/prodview-da6ffrp4mlopg?sr=0-1&ref_=beagle&applicationId=AWSMPContessa) algorithm to estimate and forecast volatility of common factors of all time-series. Then, DFVCM applies [YWpcAR](https://aws.amazon.com/marketplace/pp/prodview-prndys7tr7go6?sr=0-3&ref_=beagle&applicationId=AWSMPContessa) algorithm to estimate and forecast volatility of idiosyncratic components of individual time-series.
 #   
-# [LMDFM](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa) applies dynamic principal components analysis (DPCA) with 1 or 2-dimensional discrete Fourier transforms (1/2D-DTFs). [YWpcAR](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa) applies principal components analysis on Yule-Walker equation of individual idiosyncratic component.
+# [LMDFM](https://aws.amazon.com/marketplace/pp/prodview-da6ffrp4mlopg?sr=0-1&ref_=beagle&applicationId=AWSMPContessa) applies dynamic principal components analysis (DPCA) with 1 or 2-dimensional discrete Fourier transforms (1/2D-DTFs). [YWpcAR](https://aws.amazon.com/marketplace/pp/prodview-prndys7tr7go6?sr=0-3&ref_=beagle&applicationId=AWSMPContessa) applies principal components analysis on Yule-Walker equation of individual idiosyncratic component.
 #   
 # Therefore, the DFVCM algorithm can estimate influences of longer histories of unobserved common factors and hidden idiosyncratic components. The algorithm accommodates wider ranges of values of model learning parameters. The wider ranges can further enhance the power of machine learning.  
 #   
-# Current version of the [DFVCM](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa) algorithm estimates and/or forecasts (in multi-steps): (a) estimated matrix of factor loadings, (b) forecasted variance of common factors, (c) forecasted variance of idiosyncratic components, (d) forecasted variance of individual time-series, (e) forecasted variance of weighted aggregation of multiple time-series, and (f) forecasted variance-covariance matrix of multiple observed time-series. Other estimates and/or forecasts (such as forecasted auto-covariance matrixes) can be added in the future releases.
+# Current version of the [DFVCM](https://aws.amazon.com/marketplace/pp/prodview-yvaulquatt3v2?sr=0-6&ref_=beagle&applicationId=AWSMPContessa) algorithm estimates and/or forecasts (in multi-steps): (a) estimated matrix of factor loadings, (b) forecasted variance of common factors, (c) forecasted variance of idiosyncratic components, (d) forecasted variance of individual time-series, (e) forecasted variance of weighted aggregation of multiple time-series, and (f) forecasted variance-covariance matrix of multiple observed time-series. Other estimates and/or forecasts (such as forecasted auto-covariance matrixes) can be added in the future releases.
 
 # #### Academic publications on multi-step forecasts and multivariate volatilities with dynamic factor models
 #   
@@ -25,7 +25,7 @@
 
 # #### This notebook
 # 
-# This sample notebook shows you how to train, tune, deploy and understand a custom ML algorithm/model: [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa), guided by common practices to [Use Algorithm and Model Package Resources](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-mkt-buy.html).
+# This sample notebook shows you how to train, tune, deploy and understand a custom ML algorithm/model: [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview-yvaulquatt3v2?sr=0-6&ref_=beagle&applicationId=AWSMPContessa), guided by common practices to [Use Algorithm and Model Package Resources](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-mkt-buy.html).
 # 
 # > **Note**: This is a reference notebook and it cannot run unless you make changes suggested in the notebook.
 
@@ -39,7 +39,7 @@
 #         1. **aws-marketplace:ViewSubscriptions**
 #         1. **aws-marketplace:Unsubscribe**
 #         1. **aws-marketplace:Subscribe**  
-#     1. or your AWS account has a subscription to [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa)
+#     1. or your AWS account has a subscription to [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview-yvaulquatt3v2?sr=0-6&ref_=beagle&applicationId=AWSMPContessa)
 
 # #### Contents
 # 
@@ -95,7 +95,7 @@
 
 # To subscribe to the algorithm:
 # 
-# 1. Open the algorithm listing page, [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview...applicationId=AWSMPContessa)
+# 1. Open the algorithm listing page, [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview-yvaulquatt3v2?sr=0-6&ref_=beagle&applicationId=AWSMPContessa)
 # 1. On the AWS Marketplace listing,  click on **Continue to subscribe** button.
 # 1. On the **Subscribe to this software** page, review and click on **"Accept Offer"** if you agree with EULA, pricing, and support terms. 
 # 1. Once you click on **Continue to configuration button** and then choose a **region**, you will see a **Product Arn**. This is the algorithm ARN that you need to specify while training a custom ML model. Copy the ARN corresponding to your region and specify the same in the following cell.
@@ -218,7 +218,7 @@ print(my_tuned_model_name)
 # One of the simplest methods to generate such a CSV text-file is to save a Microsoft Excel spreadsheet as (into) a CSV file.  
 #   
 # You can also find more information about dataset format in **Usage Information** section of 
-# [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview...application...).
+# [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview-yvaulquatt3v2?sr=0-6&ref_=beagle&applicationId=AWSMPContessa).
 
 # #### 2.2. Configure and visualize training dataset
 
@@ -248,7 +248,7 @@ print(my_tuned_model_name)
 
 # #### 3.1. Set hyperparameters
 
-# You can also find more information about dataset format in **Hyperparameters** section of [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview...&applicationId=AWSMPContessa).
+# You can also find more information about dataset format in **Hyperparameters** section of [Dynamic Factor Variance-Covariance Model (DFVCM)](https://aws.amazon.com/marketplace/pp/prodview-yvaulquatt3v2?sr=0-6&ref_=beagle&applicationId=AWSMPContessa).
 
 # In[ ]:
 
