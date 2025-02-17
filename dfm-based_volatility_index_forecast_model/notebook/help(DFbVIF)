@@ -3,131 +3,147 @@
 Help on class DFbVIF in module DFbVIF:
 
 class DFbVIF(builtins.object)
- |  DFbVIF(vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order={}, alt_num_pcs={}, max_forecast_step=1)
+ |  DFbVIF(vol_index_dict=None, len_learn_window=None, var_order=1, num_factors=1, ar_order_idio=1, num_pcs=1, alt_ar_order={}, alt_num_pcs={}, vif_type='', max_forecast_step=1)
  |
- |  Dynamic factor based volatility index forecast
- |  (DFbVIF) model for multi-step multivariate forecasts
- |  of volatility indexes (derived by prices of options
- |  on underlying assets)
+ |  Dynamic Factor Based Volatility Index Forecast (DFbVIF)
+ |  model to make multi-step forecasts of multiple volatility
+ |  indexes, and dynamic volatility attributions, by applying
+ |  dynamic factor model (DFM) volatility analysis on DFM-
+ |  input time-series, which are multiple time-series including
+ |  both price time-series underlying the volatility indexes
+ |  and other infomation-enhancing time-series.
  |
- |  Volatility indexes VI(t)
- |  ------------------------
+ |  Volatility indexes time-series VI(t)
+ |  ------------------------------------
  |
  |  Volatility index time-series
  |      h : number of volatility indexes (vi) to be
  |          forecasted
  |      vi(t) : time-series of h-by-1 vector vi of h
- |          volatility levels with time index t
+ |          volatility index values with time index t
  |      vi_j(t) : time-series of j-th volatility index
- |      VI(t) : time-series of h-by-h diagonal matrix VI
- |          of h volatility levels with time index t
+ |      VI(t) : time-series of h-by-h diagonal matrix
+ |          VI of h volatility index values with time
+ |          index t
  |      VI_jj(t) : time-series of j-th volatility index
  |          vi_j(t)
  |      VI2(t) : time-series of h-by-h diagonal matrix
- |          of h implied variance VI2 = VI VI' = VI' VI
+ |          of h implied variances VI2 = VI VI
  |
- |  Vector time-series y(t)
- |  -----------------------
+ |  Vector time-series y_und(t), y_info(t) & y(t)
+ |  ---------------------------------------------
  |
  |  Notaion
  |      "Underlying time-series"
  |          An underlying time-series, underlying
  |          a given volatility index, is a time-
- |          series of (eg. percentage or logrithmic)
+ |          series of (e.g. percentage or logarithmic)
  |          changes in price/value/index, with the
- |          volatility index value representing
- |          expected volatility level of the
- |          underlying time-series, expected
- |          at a specified future time
+ |          volatility index value representing expected
+ |          volatility level of the underlying time-
+ |          series, expected at a specified future time
  |
- |  Simplest distributions in Bayesian framework
- |      Simplest distribution for values of under-
- |          lying time-series: multivariate normal
- |          distribution
- |      Simplest distribution for values of
- |          volatility index: inverse-gamma
- |          distribution
- |
- |  Observed vector (multiple) time-series
+ |  Underlying vector time-series y_und(t)
  |      y_und(t) : h underlying time-series (of
  |          changes in prices/values/indexes)
  |          underlying h volatility index vi(t),
  |          with value of vi(t) showing expected
  |          future volatility vector of y_und(t)
- |      y_oth(t) : multiple other time-series
+ |
+ |  info-enhancing vector time-series y_info(t)
+ |      y_info(t) : multiple other time-series
  |          (of changes in prices/values/indexes)
- |          mutually and dynamically correlated
- |          with some or all underlying time-
- |          series y_und(t)
- |      y(t) : combined vector time-series
- |          stacking together h underlying time-
- |          series y_und(t) and other vector
- |          time-series y_oth(t), with combined
- |          vector y = [ y_und', y_oth' ]'
- |      c : n-by-1 mean vector of combined vector
+ |          dynamically correlated with some or
+ |          all underlying time-series y_und(t),
+ |          serving as information-enhancing
+ |          time-series to enhance predictive
+ |          power of model forecast
+ |
+ |  DFM-input time-series y(t)
+ |      y(t) : vector time-series of n-by-1 combined
+ |          vector y = [ y_und', y_info' ]' to serve
+ |          as input data of dynamic factor model
+ |          (DFM)
+ |      n : number of observed time-series in DFM-
+ |          input vector time-series y(t)
+ |      c : n-by-1 mean vector of DFM-input vector
  |          time-series y(t)
- |      n : number of observed time-series in
- |          combined vector time-series y(t)
  |
  |  Parameter values
- |      c = 0 : assuming y(t) are zero-mean
- |          vector time-series
+ |      c = 0 : assuming y(t) is zero-mean DFM-
+ |          input vector time-series
  |      t = 0, 1, 2, ..., T
  |      T : last time-stamp of data
  |
  |  Dynamic VI forecast
  |  -------------------
  |
+ |  Reference phrase
+ |      "Underlying volatility", "underlying variance":
+ |          Volatilities, v1_und(t), or variances,
+ |          v2_und(t), of underlying time-series,
+ |          y_und(t)
+ |
  |  Approaches
- |      * Values of volatility indexes represent expected
- |        volatility levels of underlying time-series,
- |        expected at a specified future time
- |      * Therefore, volatility index VI(t) values are
- |        closely related to volatility levels of underlying
- |        time-series y_und(t)
- |      * Volatilities of underlying and other dynamically
- |        correlated time-series, or combined vector
- |        time-series y(t), can be effectively modeled
- |        and forecasted by well-established and widely
- |        utilized dynamic factor models (DFMs)
- |      * DFbVIF fully utilizes DFM volatility analysis
- |        on combined vector time-series (underlying
- |        and other dynamically correlated time-series)
- |        to forecast volatility indexes
- |      * For example, DFbVIF forecasts implied
- |        variances (squares of volatility indexes)
- |        by quadratic autoregressive (QAR) equation
- |        combining most recent values of volatility
- |        indexes quadratically, here QAR coefficients
- |        are derived from DFM volatility model of
- |        combined vector time-series
- |      * Data set of all underlying and many other
- |        dynamically correlated time-series can have
- |        much more predictive power than sub-set of
- |        volatility indexes alone
+ |      * Values of volatility indexes, VI(t), represent
+ |        expected volatility levels of underlying time-
+ |        series, y_und(t), expected at a specified future
+ |        time, therefore volatility indexes and under-
+ |        lying volatilities are closely related
+ |      * Volatilities of DFM-input vector time-
+ |        series y(t), can be effectively modeled and
+ |        forecasted by dynamic factor models (DFMs)
+ |      * DFbVIF utilizes DFM volatility analysis on
+ |        DFM-input vector time-series to forecast
+ |        volatility indexes
+ |      * For example, volatility index forecasts by
+ |        DFbVIF include: (1) UVF forecasts, (2) QAR
+ |        forecasts, and (3, a future development)
+ |        TSF forecasts
+ |      * Data set of DFM-input vector time-series
+ |        can have much more informatoin, and therefore
+ |        much more predictive power, than sub-set of
+ |        underlying time-series alone
  |      * In addition, with DFM modeling, DFbVIF is
  |        able to attribute volatility index forecasts
- |        to dynamic sources of volatility, e.g. variance
- |        of common factors and idiosyncratic UDCs, auto-
- |        covariance of factors and UDCs, and varaiance
- |        of prediction/residual errors
+ |        to dynamic sources of volatility, e.g.
+ |        variance of common factors and idiosyncratic
+ |        UDCs, autocovariance of factors and UDCs,
+ |        and varaiance of prediction/residual errors
  |
- |  Using y_und(t) volatility foreast
- |      Volatility index forecasts with underlying
- |      volatility forecasts (UVF) as predictors
+ |  UVF forecast
+ |      "Volatility index forecasts with underlying
+ |          volatility forecasts (UVF) as predictors"
+ |      Forecasting changes in volatility indexes
+ |          with forecasted changes in underlying
+ |          volatilities
  |
- |  Using y_und(t) volatility modeling
- |      Volatility index forecasts by quadratic
- |      autoregressive (QAR) equation with QAR
- |      coefficients derived from DFM-based
- |      underlying time-series volatility model
+ |  QAR forecast
+ |      "Volatility index forecasts by quadratic
+ |          autoregressive (QAR) equation with QAR
+ |          coefficients of underlying volatilities"
+ |      Making quadratic autoregressive (QAR)
+ |          forecasts of volatility indexes with
+ |          QAR equation of underlying volatilities
+ |
+ |  TSF forecast (future development)
+ |      "Volatility index forecasts by direct time-
+ |          series forecasts (TSF)"
+ |      Forecasting volatility indexes by making
+ |          time-series forecasts of volatility
+ |          indexes directly
+ |
+ |  Optimal UVF, QAR and TSF forecasts
+ |      Optimal UVF, QAR and TSF forecasts may
+ |      be achieved by different sets of parameters
+ |      of dynamic factor model
  |
  |  Model average forecast of VI(t)
- |      Simple averages of UVF forecasts and QAR
+ |      Simple averages of UVF, QAR and TSF
  |      forecasts of volatility indexes
  |
- |  Dynamic factor model (DFM)
- |  --------------------------
+ |  Dynamic factor model (DFM) on VTS y(t)
+ |  --------------------------------------
  |
  |  Acronyms
  |      VAR : vector autoregressive (VAR) model
@@ -144,19 +160,20 @@ class DFbVIF(builtins.object)
  |          series
  |
  |  Notations - DFM (and LMDFM) model
- |      f(t) : time-series of m-by-1 dynamic factor score
- |          vector f with time index t
- |      X0 : n-by-m matrix of loadings of factor score
- |          time-series f(t) on combined vector time-
- |          series y(t)
+ |      f(t) : time-series of m-by-1 common dynamic
+ |          factor score vector f with time index t
+ |      X0 : n-by-m matrix of loadings of common
+ |          dynamic factor score time-series f(t)
+ |          on DFM-input vector time-series y(t)
  |      A(j) : m-by-m matrix of vector autoregressive
- |          (VAR) coefficients of dynamic factor score
- |          time-series f(t); j = 1,2,...,p
+ |          (VAR) coefficients of common dynamic
+ |          factor score time-series f(t); j =
+ |          1,2,...,p
  |      v(t) : time-series of m-by-1 vector of errors
- |          in VAR prediction of dynamic factor score
- |          f(t)
- |      m : number of dynamic factors, or factor score
- |          time-series, 1 <= m < n
+ |          in VAR prediction of common dynamic factor
+ |          score f(t)
+ |      m : number of common dynamic factors, or
+ |          factor score time-series, 1 <= m < n
  |      p : vector autoregressive (VAR) order of
  |          dynamic factor model
  |
@@ -171,7 +188,7 @@ class DFbVIF(builtins.object)
  |      q : univariate autoregressive (AR) order of
  |          YWpcAR model
  |
- |  DFM representation of combined VTS y(t)
+ |  DFM representation of DFM-iunput VTS y(t)
  |      y(t) = z(t) + u(t)
  |      z(t) = X0 f(t)
  |      f(t) = A(1) f(t-1) + ... + A(p) f(t-p) + v(t)
@@ -180,15 +197,15 @@ class DFbVIF(builtins.object)
  |
  |  Notations - components multivariate time-series
  |      z(t) : time-series of n-by-1 common component
- |          vector z, z(t) = X0 f(t), of combined
+ |          vector z, z(t) = X0 f(t), of DFM-input
  |          vector time-series y(t)
  |      u(t) : time-series of n-by-1 idiosyncratic
- |          component vector of combined VTS
+ |          component vector of DFM-input VTS
  |          y(t) = z(t) + u(t)
  |      r(t) : time-series of n-by-1 residual error
  |          vector of idiosyncratic time-series u(t)
  |
- |  Decomposition of combined VTS y(t)
+ |  Decomposition of DFM-input VTS y(t)
  |      y(t) = X0 f(t) + g(t) + r(t)
  |
  |  DFM-based volatility estimates
@@ -215,26 +232,6 @@ class DFbVIF(builtins.object)
  |      Notes of transpose:
  |          V(t-k, t-j) = transpose(V(t-j, t-k))
  |
- |  Estimated k-lag autocovariance of factors
- |      V(t-j, t-j-k) = Cov( f(t-j), f(t-j-k) )
- |          time-lag j = 0,1,...
- |          sample-lag k = 1,2,...
- |      V(t-j, t-j-k) : estimated k-lag m-by-m
- |          autocovariance matrix of dynamic
- |          factor score time-series f(t)
- |
- |  Estimated autocovariance, when 0 <= j <= k
- |      V(t-j, t-k)
- |          = V(t-min(j,k), t-min(j,k)-abs(j-k))
- |              time-lag = min(j,k)
- |              sample-lag = abs(j-k)
- |
- |  Estimated autocovariance, when j >= k >= 0
- |      V(t-j, t-k) = transpose(
- |          V(t-min(j,k), t-min(j,k)-abs(j-k)) )
- |              time-lag = min(j,k)
- |              sample-lag = abs(j-k)
- |
  |  Estimated variance of UDC time-series
  |      W(t-j) = diag( Var( g(t-j) ) )
  |          time-lag j = 0,1,...
@@ -251,20 +248,7 @@ class DFbVIF(builtins.object)
  |      Notes of symmetry:
  |          W(t-k, t-j) = W(t-j, t-k)
  |
- |  Estimated k-lag autocovariance of UDC
- |      W(t-j, t-j-k) = diag( Cov( g(t-j), g(t-j-k) ) )
- |          time-lag j = 0,1,...
- |          sample-lag k = 1,2,...
- |      W(t-j, t-j-k) : estimated k-lag n-by-n diagonal
- |          autocovariance matrix of UDC time-series
- |          g(t)
- |
- |  Estimated autocovariance of g(t)
- |      W(t-j, t-k) = W(t-min(j,k), t-min(j,k)-abs(j-k))
- |          time-lag = min(j,k)
- |          sample-lag = abs(j-k)
- |
- |  Assumption about erlier values
+ |  Assumption about earlier values
  |      Using earliest available estimates as earlier
  |          values of estimated variance of dynamic
  |          factors f(t) and UDCs g(t), when time-lag
@@ -273,21 +257,21 @@ class DFbVIF(builtins.object)
  |          V(t-j) = V(t-p)  if j > p
  |          W(t-j) = W(t-q)  if j > q
  |
- |  Estimated variance-covariance of combined VTS y(t)
+ |  Estimated variance-covariance of DFM-input VTS y(t)
  |      C(t-j) = Var( y(t-j) )
  |          = Var( X0 f(t-j) + g(t-j) + r(t-j) )
  |          = X0 V(t-j) X0' + W(t-j) + Rr(t)
  |              time-lag j = 0,1,2,...
  |      C(t-j) : estimated n-by-n variance-covariance
- |          matrix of combined vector time-series y(t)
+ |          matrix of DFM-input vector time-series y(t)
  |
- |  Estimated variance of combined VTS y(t)
+ |  Estimated variance of DFM-input VTS y(t)
  |      v2(t-j) = diag( C(t-j) ) =
  |          = diag( X0 V(t-j) X0' ) + W(t-j) + Rr(t)
  |              time-lag j = 0,1,2,...
  |      v2(t-j) = diag( C(t-j) ) : estimated n-by-n
- |          diagonal variance matrix of combined vector
- |          time-series y(t)
+ |          diagonal variance matrix of DFM-input
+ |          vector time-series y(t)
  |
  |  DFM-based volatility prediction
  |  -------------------------------
@@ -331,7 +315,7 @@ class DFbVIF(builtins.object)
  |          diagonal autocovariance matrix of VI-
  |          adjusted UDC time-series g(t)
  |
- |  Predicted VCM of combined VTS y(t)
+ |  Predicted VCM of DFM-input VTS y(t)
  |      C(t) = X0 V(t) X0' + W(t) + Rr =
  |          = X0 ( diag( Sum[
  |            A(j) V(t-j, t-k) A(k)'; j,k=1,...,p
@@ -339,10 +323,10 @@ class DFbVIF(builtins.object)
  |            D(j) W(t-j, t-k) D(k)'; j,k=1,...,q
  |            ] + Re(t) + Rr(t)
  |      C(t) : predicted n-by-n variance-covariance
- |          matrix of combined vector time-series
+ |          matrix of DFM-input vector time-series
  |          y(t)
  |
- |  Predicted variance of combined VTS y(t)
+ |  Predicted variance of DFM-input VTS y(t)
  |      v2(t) = diag( C(t) ) =
  |          = diag( X0 ( diag( Sum[
  |            A(j) V(t-j, t-k) A(k)'; j,k=1,...,p
@@ -350,7 +334,7 @@ class DFbVIF(builtins.object)
  |            D(j) W(t-j, t-k) D(k)'; j,k=1,...,q
  |            ] + Re(t) + Rr(t)
  |      v2(t) = diag( C(t) ) : predicted n-by-n
- |          diagonal variance matrix of combined
+ |          diagonal variance matrix of DFM-input
  |          vector time-series y(t)
  |
  |  DFM-based volatility forecasts
@@ -389,18 +373,18 @@ class DFbVIF(builtins.object)
  |          ed UDC time-series g(t) at forecast step
  |          s = 1,2,...
  |
- |  Forecasted VCM of combined VTS y(t)
+ |  Forecasted VCM of DFM-input VTS y(t)
  |      C(t+s) = X0 ( diag( Sum[
  |          A(j) V(t+s-j, t+s-k) A(k)'; j,k=1,...,p
  |          ] ) + Rv(t) ) X0' + Sum[
  |          D(j) W(t+s-j, t+s-k) D(k)'; j,k=1,...,q
  |          ] + Re(t) + Rr(t)
  |      C(t+s) : forecasted n-by-n variance-
- |          covariance matrix of combined vector
+ |          covariance matrix of DFM-input vector
  |          time-series y(t) at forecast step
  |          s = 1,2,...
  |
- |  Forecasted variance of combined VTS y(t)
+ |  Forecasted variance of DFM-input VTS y(t)
  |      v2(t+s) = diag( C(t+s) ) =
  |          = diag( X0 ( diag( Sum[
  |            A(j) V(t+s-j, t+s-k) A(k)'; j,k=1,...,p
@@ -408,174 +392,248 @@ class DFbVIF(builtins.object)
  |            D(j) W(t+s-j, t+s-k) D(k)'; j,k=1,...,q
  |            ] + Re(t) + Rr(t)
  |      v2(t+s) = diag( C(t+s) ) : forecasted n-by-n
- |          diagonal variance matrix of combined
+ |          diagonal variance matrix of DFM-input
  |          vector time-series y(t) at forecast step
  |          s = 1,2,...
  |
- |  Dynamic volatility attribution
- |  ------------------------------
+ |  Underlying volatility estimates/forecasts
+ |  -----------------------------------------
  |
- |  First-step volatility forecast
- |      Volatility forecast 1-step ahead from now
- |            C(t+1|t) = Var( y(t+1) | t )
- |          = X0 V(t+1|t) X0' + W(t+1|t) + Rr(t)
+ |  Underlying loadings of factors f(t)
+ |      X0_und = upper h-by-m block of n-by-m matrix
+ |          of factor loadings X0
+ |      X0_und : h-by-m matrix of loadings of common
+ |          dynamic factor score time-series f(t) on
+ |          underlying vector time-series y_und(t)
  |
- |  1-Step forecast of variance of y(t)
- |      diag( C(t+1|t) ) = diag( X0 [ diag( Sum[
- |          A(j) V(t+1-j, t+1-k) A(k)'; j,k = 1:p
- |          ] ) + Rv(t) ] X0' ) + Sum[
- |          D(j) W(t+1-j, t+1-k) D(k)'; j,k = 1:q
- |          ] + Re(t) + Rr(t)
- |      diag( C(t+1|t) ) : forecasted 1-step ahead
- |          n-by-n diagonal variance matrix of
- |          combined vector time-series y(t)
+ |  Estimated/forecasted variance of underlying UDC
+ |      W_und(t+s-j) = upper-left h-by-h diagonal
+ |          block of n-by-n diagonal matrix of
+ |          estimated/forecasted variance of UDC
+ |          g(t)
+ |      W_und(t+s-j) : h-by-h diagonal matrix of
+ |          estimated/forecasted variance of under-
+ |          lying UDC g_und(t) of underlying time-
+ |          series y_und(t), with time-lag = 0,1,
+ |          ..., at forecast step s = 0,1,...
  |
- |  Parts of variance of combined VTS y(t)
- |      pov('comm', t, j, k) =
- |          = diag( X0 diag( A(j) V(t+1-j, t+1-k) A(k)' ) X0' );
- |              j,k = 1,2,...,p
- |      pov('idio', t, j, k) =
- |          = D(j) W(t+1-j, t+1-k) D(k)';
- |              j,k = 1,2,...,q
- |      pov('prederr', t) = pov('prederr', t, j, k) =
- |          = diag( X0 Rv(t) X0' ) + Re(t) + Rr(t);
- |              j,k = 0
- |      pov(sm, t, j, k):
- |          Parts of variance, represented by additive
- |          terms in first-step forecast of diagonal
- |          variance matrix of combined vector time-
- |          series y(t)
- |      Note: sub-model label sm = 'comm' (for common,
- |          based on common dynamic foactors) or 'idio'
- |          (for idiosyncratic, based on idiosyncratic
- |          UDCs) or 'prederr' (for sum of common,
- |          idiosyncratic and residual prediction errors)
+ |  AR coefficients of underlying UDC or VTS
+ |      D_und(j) = upper-left h-by-h diagonal block
+ |          of n-by-n diagonal matrix of PC-based
+ |          autoregressive (AR) coefficients
+ |      D_und(j) : h-by-h diagonal matrix of PC-
+ |          based autoregressive (AR) coefficients
+ |          of underlying VTS y_und(t) and under-
+ |          lying UDC g_und(t)
  |
- |  Sources of volatility
- |      A specific source of volatility: sub-total
- |          of a specific group of parts of volatility
+ |  Underlying UDC prediction error
+ |      Re_und = upper-left h-by-h diagonal block
+ |          of n-by-n diagonal matrix of variance
+ |          of UDC prediction error e(t)
+ |      Re_und : h-by-h diagonal matrix of
+ |          estimated variance of underlying
+ |          UDC prediction error e_und(t)
  |
- |  Dynamic sources of volatility
- |      (1) common volatility: contribution from variances
- |          of dynamic common factors
- |      (2) common serial-correlation: contribution from
- |          autocovariances of daynmic common factos
- |      (3) idiosyncratic volatility: contribution from
- |          variance of idiosyncratic UDC (unobserved
- |          dynamic component)
- |      (4) idiosyncratic serial-correlation: contribution
- |          from autocovariance of idiosyncratic UDC
- |      (5) prediction error: contribution from dynamic
- |          factor prediction error, UDC prediction error
- |          and residual error
- |
- |  Dynamic sources of variance of combined y(t)
- |      common volatility
- |          v2_cv = sum[ pov('comm',t,j,j); j = 1:p ]
- |      common serial-correlation
- |          v2_cs = sum[ pov('comm',t,j,k); k not= j; j,k = 1:p ]
- |      idiosyncratic volatility
- |          v2_iv = sum[ pov('idio',t,j,j); j = 1:q ]
- |      idiosyncratic serial-correlation
- |          v2_is = sum[ pov('idio',t,j,k); k not= j; j,k = 1:q ]
- |      prediction error
- |          v2_pe = pov('prederr', t)
- |
- |  Dynamic volatility attribution
- |      Portions of volatility attributed
- |          to dynamic sources of volatility
- |
- |  Underlying volatility forecast
- |  ------------------------------
+ |  Variance of underlying residual error
+ |      Rr_und = upper-left h-by-h diagonal block
+ |          of n-by-n diagonal matrix of variance
+ |          of residual error r(t)
+ |      Rr_und : h-by-h diagonal matrix of
+ |          estimated variance of underlying
+ |          residual error r_und(t)
  |
  |  Estimated variance of underlying y_und(t)
- |      v2_und(t-j) = diag_block( v2(t-j); h )
- |          first h-by-h diagaonal block of estimated
- |          diagonal variance matrix of combined vector
- |          time-series y(t)
+ |      v2_und(t-j) = diag( C_und(t-j) ) =
+ |          = diag( X0_und V(t-j) X0_und' ) +
+ |          + W_und(t-j) + Rr_und(t) ;
+ |              time-lag j = 0,1,2,...
  |      v2_und(t-j) : estimated h-by-h diagonal
- |          variance matrix of underlying time-series
- |          y_und(t), with time-lag j = 0,1,2,...
+ |          matrix of variance of underlying
+ |          time-series y_und(t), with time-lag
+ |          j = 0,1,2,...
  |
  |  Estimated volatility of underlying y_und(t)
- |      v1_und(t-j) = sqrt( v2_und(t-j) )
- |          = sqrt( diag_block( v2(t-j); h ) )
+ |      v1_und(t-j) =
+ |          = sqrt( v2_und(t-j) )
  |      v1_und(t-j) : estimated h-by-h diagonal
- |          volatility matrix of underlying
+ |          matrix of volatility of underlying
  |          time-series y_und(t), with time-lag
  |          j = 0,1,2,...
  |
  |  Predicted/forecasted variance of y_und(t)
- |      v2_und(t+s) = diag_block( v2(t+s); h )
- |          first h-by-h diagaonal block of predicted/
- |          forecasted diagonal variance matrix of
- |          combined vector time-series y(t)
- |      v2_und(t+s) : predicted/forecasted h-by-h
- |          diagonal variance matrix of underlying
- |          vector time-series y_und(t), estimated
- |          (s = 0) and forecasted (s >= 1) at
- |          forecast step s = 0,1,2,...
+ |      v2_und(t+s|t) = diag( C_und(t+s|t) ) =
+ |          = diag( X0_und ( diag( Sum[
+ |            A(j) V(t+s-j, t+s-k) A(k)'; j,k=1,...,p
+ |            ] ) + Rv ) X0_und' ) + Sum[
+ |            D_und(j) W_und(t+s-j, t+s-k) D_und(k)';
+ |            j,k=1,...,q ] + Re_und(t) + Rr_und(t)
+ |      v2_und(t+s) : h-by-h diagonal matrix of
+ |          predicted/forecasted variance of under-
+ |          lying vector time-series y_und(t),
+ |          estimated (s = 0) and forecasted
+ |          (s >= 1) at forecast step s = 0,1,2,...
  |
  |  Predicted/forecasted volatility of y_und(t)
- |      v1_und(t+s) = sqrt( v2_und(t+s) ) =
- |          = sqrt( diag_block( v2(t+s); h ) )
+ |      v1_und(t+s|t) =
+ |          = sqrt( v2_und(t+s|t) )
  |      v1_und(t+s) : predicted/forecasted h-by-h
  |          diagonal volatility matrix of underlying
  |          vector time-series y_und(t), estimated
  |          (s = 0) and forecasted (s >= 1) at
  |          forecast step s = 0,1,2,...
  |
- |  Underlying volatility attribution
- |  ---------------------------------
+ |  Parts and sources of underlying volatility
+ |  ------------------------------------------
+ |
+ |  First-step forecast of variance of y_und(t)
+ |      v2_und(t+1|t) = diag( C_und(t+1|t) ) =
+ |          = diag( X0_und [ diag( Sum[
+ |            A(j) V(t+1-j, t+1-k) A(k)'; j,k = 1:p
+ |            ] ) + Rv(t) ] X0_und' ) + Sum[
+ |            D_und(j) W_und(t+1-j, t+1-k) D_und(k)';
+ |            j,k = 1:q ] + Re_und(t) + Rr_und(t)
+ |      v2_und(t+1|t) : h-by-h diagonal matrix of
+ |          first-step forecast of variance of under-
+ |          lying vector time-series y_und(t)
  |
  |  Dynamic parts of variance of y_und(t)
- |      dp_und('comm', t, j, k) =
- |          diag_block( pov('comm', t, j, k); h )
- |              first h-by-h diagaonal block of common
- |              parts of variance matrix of combined
- |              vector time-series y(t)
- |      dp_und('idio', t, j, k) =
- |          diag_block( pov('idio', t, j, k); h )
- |              first h-by-h diagaonal block of idio-
- |              syncratic parts of variance matrix
- |              of combined vector time-series y(t)
- |      dp_und(label, t, j, k):
- |          dynamic parts of diagonal variance matrix
- |          of underlying time-series y_und(t)
- |      Notes on dynamic parts:
- |          parts of label 'comm' (for common) are
- |          based on common dynamic foactors, parts
- |          of label 'idio' (for idiosyncratic) are
- |          based on idiosyncratic UDCs
+ |      pv_und('comm', t, j, k) = diag(
+ |          X0_und diag( A(j) V(t+1-j, t+1-k) A(k)' ) X0_und'
+ |          );  j,k = 1,2,...,p
+ |      pv_und('idio', t, j, k) =
+ |          = D_und(j) W_und(t+1-j, t+1-k) D_und(k)';
+ |              j,k = 1,2,...,q
+ |      pv_und('prederr', t) =
+ |          = diag( X0_und Rv(t) X0_und' ) + Re_und(t) + Rr_und(t);
+ |              j,k = 0
+ |      pv_und(sub-model, t, j, k):
+ |          dynamic parts of diagonal variance matrix,
+ |          represented by additive terms in first-step
+ |          forecast of diagonal variance matrix of
+ |          underlying vector time-series y_und(t)
+ |      Note: sub-model = 'comm' (for common, based on
+ |          common dynamic foactors); 'idio' (for idio-
+ |          syncratic, based on idiosyncratic UDCs);
+ |          'prederr' (for sum of common, idiosyncratic,
+ |          and residual prediction errors)
  |
- |  Error part of variance of y_und(t)
- |      ep_und(t) =
- |          diag_block( pov('prederr', t); h )
- |              first h-by-h diagaonal block of prediction
- |              error part of variance matrix of combined
- |              vector time-series y(t)
- |      ep_und(t):
- |          Error (prediction error) part of diagonal
- |          variance matrix of underlying time-series
- |          y_und(t)
+ |  First-step forecast of variance of y_und(t)
+ |      v2_und(t+1|t) = diag( C_und(t+1|t) ) =
+ |          = Sum[ pv_und('comm',t,j,k); j,k = 1:p ] +
+ |          + X0_und Rv(t) X0_und' +
+ |          + Sum[ pv_und('idio',t,j,k); j,k = 1:q ] +
+ |          + Re_und(t) + Rr_und(t)
+ |      v2_und(t+1|t) : first-step forecast of variance
+ |          of underlying vector time-series y_und(t)
+ |          as a sum of all parts
+ |
+ |  Sources of volatility
+ |      A specific source of volatility: sub-total
+ |          of a specific group of parts of volatility
+ |
+ |  Dynamic sources of volatility
+ |      (1) 'common volatility': contribution from
+ |          variances of dynamic common factors
+ |      (2) 'common serial-correlation': contribution
+ |          from vector autocovariances of dynamic
+ |          common factors
+ |      (3) 'idiosyncratic volatility': contribution
+ |          from variance of idiosyncratic UDCs
+ |      (4) 'idiosyncratic serial-correlation':
+ |          contribution from autocovariance of
+ |          idiosyncratic UDCs
+ |      (5) 'prediction error': contribution from
+ |          dynamic factor prediction error, UDC
+ |          prediction error, and residual error
  |
  |  Dynamic sources of variance of y_und(t)
- |      common volatility
- |          uv2_cv = sum[ dp_und('comm',t,j,j); j = 1:p ]
- |      common serial-correlation
- |          uv2_cs = sum[ dp_und('comm',t,j,k); k not= j; j,k = 1:p ]
- |      idiosyncratic volatility
- |          uv2_iv = sum[ dp_und('idio',t,j,j); j = 1:q ]
- |      idiosyncratic serial-correlation
- |          uv2_is = sum[ dp_und('idio',t,j,k); k not= j; j,k = 1:q ]
- |      prediction error
- |          uv2_pe = ep_und(t)
- |      total variance
- |          v2_und(t) = uv2_cv + uv2_cs + uv2_iv + uv2_is + uv2_pe
+ |      'common volatility'
+ |          = sum[ pv_und('comm',t,j,j); j = 1:p ]
+ |      'common serial-correlation'
+ |          = sum[ pv_und('comm',t,j,k); k not= j; j,k = 1:p ]
+ |      'idiosyncratic volatility'
+ |          = sum[ pv_und('idio',t,j,j); j = 1:q ]
+ |      'idiosyncratic serial-correlation'
+ |          = sum[ pv_und('idio',t,j,k); k not= j; j,k = 1:q ]
+ |      'prediction error'
+ |          = pv_und('prederr',t)
+ |      'total'
+ |          = v2_und(t+1|t)
  |
- |  Underlying volatility attribution
- |      Portions of underlying volatility attributed
- |          to dynamic sources of underlying volatility
+ |  Dynamic volatility attribution
+ |  ------------------------------
+ |
+ |  Dynamic volatility attribution of y(t)
+ |          'common volatility'
+ |          'common serial-correl'
+ |          'idio volatility'
+ |          'idio serial-correl'
+ |          'prediction error'
+ |      Portions of volatility of DFM-input
+ |          vector time-series y(t) attributed
+ |          to dynamic sources of volatility
+ |
+ |  Quadratic autoregression (QAR)
+ |  ------------------------------
+ |
+ |  Parts of variance of y_und(t)
+ |      pv_und('comm', t,j,k)
+ |      pv_und('idio', t,j,k)
+ |      pv_und('prederr', t)
+ |          parts of diagonal variance matrix
+ |          of underlying time-series y_und(t)
+ |
+ |  Factor-based QAR coefficients
+ |      qc_V(t, j, k) =
+ |          = Inv(v1_und(t+1-j)) pv_und('comm', t,j,k) Inv(v1_und(t+1-k))';
+ |              j,k = 1,2,...,p
+ |      qc_V(t, j, k):
+ |          h-by-h diagonal matrix of factor-based
+ |          QAR coefficients in 1-step forecast
+ |          of variance of underlying time-series
+ |          y_und(t), with time-lags j,k = 1,2,...,p
+ |
+ |  Factor-explained parts of variance of y_und(t)
+ |      pv_und('comm', t,j,k) =
+ |          = v1_und(t+1-j) qc_V(t,j,k) v1_und(t+1-k)';
+ |              j,k = 1,2,...,p
+ |      pv_und('comm',t,j,k):
+ |          factor-explained parts of variance of
+ |          underlying time-series y_und(t), expressed
+ |          as an additive term of quadratic auto-
+ |          regressive (QAR) equation
+ |
+ |  UDC-based QAR coefficients
+ |      qc_W(t, j, k) =
+ |          = Inv(v1_und(t+1-j)) pv_und('idio',t,j,k) Inv(v1_und(t+1-k))'
+ |              j,k = 1,2,...,q
+ |      qc_W(t, j, k):
+ |          h-by-h diagonal matrix of UDC-based
+ |          QAR coefficients in 1-step forecast
+ |          of variance of underlying time-series
+ |          y_und(t), with time-lags j,k = 1,2,...,q
+ |
+ |  UDC-explained parts of variance of y_und(t)
+ |      pv_und('idio', t,j,k) =
+ |          = v1_und(t+1-j) qc_W(t,j,k) v1_und(t+1-k)';
+ |              j,k = 1,2,...,q
+ |      pv_und('idio',t,j,k):
+ |          UDC-explained parts of variance of underlying
+ |          time-series y_und(t), expressed as an additive
+ |          term of quadratic autoregressive (QAR) equation
+ |
+ |  Dynamic QAR equation of variance of y_und(t)
+ |      v2_qar(t+1) = sum[
+ |          v1_und(t+1-j) qc_V(t,j,k) v1_und(t+1-k)';
+ |              j,k = 1,2,...,p ] + sum[
+ |          v1_und(t+1-j) qc_W(t,j,k) v1_und(t+1-k)';
+ |              j,k = 1,2,...,q ] +
+ |          pv_und('prederr',t)
+ |      v2_qar(t+1):
+ |          Sum total of all dynamic (common and idio-
+ |          syncratic) parts, and error part, of variance
+ |          of underlying time-series y_und(t), calculated
+ |          by quadratic autoregressive (QAR) equation
  |
  |  Volatility index forecast: UVF method
  |  -------------------------------------
@@ -591,18 +649,18 @@ class DFbVIF(builtins.object)
  |
  |  Multiplier of value-adjustment of UVF method
  |      B_uvf(t) = B_uvf =
- |          = VI2(t) Inv[ v2_und(t+0) ]
+ |          = VI2(t) Inv[ v2_und(t-0) ]
  |      B_uvf(t) = B_uvf
  |          h-by-h diagonal matrix of multipliers
  |          of value-adjustment of UVF (underlying
  |          volatility forecasts as predictors)
  |          method forcasting implied variance
- |      Note: B_uvf v2_und(t+0) = VI2(t)
+ |      Note: B_uvf v2_und(t-0) = VI2(t)
  |
  |  UVF forecasts of implied variance VI2(t)
- |      VI2(t+s|t) =
+ |      VI2_uvf(t+s|t) =
  |          = B_uvf(t) v2_und(t+s|t)
- |      VI2(t+s|t)
+ |      VI2_uvf(t+s|t)
  |          h-by-h diagonal matrix of s-step
  |          UVF (underlying volatility forecasts
  |          as predictors) forecasts of implied
@@ -610,81 +668,24 @@ class DFbVIF(builtins.object)
  |          1,2,...,x
  |
  |  UVF forecasts of volatility index VI(t)
- |      VI(t+s|t) =
- |          = sqrt( VI2(t+s|t) )
- |      VI(t+s|t):
+ |      VI2(t+s|t) = VI2_uvf(t+s|t)
+ |      VI(t+s|t) = sqrt( VI2(t+s|t) )
+ |      VI2(t+s|t) and VI(t+s|t):
  |          h-by-h diagonal matrix of s-step
  |          UVF (underlying volatility forecasts
- |          as predictors) forecasts of volatility
- |          index, with forecast step s = 1,2,...
+ |          as predictors) forecasts of implied
+ |          variance and of volatility index,
+ |          with forecast step s = 1,2,...
  |
- |  Quadratic autoregression (QAR)
- |  ------------------------------
- |
- |  Dynamic parts of variance of y_und(t)
- |      dp_und('comm',t,j,k)
- |      dp_und('idio',t,j,k)
- |          dynamic parts of diagonal variance matrix
- |          of underlying time-series y_und(t)
- |      Notes on dynamic parts:
- |          parts of label 'comm' (for common) are
- |          based on common dynamic foactors, parts
- |          of label 'idio' (for idiosyncratic) are
- |          based on idiosyncratic UDCs
- |
- |  Factor-based QAR coefficients
- |      qc_f(t, j, k) =
- |          = Inv(v1_und(t+1-j)) dp_und('comm',t,j,k) Inv(v1_und(t+1-k))';
- |              j,k = 1,2,...p
- |      qc_f(t, j, k):
- |          h-by-h diagonal matrix of factor-based
- |          QAR coefficients in 1-step forecast
- |          of variance of underlying time-series
- |          y_und(t), with time-lags j,k = 1,2,...,p
- |
- |  UDC-based QAR coefficients
- |      qc_g(t, j, k) =
- |          = Inv(v1_und(t+1-j)) dp_und('idio',t,j,k) Inv(v1_und(t+1-k))'
- |      qc_g(t, j, k):
- |          h-by-h diagonal matrix of UDC-based
- |          QAR coefficients in 1-step forecast
- |          of variance of underlying time-series
- |          y_und(t), with time-lags j,k = 1,2,...,q
- |
- |  Factor-explained parts of variance of y_und(t)
- |      dp_und('comm',t,j,k) =
- |          = v1_und(t+1-j) qc_f(t,j,k) v1_und(t+1-k)';
- |              j,k = 1,2,...p
- |      dp_und('comm',t,j,k):
- |          factor-explained parts of variance of
- |          underlying time-series y_und(t), expressed
- |          as an additive term of quadratic auto-
- |          regressive (QAR) equation
- |
- |  UDC-explained parts of variance of y_und(t)
- |      dp_und('idio',t,j,k) =
- |          = v1_und(t+1-j) qc_g(t,j,k) v1_und(t+1-k)';
- |              j,k = 1,2,...q
- |      dp_und('idio',t,j,k):
- |          UDC-explained parts of variance of underlying
- |          time-series y_und(t), expressed as an additive
- |          term of quadratic autoregressive (QAR) equation
- |
- |  Dynamic QAR equation of variance of y_und(t)
- |      v2_qar(t+1) = sum[
- |          v1_und(t+1-j) qc_f(t,j,k) v1_und(t+1-k)';
- |              j,k = 1,2,...p ] + sum[
- |          v1_und(t+1-j) qc_g(t,j,k) v1_und(t+1-k)';
- |              j,k = 1,2,...q ]
- |      v2_qar(t+1):
- |          Sum total of all dynamic (common and idio-
- |          syncratic) parts of variance of underlying
- |          time-series y_und(t), calculated by quadratic
- |          autoregressive (QAR) equation
- |      Note: dynamic QAR combination,
- |          v2_qar(t+1) = v2_und(t+1) - ep_und(t)
- |      Note: variance of y_und(t),
- |          v2_und(t+1) = v2_qar(t+1) + ep_und(t)
+ |  UVF volatility attribution
+ |          'common volatility'
+ |          'common serial-correl'
+ |          'idio volatility'
+ |          'idio serial-correl'
+ |          'prediction error'
+ |      Same as portions of underlying volatility
+ |          attributed to dynamic sources of
+ |          underlying volatility
  |
  |  Volatility index forecast: QAR method
  |  -------------------------------------
@@ -694,7 +695,7 @@ class DFbVIF(builtins.object)
  |          related to dynamics of estimated volatility
  |          level of its underlying time-series, then
  |          quadratic autoregression (QAR) of a
- |          volatility index can be approlximated by
+ |          volatility index can be approximated by
  |          QAR of estimated volatility level of its
  |          underlying time-series
  |
@@ -702,129 +703,158 @@ class DFbVIF(builtins.object)
  |      Forecasting volatility index by quadratic
  |          autoregressive (QAR) equation with
  |          QAR coefficients equal to those of
- |          estimetated volatility level of
+ |          estimated volatility level of
  |          underlying time-series
  |
- |  UN-Adjusted QAR forecast of VI2(t)
- |      VI2_qar(t+s|t) =
- |          = Sum[ VI(t+s-j) qc_f(t,j,k) VI(t+s-k)'; j,k=1:p ]
- |          + Sum[ VI(t+s-j) qc_g(t,j,k) VI(t+s-k)'; j,k=1:q ];
+ |  UN-Adjusted ex-error QAR forecast of VI2(t)
+ |      vi2_qar(t+s|t) =
+ |          = Sum[ VI(t+s-j) qc_V(t,j,k) VI(t+s-k)'; j,k=1:p ]
+ |          + Sum[ VI(t+s-j) qc_W(t,j,k) VI(t+s-k)'; j,k=1:q ]
  |              forecast step s = 0,1,2,...,x
- |      VI2_qar(t+s|t)
+ |      vi2_qar(t+s|t)
  |          h-by-h diagonal matrix of UN-Adjusted
- |          s-step QAR (quadratic autoregressive)
- |          forecasts of implied variance VI2(t),
- |          with forecast step s = 0,1,2,...,x
+ |          and Error-Excluded s-step QAR (quadratic
+ |          autoregressive) forecasts of implied
+ |          variance VI2(t), with forecast step
+ |          s = 0,1,2,...,x
  |
  |  Additive constant of value-adjustment of QAR forecast
  |      A_qar(t) = A_qar =
- |          = VI2(t) uv2_pe(t) Inv[ v2_und(t+0) ]
+ |          = VI2(t) pv_und('prederr',t) Inv[ v2_und(t+1) ]
  |      A_qar(t) = A_qar
  |          h-by-h diagonal matrix of additive constants
  |          of value-adjustment of QAR (quadratic
  |          autoregressive) method forecasting implied
  |          variance
- |      A_qar(t): based on equation
- |          uv2_pe Inv[ v2_und(t+0) ] = A_qar(t) Inv[ VI2(t) ]
+ |      Based on equation: A_qar(t) Inv[ VI2(t) ] =
+ |          = pv_und('prederr',t) Inv[ v2_und(t+1) ]
  |
  |  Multiplier of value-adjustment of QAR forecast
  |      B_qar(t) = B_qar =
- |          = [ VI2(t) - A_qar(t) ] Inv[ VI2_qar(t|t-1) ]
+ |          = [ VI2(t) - A_qar(t) ] Inv[ vi2_qar(t|t-1) ]
  |      B_qar(t) = B_qar
  |          h-by-h diagonal matrix of multipliers
  |          of value-adjustment of QAR (quadratic
  |          autoregressive) method forecasting
  |          implied variance
- |      B_qar(t): based on equation
- |          A_qar(t) + [ B_qar(t) VI2_qar(t|t-1) ] = VI2(t)
+ |      Based on equation: VI2(t) =
+ |          = A_qar(t) + [ B_qar(t) vi2_qar(t|t-1) ]
  |
  |  QAR forecast of implied variance VI2(t)
- |      VI2(t+s|t) = A_qar + { B_qar (
- |            Sum[ VI(t+s-j) qc_f(t,j,k) VI(t+s-k)'; j,k=1:p ]
- |          + Sum[ VI(t+s-j) qc_g(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
+ |      VI2_qar(t+s|t) = A_qar + { B_qar (
+ |            Sum[ VI(t+s-j) qc_V(t,j,k) VI(t+s-k)'; j,k=1:p ]
+ |          + Sum[ VI(t+s-j) qc_W(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
  |              step s = 1,2,...,x
- |      VI2(t+s|t)
+ |      VI2_qar(t+s|t):
  |          h-by-h diagonal matrix of s-step QAR
  |          (quadratic autoregressive) forecasts
  |          of implied variance, step-wise with
  |          forecast step s = 1,2,...,x
  |
  |  QAR forecast of volatility index VI(t)
- |      VI(t+s|t) =
- |          = sqrt( VI2(t+s|t) )
- |      VI(t+s|t):
+ |      VI2(t+s|t) = VI2_qar(t+s|t)
+ |      VI(t+s|t) = sqrt( VI2(t+s|t) )
+ |      VI2(t+s|t) and VI(t+s|t):
  |          h-by-h diagonal matrix of s-step QAR
  |          (quadratic autoregressive) forecasts
- |          of volatility index, step-wise with
- |          forecast step s = 1,2,...,x
+ |          of implied variance and of volatility
+ |          index, step-wise with forecast step
+ |          s = 1,2,...,x
  |
  |  Dynamic volatility attribution (QAR)
  |  ------------------------------------
  |
- |  Factor-explained QAR parts
- |      dp_qar('comm',t,j,k) =
- |          = B_qar(t) [ VI(t+1-j) qc_f(t,j,k) VI(t+1-k)' ];
- |              j,k = 1,2,...p
- |      dp_qar('comm',t,j,k):
+ |  Factor-explained parts of QAR volatility
+ |      pv_qar('comm',t,j,k) =
+ |          = B_qar(t) [ VI(t+1-j) qc_V(t,j,k) VI(t+1-k)' ];
+ |              j,k = 1,2,...,p
+ |      pv_qar('comm',t,j,k):
  |          factor-explained parts of quadratic
  |          autoregressive (QAR) forecast of
  |          implied variance
  |
- |  UDC-explained QAR parts
- |      dp_qar('idio',t,j,k) =
- |          = B_qar(t) [ VI(t+1-j) qc_g(t,j,k) VI(t+1-k)' ];
+ |  UDC-explained parts of QAR volatility
+ |      pv_qar('idio',t,j,k) =
+ |          = B_qar(t) [ VI(t+1-j) qc_W(t,j,k) VI(t+1-k)' ];
  |              j,k = 1,2,...q
- |      dp_qar('idio',t,j,k):
+ |      pv_qar('idio',t,j,k):
  |          UDC-explained parts of quadratic
  |          autoregressive (QAR) forecast of
  |          implied variance
  |
+ |  Error part of QAR volatility
+ |      pv_qar('prederr',t) =
+ |          = A_qar(t)= A_qar
+ |      pv_qar('prederr',t):
+ |          Error part of quadratic autoregressive
+ |          (QAR) forecast of implied variance
+ |
  |  Dynamic sources of QAR volatility
- |      (1) common volatility: contribution from variances
- |          of dynamic common factors
- |      (2) common serial-correlation: contribution from
- |          autocovariances of daynmic common factos
- |      (3) idiosyncratic volatility: contribution from
- |          variance of idiosyncratic UDC (unobserved
- |          dynamic component)
- |      (4) idiosyncratic serial-correlation: contribution
- |          from autocovariance of idiosyncratic UDC
- |      (5) prediction error: contribution from dynamic
- |          factor prediction error, UDC prediction error
- |          and residual error
+ |      (1) 'common volatility': contribution from
+ |          variances of dynamic common factors
+ |      (2) 'common serial-correlation': contribution
+ |          from vector autocovariances of dynamic
+ |          common factors
+ |      (3) 'idiosyncratic volatility': contribution
+ |          from variance of idiosyncratic UDCs
+ |      (4) 'idiosyncratic serial-correlation':
+ |          contribution from autocovariance of
+ |          idiosyncratic UDCs
+ |      (5) 'prediction error': contribution from
+ |          dynamic factor prediction error, UDC
+ |          prediction error, and residual error
  |
  |  Dynamic sources of variance of QAR forecast
- |      common volatility
- |          vi2_cv = sum[ dp_qar('comm',t,j,j); j = 1:p ]
- |      common serial-correlation
- |          vi2_cs = sum[ dp_qar('comm',t,j,k); k not= j; j,k = 1:p ]
- |      idiosyncratic volatility
- |          vi2_iv = sum[ dp_qar('idio',t,j,j); j = 1:q ]
- |      idiosyncratic serial-correlation
- |          vi2_is = sum[ dp_qar('idio',t,j,k); k not= j; j,k = 1:q ]
- |      prediction error
- |          vi2_pe = A_qar(t)
+ |      'common volatility'
+ |          = sum[ pv_qar('comm',t,j,j); j = 1:p ]
+ |      'common serial-correlation'
+ |          = sum[ pv_qar('comm',t,j,k); k not= j; j,k = 1:p ]
+ |      'idiosyncratic volatility'
+ |          sum[ pv_qar('idio',t,j,j); j = 1:q ]
+ |      'idiosyncratic serial-correlation'
+ |          sum[ pv_qar('idio',t,j,k); k not= j; j,k = 1:q ]
+ |      'prediction error'
+ |          = pv_qar('prederr',t) = A_qar(t)
+ |      'total'
+ |          = VI2(t+1|t)
  |
  |  QAR dynamic volatility attribution
+ |          'common volatility'
+ |          'common serial-correl'
+ |          'idio volatility'
+ |          'idio serial-correl'
+ |          'prediction error'
  |      Portions of QAR volatility attributed
  |          to dynamic sources of QAR volatility
  |
  |  References
  |  ----------
  |
- |  i4cast LLC (2023). "Dynamic Factor Variance-Covariance Model
- |  (DFVCM) and Multivariate Dynamic Volatility Analysis (MDVA)".
+ |  i4cast LLC (2024). "Introduction to Multi-step Forecast
+ |  of Multivariate Volatility with Dynamic Factor Model".
  |  https://github.com/i4cast/aws/blob/main/dynamic_factor_variance-covariance_model/publication/multi-step_forecast_of_multivariate_volatility_with_dynamic_factor_model.pdf
  |
  |  Data: observed vector time-series
  |  ---------------------------------
  |
- |  VIL : pandas.DataFrame,
- |          index (vi_list), columns (observed_asof_list)
- |      Volatility index level vector time-series, as input
- |          data for DFbVIF model learning and inference
- |      Row time-series of column vector with first column
- |          as oldest and last one as latest
+ |  MTS : pandas.DataFrame,
+ |          index (vi_list + ts_list),
+ |          columns (asof_list)
+ |      Multiple time-series data set including
+ |          volatility index level vector time-
+ |          series (VIL, pd.DataFrame, index=vi_list)
+ |          and DFM-input vector time-series (VTS,
+ |          pd.DataFrame, index=ts_list)
+ |      Row time-series of column vector with first
+ |          column as oldest and last one as latest
+ |
+ |  VIL : pandas.DataFrame, index (vi_list),
+ |          columns (asof_list)
+ |      Volatility index level vector time-series,
+ |          as input data for DFbVIF model learning
+ |          and inference
+ |      Row time-series of column vector with first
+ |          column as oldest and last one as latest
  |
  |  vi_list : list
  |      List of name/symbol/label strings of multiple
@@ -834,24 +864,27 @@ class DFbVIF(builtins.object)
  |  num_vi : int >= 1
  |      Number of volatility indexes = len(vi_list)
  |
- |  VTS : pandas.DataFrame,
- |          index (ts_list), columns (observed_asof_list)
- |      Combined vector time-series (of changes in prices/
- |          values/indexes) stacking together underlying
- |          time-series (underlying volatility indexes)
- |          and other dynamically correlated time-series,
- |          as input data for DFbVIF model learning and
- |          inference
- |      Row time-series of column vector with first column
- |          as oldest and last one as latest
+ |  VTS : pandas.DataFrame, index (ts_list),
+ |          columns (asof_list)
+ |      DFM-input vector time-series (of logarithmic/
+ |          percent changes in prices/values/indexes)
+ |          including underlying vector time-series
+ |          (underlying volatility indexes) and other
+ |          information-enhancing vector time-series
+ |          (dynamically correlated with underlying
+ |          ones), as input data for DFbVIF model
+ |          learning and inference
+ |      Row time-series of column vector with first
+ |          column as oldest and last one as latest
  |
- |  ts_list : list
+ |  ts_list : list ([ts_1, ts_2, ...])
  |      List of name/symbol/label strings of individual
- |          time-series of combined vector time-series,
+ |          time-series of DFM-input vector time-series,
  |          as list of index axis of VTS DataFrame
  |
- |  observed_asof_list : list
- |      List of as-of time-stamps of observed (combined
+ |  asof_list : list
+ |          ([t_stamp_1, t_stamp_2, ..., t_stamp_T])
+ |      List of as-of time-stamps of observed (DFM-input
  |          vector) time-series, as list of columns axis
  |          of VIL or VTS DataFrame
  |
@@ -861,20 +894,24 @@ class DFbVIF(builtins.object)
  |
  |  len_ts : int > 1
  |      Length of observed (vector) time-series
- |          = len(observed_asof_list)
+ |          = len(asof_list)
  |
  |  Learning parameters
  |  -------------------
  |
  |  vol_index_dict : dict,
- |          keys (idx_list), values (und_list)
- |              idx_list : list (vi1, vi2, ...)
- |              und_list : list (ts1, ts2, ...)
+ |          keys (vi_list),
+ |              vi_list : list (vi1, vi2, ...)
+ |          values (sub(ts_list) or =None)
+ |              ts_list : list (ts1, ts2, ...)
  |      dict-Type list of key-value pairs of volatility
- |          indexes (keys) and correspondent underlying
- |          time-series (values)
- |      Notes: idx_list = sublist of vi_list,
- |          und_list = sublist of ts_list
+ |          indexes (keys, vi_list) and, if to be
+ |          forecasted, correspondent underlying time-
+ |          series (values, sub(ts_list))
+ |      Reference expression:
+ |          und_list = [v for v in obj.values() if (v in ts_list)]
+ |          idx_list = [k for k in vi_list if (obj[k] in und_list)]
+ |          und_list = [obj[k] for k in idx_list]
  |
  |  len_learn_window : int >> 1
  |      Length of trailing time window of data points
@@ -933,9 +970,18 @@ class DFbVIF(builtins.object)
  |  Inference parameters
  |  --------------------
  |
+ |  vif_type : str, in ('uvf', 'qar')
+ |      Type of volatility index forecasts (VIF)
+ |          and dynamic volatility attributions
+ |          to be generated
+ |      Type of VIF
+ |          'uvf', UVF forecasts and attributions
+ |          'qar', QAR forecasts and attributions
+ |
  |  max_forecast_step : int >= 1
- |      Maximum number of forecasting steps of volatility
- |          (variance-covariance) forecasts
+ |      Maximum number of forecasting steps
+ |          of volatility (variance-covariance)
+ |          forecasts
  |
  |  Attributes (vector time-series data)
  |  ------------------------------------
@@ -974,7 +1020,7 @@ class DFbVIF(builtins.object)
  |              when isinstance(obj, type(pd.Series()))
  |
  |  stdev_vec : pd.Series, index (ts_list)
- |      Sample standard deviation vector of combined
+ |      Sample standard deviation vector of DFM-input
  |          vector time-series on data points in last
  |          learning window
  |      stdev_vec.name = asof
@@ -991,9 +1037,9 @@ class DFbVIF(builtins.object)
  |  all_var_base : pd.DataFrame, index (ts_list),
  |          columns (all_step_list + ['asof'])
  |      All estimated and forecasted base-case variance
- |          of base-case time-series of combined vector
+ |          of base-case time-series of DFM-input vector
  |          time-series, estimated and forecasted by
- |          underlying volatility forecast model DFVCM
+ |          DFM-based volatility forecast model DFVCM
  |      Reference expression:
  |          diag( X0 V(t+s-j) X0' ) + W(t+s-j)) + Rr(t)
  |              j,s = 0,1,2,...
@@ -1001,8 +1047,8 @@ class DFbVIF(builtins.object)
  |  all_variance : pd.DataFrame, index (ts_list),
  |          columns (all_step_list + ['asof'])
  |      All estimated and forecasted variance of
- |          combined vector time-series, estimated
- |          and forecasted by underlying volatility
+ |          DFM-inputd vector time-series, estimated
+ |          and forecasted by DFM-based volatility
  |          forecast model DFVCM
  |      Reference expression:
  |          diag( X0 V(t+s-j) X0' ) + W(t+s-j)) + Rr(t)
@@ -1034,9 +1080,9 @@ class DFbVIF(builtins.object)
  |          obj['idio'] : pd.DataFrame, index (ts_list),
  |              columns (idio_lagtub_list + ['pred_err'])
  |      Parts of variance of individual time-series of
- |          combined vector time-series, predicted by
+ |          DFM-input vector time-series, predicted by
  |          dynamic common factors for obj['comm'], and
- |          predicted by idiosycratic UDC for obj['idio']
+ |          by idiosycratic UDC for obj['idio']
  |      Reference expression of 'comm'
  |          diag( X0 diag( A(j) V(t+1-j, t+1-k) A(k)' ) X0' );
  |          diag( X0 Rv(t) X0' );
@@ -1117,21 +1163,21 @@ class DFbVIF(builtins.object)
  |          as predictors) method forecasting
  |          implied variance
  |      Reference expression:
- |          B_uvf = VI2(t) Inv[ v2_und(t+0) ]
+ |          B_uvf = VI2(t) Inv[ v2_und(t-0) ]
  |
  |  const_qar : pd.Series, index (idx_list)
  |      Additive constant of value-adjustment
  |          of QAR (quadratic autoregressive)
  |          method forecasting implied variance
  |      Reference expression:
- |          A_qar = VI2(t) uv2_pe(t) Inv[ v2_und(t+0) ]
+ |          A_qar = VI2(t) pv_und('prederr',t) Inv[ v2_und(t+1) ]
  |
  |  mult_qar : pd.Series, index (idx_list),
  |      Multiplier of value-adjustment of QAR
  |          (quadratic autoregressive) method
  |          forecasting implied variance
  |      Reference expression:
- |          B_qar = [ VI2(t) - A_qar ] Inv[ VI2_qar(t|t-1) ]
+ |          B_qar = [ VI2(t) - A_qar ] Inv[ vi2_qar(t|t-1) ]
  |
  |  vi2_forec_uvf : pd.DataFrame, index (idx_list),
  |          columns (vcf_step_list + ['asof'])
@@ -1148,23 +1194,22 @@ class DFbVIF(builtins.object)
  |          (QAR) equation
  |      Reference expression:
  |          VI2(t+s|t) = A_qar + { B_qar (
- |            Sum[ VI(t+s-j) qc_f(t,j,k) VI(t+s-k)'; j,k=1:p ]
- |          + Sum[ VI(t+s-j) qc_g(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
+ |            Sum[ VI(t+s-j) qc_V(t,j,k) VI(t+s-k)'; j,k=1:p ]
+ |          + Sum[ VI(t+s-j) qc_W(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
  |
- |  vi2_forec_modav : pd.DataFrame, index (idx_list),
+ |  vi2_forec : pd.DataFrame, index (idx_list),
  |          columns (vcf_step_list + ['asof'])
  |      Multi-step multivariate forecasts of implied
- |          variances by model averaging of UVF and
- |          QAR forecasts
+ |          variances
+ |      Reference expression: vi2_forec =
+ |          = vi2_forec_uvf or vi2_forec_qar
  |
- |  vi2_forec_ratio : dict, keys
- |              ('uvf', 'qar', 'modav', 'asof')
- |          obj[key] : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list)
- |      Ratios of UVF, QAR and ModAv forecasts of
- |          implied variances over realized values
- |          of implied variances at vcf_step = 0,
- |          with ratios = 1 at vcf_step = 0
+ |  vi2_forec_ratio : pd.DataFrame, index (idx_list),
+ |          columns (vcf_step_list + ['asof'])
+ |      Ratios of UVF and QAR forecasts of implied
+ |          variances over realized values of implied
+ |          variances at vcf_step = 0, with ratios
+ |          = 1 at vcf_step = 0
  |
  |  vi2_source_list : list, [
  |          'Common volatility',
@@ -1194,9 +1239,9 @@ class DFbVIF(builtins.object)
  |  vi2_attrib_uvf : pd.DataFrame, index (idx_list),
  |          columns (vi2_source_list + ['asof'])
  |      Weights of attribution of UVF forecast
- |          (of implied variance) to dynamic sources
- |          of volatility of time-series underlying
- |          volatility indexes
+ |          (of implied variance) to dynamic
+ |          sources of volatility of volatility
+ |          indexes
  |      Reference expression: vi2_attrib_uvf =
  |          = DFVCM_obj.indiv_var_attrib.loc[
  |              und_list, :].set_axis(idx_list, axis='index')
@@ -1209,8 +1254,16 @@ class DFbVIF(builtins.object)
  |          indexes
  |      Reference expression: VI2(t+1|t) =
  |          = A_qar + { B_qar (
- |            Sum[ VI(t+1-j) qc_f(t,j,k) VI(t+1-k)'; j,k=1:p ] +
- |          + Sum[ VI(t+1-j) qc_g(t,j,k) VI(t+1-k)'; j,k=1:q ] ) };
+ |            Sum[ VI(t+1-j) qc_V(t,j,k) VI(t+1-k)'; j,k=1:p ] +
+ |          + Sum[ VI(t+1-j) qc_W(t,j,k) VI(t+1-k)'; j,k=1:q ] ) };
+ |
+ |  vi2_attrib : pd.DataFrame, index (idx_list),
+ |          columns (vi2_source_list + ['asof'])
+ |      Weights of attribution of forecast (of
+ |          implied variance) to dynamic sources
+ |          of volatility of volatility indexes
+ |      Reference expression: vi2_attrib =
+ |          = vi2_attrib_uvf or vi2_attrib_qar
  |
  |  vil_forecast_uvf : pd.DataFrame, index (idx_list),
  |          columns (vcf_step_list + ['asof'])
@@ -1224,11 +1277,12 @@ class DFbVIF(builtins.object)
  |          indexes with quadratic autoregression (QAR)
  |          equation
  |
- |  vil_forecast_modav : pd.DataFrame, index (idx_list),
+ |  vil_forecast : pd.DataFrame, index (idx_list),
  |          columns (vcf_step_list + ['asof'])
- |      Multi-step multivariate forecasts of volatility
- |          indexes by model averaging of UVF and QAR
- |          forecasts
+ |      Multi-step multivariate forecasts of
+ |          volatility indexes
+ |      Reference expression: vil_forecast =
+ |          = vil_forecast_uvf or vil_forecast_qar
  |
  |  Methods
  |  -------
@@ -1237,14 +1291,16 @@ class DFbVIF(builtins.object)
  |      DFbVIF()
  |      DFbVIF(vol_index_dict, len_learn_window, var_order,
  |          num_factors, ar_order_idio, num_pcs, alt_ar_order,
- |          alt_num_pcs, max_forecast_step)
+ |          alt_num_pcs, vif_type, max_forecast_step)
  |      DFbVIF_obj.set_param(vol_index_dict, len_learn_window,
  |          var_order, num_factors, ar_order_idio, num_pcs,
- |          alt_ar_order, alt_num_pcs, max_forecast_step)
- |      DFbVIF_obj.set_data(VIL, VTS)
+ |          alt_ar_order, alt_num_pcs, vif_type, max_forecast_step)
+ |      DFbVIF_obj.set_data(MTS)
  |      DFbVIF_obj.get_param(param_name_list)
- |      DFbVIF_obj.min_ts_len()
+ |      DFbVIF_obj.get_min_len_ts()
  |      DFbVIF_obj.get_data_info()
+ |      DFbVIF_obj.get_VIL()
+ |      DFbVIF_obj.get_VTS()
  |
  |  For model learning
  |      DFbVIF_obj.fit()
@@ -1257,15 +1313,10 @@ class DFbVIF(builtins.object)
  |      DFbVIF_obj.variance()
  |      DFbVIF_obj.get_und_variance()
  |      DFbVIF_obj.get_qar_coefs()
- |      DFbVIF_obj.get_vi2_forec_uvf()
- |      DFbVIF_obj.get_vi2_forec_qar()
- |      DFbVIF_obj.get_vi2_forec_modav()
+ |      DFbVIF_obj.get_vi2_forec()
  |      DFbVIF_obj.get_vi2_forec_ratio()
- |      DFbVIF_obj.get_vi2_attrib_uvf()
- |      DFbVIF_obj.get_vi2_attrib_qar()
- |      DFbVIF_obj.get_vil_forecast_uvf()
- |      DFbVIF_obj.get_vil_forecast_qar()
- |      DFbVIF_obj.get_vil_forecast_modav()
+ |      DFbVIF_obj.get_vi2_attrib()
+ |      DFbVIF_obj.get_vil_forecast()
  |
  |  For time stamp of model estimates
  |      DFbVIF_obj.get_asof()
@@ -1282,10 +1333,10 @@ class DFbVIF(builtins.object)
  |  This class, class DFbVIF, initiates instances
  |      of "Dynamic Factor Variance-Covariance Model"
  |      (DFVCM) for analyzing and forecasting variance,
- |      covariance and autocovariance of combined vector
- |      time-series stacking together underlying time-
- |      series (underlying volatility indexes) and other
- |      dynamically correlated time-series
+ |      covariance and autocovariance of DFM-input
+ |      vector time-series stacking together underlying
+ |      time-series (underlying volatility indexes) and
+ |      other related vector time-series
  |
  |  For model initiation
  |      DFVCM()
@@ -1297,7 +1348,7 @@ class DFbVIF(builtins.object)
  |          alt_num_pcs, max_forecast_step, target_type)
  |      DFVCM_obj.set_data(VTS)
  |      DFVCM_obj.get_param(param_name_list)
- |      DFVCM_obj.min_ts_len()
+ |      DFVCM_obj.get_min_len_ts()
  |      DFVCM_obj.get_data_info()
  |
  |  For model learning
@@ -1330,9 +1381,9 @@ class DFbVIF(builtins.object)
  |          (- max(var_order, max_ar_order)), ...,
  |          -1, 0, 1, ..., max_forecast_step]
  |
- |      VIL : pandas.DataFrame,
- |              index (vi_list), columns (observed_asof_list)
- |          Volatility index vector time-series
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
+ |          Volatility index level vector time-series
  |
  |      idx_list : list
  |          Sublist of vi_list of name/symbol/label
@@ -1357,9 +1408,9 @@ class DFbVIF(builtins.object)
  |      vi2_attrib_uvf : pd.DataFrame, index (idx_list),
  |              columns (vi2_source_list + ['asof'])
  |          Weights of attribution of UVF forecast
- |              (of implied variance) to dynamic sources
- |              of volatility of time-series underlying
- |              volatility indexes
+ |              (of implied variance) to dynamic
+ |              sources of volatility of volatility
+ |              indexes
  |
  |      Outputs
  |      -------
@@ -1369,14 +1420,14 @@ class DFbVIF(builtins.object)
  |              of QAR (quadratic autoregressive)
  |              method forecasting implied variance
  |          Reference expression:
- |              A_qar = VI2(t) uv2_pe(t) Inv[ v2_und(t+0) ]
+ |              A_qar = VI2(t) pv_und('prederr',t) Inv[ v2_und(t+1) ]
  |
  |      mult_qar : pd.Series, index (idx_list),
  |          Multiplier of value-adjustment of QAR
  |              (quadratic autoregressive) method
  |              forecasting implied variance
  |          Reference expression:
- |              B_qar = [ VI2(t) - A_qar ] Inv[ VI2_qar(t|t-1) ]
+ |              B_qar = [ VI2(t) - A_qar ] Inv[ vi2_qar(t|t-1) ]
  |
  |      Function call
  |      -------------
@@ -1396,9 +1447,9 @@ class DFbVIF(builtins.object)
  |          (- max(var_order, max_ar_order)), ...,
  |          -1, 0, 1, ..., max_forecast_step]
  |
- |      VIL : pandas.DataFrame,
- |              index (vi_list), columns (observed_asof_list)
- |          Volatility index vector time-series
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
+ |          Volatility index level vector time-series
  |
  |      und_variance : pd.DataFrame, index (idx_list),
  |              columns (all_step_list + ['asof'])
@@ -1415,7 +1466,7 @@ class DFbVIF(builtins.object)
  |              as predictors) method forecasting
  |              implied variance
  |          Reference expression:
- |              B_uvf = VI2(t) Inv[ v2_und(t+0) ]
+ |              B_uvf = VI2(t) Inv[ v2_und(t-0) ]
  |
  |      Function call
  |      -------------
@@ -1464,10 +1515,19 @@ class DFbVIF(builtins.object)
  |
  |  __impl_var_holder__(self)
  |      Set up data holder objects of multi-step multivariate
- |          forecasts of implied variance and volatility index
+ |          forecasts of implied variance and volatility index,
+ |          and associated dynamic volatility attributions
  |
  |      Inputs
  |      ------
+ |
+ |      vif_type : str, in ('uvf', 'qar')
+ |          Type of volatility index forecasts (VIF)
+ |              and dynamic volatility attributions
+ |              to be generated
+ |          Type of VIF
+ |              'uvf', UVF forecasts and attributions
+ |              'qar', QAR forecasts and attributions
  |
  |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
  |          List of variance or covariance forecast steps
@@ -1496,9 +1556,6 @@ class DFbVIF(builtins.object)
  |      vi2_forec_qar : pd.DataFrame, index (idx_list),
  |          columns (vcf_step_list + ['asof'])
  |
- |      vi2_forec_modav : pd.DataFrame, index (idx_list),
- |          columns (vcf_step_list + ['asof'])
- |
  |      vi2_attrib_uvf : pd.DataFrame, index (idx_list),
  |          columns (vi2_source_list + ['asof'])
  |
@@ -1511,56 +1568,10 @@ class DFbVIF(builtins.object)
  |      vil_forecast_qar : pd.DataFrame, index (idx_list),
  |          columns (vcf_step_list + ['asof'])
  |
- |      vil_forecast_modav : pd.DataFrame, index (idx_list),
- |          columns (vcf_step_list + ['asof'])
- |
  |      Function call
  |      -------------
  |
  |      self.__impl_var_holder__()
- |
- |  __impl_variance_modav__(self)
- |      Generate multi-step multivariate forecasts
- |          of implied variances, and volatility
- |          index, by model averaging of UVF forecasts
- |          and QAR forecasts
- |
- |      Inputs
- |      ------
- |
- |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
- |
- |      vi2_forec_uvf : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of implied
- |              variances with underlying volatility
- |              forecasts (UVF) as predictors
- |
- |      vi2_forec_qar : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of implied
- |              variances with quadratic autoregression
- |              (QAR) equation
- |
- |      Outputs
- |      -------
- |
- |      vi2_forec_modav : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of implied
- |              variances by model averaging of UVF and
- |              QAR forecasts
- |
- |      vil_forecast_modav : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of volatility
- |              indexes by model averaging of UVF and QAR
- |              forecasts
- |
- |      Function call
- |      -------------
- |
- |      self.__impl_variance_modav__()
  |
  |  __impl_variance_qar__(self)
  |      Generate multi-step multivariate forecasts
@@ -1573,8 +1584,9 @@ class DFbVIF(builtins.object)
  |
  |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
  |
- |      VIL : pandas.DataFrame,
- |          index (vi_list), columns (observed_asof_list)
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
+ |          Volatility index level vector time-series
  |
  |      idx_list : list
  |          Sublist of vi_list of name/symbol/label
@@ -1605,8 +1617,8 @@ class DFbVIF(builtins.object)
  |              (QAR) equation
  |          Reference expression:
  |              VI2(t+s|t) = A_qar + { B_qar (
- |                Sum[ VI(t+s-j) qc_f(t,j,k) VI(t+s-k)'; j,k=1:p ]
- |              + Sum[ VI(t+s-j) qc_g(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
+ |                Sum[ VI(t+s-j) qc_V(t,j,k) VI(t+s-k)'; j,k=1:p ]
+ |              + Sum[ VI(t+s-j) qc_W(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
  |
  |      vil_forecast_qar : pd.DataFrame, index (idx_list),
  |              columns (vcf_step_list + ['asof'])
@@ -1674,21 +1686,25 @@ class DFbVIF(builtins.object)
  |
  |      self.__impl_variance_uvf__()
  |
- |  __init__(self, vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order={}, alt_num_pcs={}, max_forecast_step=1)
+ |  __init__(self, vol_index_dict=None, len_learn_window=None, var_order=1, num_factors=1, ar_order_idio=1, num_pcs=1, alt_ar_order={}, alt_num_pcs={}, vif_type='', max_forecast_step=1)
  |      Initialize object self
  |
  |      Learning parameters
  |      -------------------
  |
  |      vol_index_dict : dict,
- |              keys (idx_list), values (und_list)
- |                  idx_list : list (vi1, vi2, ...)
- |                  und_list : list (ts1, ts2, ...)
+ |              keys (vi_list),
+ |                  vi_list : list (vi1, vi2, ...)
+ |              values (sub(ts_list) or =None)
+ |                  ts_list : list (ts1, ts2, ...)
  |          dict-Type list of key-value pairs of volatility
- |              indexes (keys) and correspondent underlying
- |              time-series (values)
- |          Notes: idx_list = sublist of vi_list,
- |              und_list = sublist of ts_list
+ |              indexes (keys, vi_list) and, if to be
+ |              forecasted, correspondent underlying time-
+ |              series (values, sub(ts_list))
+ |          Reference expression:
+ |              und_list = [v for v in obj.values() if (v in ts_list)]
+ |              idx_list = [k for k in vi_list if (obj[k] in und_list)]
+ |              und_list = [obj[k] for k in idx_list]
  |
  |      len_learn_window : int >> 1
  |          Length of trailing time window of data points
@@ -1747,9 +1763,18 @@ class DFbVIF(builtins.object)
  |      Inference parameters
  |      --------------------
  |
+ |      vif_type : str, in ('uvf', 'qar')
+ |          Type of volatility index forecasts (VIF)
+ |              and dynamic volatility attributions
+ |              to be generated
+ |          Type of VIF
+ |              'uvf', UVF forecasts and attributions
+ |              'qar', QAR forecasts and attributions
+ |
  |      max_forecast_step : int >= 1
- |          Maximum number of forecasting steps of volatility
- |              (variance-covariance) forecasts
+ |          Maximum number of forecasting steps
+ |              of volatility (variance-covariance)
+ |              forecasts
  |
  |      Returns
  |      -------
@@ -1778,6 +1803,7 @@ class DFbVIF(builtins.object)
  |          num_pcs=num_pcs,
  |          alt_ar_order=alt_ar_order,
  |          alt_num_pcs=alt_num_pcs,
+ |          vif_type=vif_type,
  |          max_forecast_step=max_forecast_step)
  |
  |  __is_fit__(self)
@@ -1801,8 +1827,8 @@ class DFbVIF(builtins.object)
  |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
  |          List of variance or covariance forecast steps
  |
- |      VIL : pandas.DataFrame,
- |              index (vi_list), columns (observed_asof_list)
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
  |          Volatility index level vector time-series
  |
  |      idx_list : list
@@ -1811,7 +1837,8 @@ class DFbVIF(builtins.object)
  |              to be forecasted
  |
  |      asof_list : list
- |          List of as-of time-stamps of observed (combined
+ |              ([t_stamp_1, t_stamp_2, ..., t_stamp_T])
+ |          List of as-of time-stamps of observed (DFM-input
  |              vector) time-series, as list of columns axis
  |              of VIL or VTS DataFrame
  |
@@ -1833,11 +1860,11 @@ class DFbVIF(builtins.object)
  |      self.__min_vi2f_ratio__()
  |
  |  __qar_coef_comm_idio__(self)
- |      Generate diagonal common, and idiosyncratic,
- |          component coefficient matrix of pair of
- |          lags in quadratic VAR equation predicting
- |          implied variance by quadratic combination
- |          of most recent volatility index values
+ |      Generate diagonal common, and idiosyncratic, component
+ |          coefficient matrix of pair of lags in quadratic
+ |          AR (QAR) equation predicting implied variance
+ |          by quadratic combination of most recent volatility
+ |          index values
  |
  |      Inputs
  |      ------
@@ -1921,8 +1948,8 @@ class DFbVIF(builtins.object)
  |      Inputs
  |      ------
  |
- |      VIL : pandas.DataFrame,
- |              index (vi_list), columns (observed_asof_list)
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
  |          Volatility index level vector time-series
  |
  |      idx_list : list
@@ -1981,8 +2008,8 @@ class DFbVIF(builtins.object)
  |              indexes
  |          Reference expression: VI2(t+1|t) =
  |              = A_qar + { B_qar (
- |                Sum[ VI(t+1-j) qc_f(t,j,k) VI(t+1-k)'; j,k=1:p ] +
- |              + Sum[ VI(t+1-j) qc_g(t,j,k) VI(t+1-k)'; j,k=1:q ] ) };
+ |                Sum[ VI(t+1-j) qc_V(t,j,k) VI(t+1-k)'; j,k=1:p ] +
+ |              + Sum[ VI(t+1-j) qc_W(t,j,k) VI(t+1-k)'; j,k=1:q ] ) };
  |
  |      Function call
  |      -------------
@@ -1998,7 +2025,7 @@ class DFbVIF(builtins.object)
  |      ---------
  |
  |      vil_data : pandas.DataFrame, index (idx_list),
- |              columns (observed_asof_list)
+ |              columns (asof_list)
  |          Example:
  |              vil_data = VIL.loc[idx_list, asof_range]
  |
@@ -2076,8 +2103,8 @@ class DFbVIF(builtins.object)
  |              autoregression (QAR) equation
  |          Reference expression:
  |              VI2(t+s|t) = A_qar + { B_qar (
- |                Sum[ VI(t+s-j) qc_f(t,j,k) VI(t+s-k)'; j,k=1:p ]
- |              + Sum[ VI(t+s-j) qc_g(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
+ |                Sum[ VI(t+s-j) qc_V(t,j,k) VI(t+s-k)'; j,k=1:p ]
+ |              + Sum[ VI(t+s-j) qc_W(t,j,k) VI(t+s-k)'; j,k=1:q ] ) };
  |          Example:
  |              vi2_forec_qar = stepwise_vi2f_qar
  |
@@ -2087,59 +2114,52 @@ class DFbVIF(builtins.object)
  |      stepwise_vi2f_qar = self.__stepwise_vi2f_qar__(
  |          vil_data, vi2f_step_list, const_vec, mult_vec)
  |
- |  __take_data__(self, VIL, VTS)
- |      Inspect, and take valid portion of, input time-series
- |          data: volatility index level vector time-series
- |          data (VIL) and combined (underlying and others)
- |          vector time-series data (VTS)
+ |  __take_data__(self, MTS)
+ |      Inspect, and take valid portion of, 3-in-1 input
+ |          time-series data MTS including volatility
+ |          index level vector time-series data (VIL)
+ |          and DFM-input (underlying and information-
+ |          enhancing) vector time-series data (VTS)
  |
  |      Arguments
  |      ---------
  |
- |      VIL : pandas.DataFrame,
- |              index (vi_list), columns (observed_asof_list)
- |          Volatility index level vector time-series, as input
- |              data for DFbVIF model learning and inference
- |          Row time-series of column vector with first column
- |              as oldest and last one as latest
+ |      MTS : pandas.DataFrame,
+ |              index (vi_list + ts_list),
+ |              columns (asof_list)
+ |          Multiple time-series data set
  |
- |      VTS : pandas.DataFrame,
- |              index (ts_list), columns (observed_asof_list)
- |          Combined vector time-series (of changes in prices/
- |              values/indexes) stacking together underlying
- |              time-series (underlying volatility indexes)
- |              and other dynamically correlated time-series,
- |              as input data for DFbVIF model learning and
- |              inference
- |          Row time-series of column vector with first column
- |              as oldest and last one as latest
+ |      Inputs
+ |      ------
+ |
+ |      vol_index_dict : dict,
+ |              keys (vi_list),
+ |                  vi_list : list (vi1, vi2, ...)
+ |              values (sub(ts_list) or =None)
+ |                  ts_list : list (ts1, ts2, ...)
+ |          dict-Type list of key-value pairs {volatility
+ |              indexes: underlying time-series}
+ |          Reference expression:
+ |              und_list = [v for v in obj.values() if (v in ts_list)]
+ |              idx_list = [k for k in vi_list if (obj[k] in und_list)]
+ |              und_list = [obj[k] for k in idx_list]
  |
  |      Outputs
  |      -------
  |
- |      vi_list_input : list
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
+ |          Volatility index level vector time-series
  |
- |      ts_list_input : list
- |
- |      asof_list_input : list
- |
- |      num_vi_input : int >= 1
- |
- |      num_ts_input : int >= 1
- |
- |      len_ts_input : int > 1
- |
- |      VIL : VIL_valid : pandas.DataFrame,
- |          index (vi_list), columns (observed_asof_list)
- |
- |      VTS : VTS_valid : pandas.DataFrame,
- |          index (ts_list), columns (observed_asof_list)
+ |      VTS : pandas.DataFrame, index (ts_list),
+ |              columns (asof_list)
+ |          DFM-input vector time-series
  |
  |      vi_list : list
  |
- |      ts_list : list
+ |      ts_list : list (ts_1, ts_2, ...)
  |
- |      asof_list : list
+ |      asof_list : list (t_stamp_1, t_stamp_2, ..., t_stamp_T)
  |
  |      num_vi : int >= 1
  |
@@ -2147,12 +2167,16 @@ class DFbVIF(builtins.object)
  |
  |      len_ts : int > 1
  |
+ |      idx_list : list (vi_1, vi_2, ...)
+ |
+ |      und_list : list (ts_1, ts_2, ...)
+ |
  |      Function call
  |      -------------
  |
- |      self.__take_data__(VIL, VTS)
+ |      self.__take_data__(MTS)
  |
- |  __take_param__(self, vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, max_forecast_step=None)
+ |  __take_param__(self, vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, vif_type=None, max_forecast_step=None)
  |      Take prameter values
  |
  |      Arguments
@@ -2169,6 +2193,7 @@ class DFbVIF(builtins.object)
  |      alt_ar_order : dict
  |      alt_num_pcs : dict
  |
+ |      vif_type : str
  |      max_forecast_step : int
  |
  |      Function call
@@ -2183,6 +2208,7 @@ class DFbVIF(builtins.object)
  |          num_pcs=num_pcs,
  |          alt_ar_order=alt_ar_order,
  |          alt_num_pcs=alt_num_pcs,
+ |          vif_type=vif_type,
  |          max_forecast_step=max_forecast_step)
  |
  |  __und_variance__(self)
@@ -2259,9 +2285,9 @@ class DFbVIF(builtins.object)
  |      vi2_attrib_uvf : pd.DataFrame, index (idx_list),
  |              columns (vi2_source_list + ['asof'])
  |          Weights of attribution of UVF forecast
- |              (of implied variance) to dynamic sources
- |              of volatility of time-series underlying
- |              volatility indexes
+ |              (of implied variance) to dynamic
+ |              sources of volatility of volatility
+ |              indexes
  |          Reference expression: vi2_attrib_uvf =
  |              = DFVCM_obj.indiv_var_attrib.loc[
  |                  und_list, :].set_axis(idx_list, axis='index')
@@ -2272,32 +2298,36 @@ class DFbVIF(builtins.object)
  |      self.__uvf_var_attrib__()
  |
  |  fit(self)
- |      Estimate volatility model of combined vector time-
- |          series underlying volatility indexes
+ |      Estimate volatility model of DFM-input vector time-
+ |          series (underlying vector time-series and related
+ |          vector time-series)
  |
  |      Inputs
  |      ------
  |
- |      VTS : pandas.DataFrame,
- |              index (ts_list), columns (observed_asof_list)
- |          Combined vector time-series (of changes in prices/
- |              values/indexes) stacking together underlying
- |              time-series (underlying volatility indexes)
- |              and other dynamically correlated time-series,
- |              as input data for DFbVIF model learning and
- |              inference
- |          Row time-series of column vector with first column
- |              as oldest and last one as latest
+ |      VTS : pandas.DataFrame, index (ts_list),
+ |              columns (asof_list)
+ |          DFM-input vector time-series (of logarithmic/
+ |              percent changes in prices/values/indexes)
+ |              including underlying vector time-series
+ |              (underlying volatility indexes) and other
+ |              information-enhancing vector time-series
+ |              (dynamically correlated with underlying
+ |              ones), as input data for DFbVIF model
+ |              learning and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
  |
- |      ts_list : list
+ |      ts_list : list ([ts_1, ts_2, ...])
  |          List of name/symbol/label strings of individual
- |              time-series of combined vector time-series,
+ |              time-series of DFM-input vector time-series,
  |              as list of index axis of VTS DataFrame
  |
- |      observed_asof_list : list
- |          List of as-of time-stamps of observed (combined
+ |      asof_list : list
+ |              ([t_stamp_1, t_stamp_2, ..., t_stamp_T])
+ |          List of as-of time-stamps of observed (DFM-input
  |              vector) time-series, as list of columns axis
- |              of VTS DataFrame
+ |              of VIL or VTS DataFrame
  |
  |      dfvcm : object
  |          DFVCM model object, an instance of DFVCM class
@@ -2308,8 +2338,8 @@ class DFbVIF(builtins.object)
  |      all_variance : pd.DataFrame, index (ts_list),
  |              columns (all_step_list + ['asof'])
  |          All estimated and forecasted variance of
- |              combined vector time-series, estimated
- |              and forecasted by underlying volatility
+ |              DFM-inputd vector time-series, estimated
+ |              and forecasted by DFM-based volatility
  |              forecast model DFVCM
  |          Reference expression:
  |              diag( X0 V(t+s-j) X0' ) + W(t+s-j)) + Rr(t)
@@ -2321,9 +2351,9 @@ class DFbVIF(builtins.object)
  |              obj['idio'] : pd.DataFrame, index (ts_list),
  |                  columns (idio_lagtub_list + ['pred_err'])
  |          Parts of variance of individual time-series of
- |              combined vector time-series, predicted by
+ |              DFM-input vector time-series, predicted by
  |              dynamic common factors for obj['comm'], and
- |              predicted by idiosycratic UDC for obj['idio']
+ |              by idiosycratic UDC for obj['idio']
  |          Reference expression of 'comm'
  |              diag( X0 diag( A(j) V(t+1-j, t+1-k) A(k)' ) X0' );
  |              diag( X0 Rv(t) X0' );
@@ -2340,10 +2370,53 @@ class DFbVIF(builtins.object)
  |
  |      DFbVIF_obj.fit()
  |
+ |  get_VIL(self)
+ |      Get volatility index level vector time-series VIL
+ |
+ |      Returns
+ |      -------
+ |
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
+ |          Volatility index level vector time-series,
+ |              as input data for DFbVIF model learning
+ |              and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
+ |
+ |      Function call
+ |      -------------
+ |
+ |      VIL = DFbVIF_obj.get_VIL()
+ |
+ |  get_VTS(self)
+ |      Get DFM-import vector time-series VTS
+ |
+ |      Returns
+ |      -------
+ |
+ |      VTS : pandas.DataFrame, index (ts_list),
+ |              columns (asof_list)
+ |          DFM-input vector time-series (of logarithmic/
+ |              percent changes in prices/values/indexes)
+ |              including underlying vector time-series
+ |              (underlying volatility indexes) and other
+ |              information-enhancing vector time-series
+ |              (dynamically correlated with underlying
+ |              ones), as input data for DFbVIF model
+ |              learning and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
+ |
+ |      Function call
+ |      -------------
+ |
+ |      VTS = DFbVIF_obj.get_VTS()
+ |
  |  get_all_var_base(self)
  |      Get all estimated and forecasted base-case variance
- |          of base-case time-series of combined vector time-
- |          series
+ |          of base-case time-series of DFM-input vector
+ |          time-series
  |
  |      Inputs
  |      ------
@@ -2360,9 +2433,9 @@ class DFbVIF(builtins.object)
  |      all_var_base : pd.DataFrame, index (ts_list),
  |              columns (all_step_list + ['asof'])
  |          All estimated and forecasted base-case variance
- |              of base-case time-series of combined vector
+ |              of base-case time-series of DFM-input vector
  |              time-series, estimated and forecasted by
- |              underlying volatility forecast model DFVCM
+ |              DFM-based volatility forecast model DFVCM
  |          Reference expression:
  |              diag( X0 V(t+s-j) X0' ) + W(t+s-j)) + Rr(t)
  |                  j,s = 0,1,2,...
@@ -2374,7 +2447,7 @@ class DFbVIF(builtins.object)
  |
  |  get_all_variance(self)
  |      Get all estimated and forecasted variance
- |          of combined vector time-series
+ |          of DFM-input vector time-series
  |
  |      Inputs
  |      ------
@@ -2391,8 +2464,8 @@ class DFbVIF(builtins.object)
  |      all_variance : pd.DataFrame, index (ts_list),
  |              columns (all_step_list + ['asof'])
  |          All estimated and forecasted variance of
- |              combined vector time-series, estimated
- |              and forecasted by underlying volatility
+ |              DFM-inputd vector time-series, estimated
+ |              and forecasted by DFM-based volatility
  |              forecast model DFVCM
  |          Reference expression:
  |              diag( X0 V(t+s-j) X0' ) + W(t+s-j)) + Rr(t)
@@ -2453,15 +2526,16 @@ class DFbVIF(builtins.object)
  |              volatility index time-series, as list of
  |              index axis of VIL DataFrame
  |
- |      ts_list : list
+ |      ts_list : list ([ts_1, ts_2, ...])
  |          List of name/symbol/label strings of individual
- |              time-series of combined vector time-series,
+ |              time-series of DFM-input vector time-series,
  |              as list of index axis of VTS DataFrame
  |
  |      asof_list : list
- |          List of as-of time-stamps of observed (combined
+ |              ([t_stamp_1, t_stamp_2, ..., t_stamp_T])
+ |          List of as-of time-stamps of observed (DFM-input
  |              vector) time-series, as list of columns axis
- |              of VTS DataFrame
+ |              of VIL or VTS DataFrame
  |
  |      num_vi : int >= 1
  |          Number of volatility indexes = len(vi_list)
@@ -2472,7 +2546,7 @@ class DFbVIF(builtins.object)
  |
  |      len_ts : int > 1
  |          Length of observed (vector) time-series
- |              = len(observed_asof_list)
+ |              = len(asof_list)
  |          Note: len_ts >= len_learn_window + (3 var_order)
  |
  |      data_info_dict : dict
@@ -2491,9 +2565,9 @@ class DFbVIF(builtins.object)
  |
  |  get_indiv_var_parts(self)
  |      Get parts of variance of individual time-series
- |          of combined vector time-series, predicted
+ |          of DFM-input vector time-series, predicted
  |          by dynamic common factors and by idiosycratic
- |          UDCs of combined vector time-series
+ |          UDCs of DFM-input vector time-series
  |
  |      Inputs
  |      ------
@@ -2527,9 +2601,9 @@ class DFbVIF(builtins.object)
  |              obj['idio'] : pd.DataFrame, index (ts_list),
  |                  columns (idio_lagtub_list + ['pred_err'])
  |          Parts of variance of individual time-series of
- |              combined vector time-series, predicted by
+ |              DFM-input vector time-series, predicted by
  |              dynamic common factors for obj['comm'], and
- |              predicted by idiosycratic UDC for obj['idio']
+ |              by idiosycratic UDC for obj['idio']
  |          Reference expression of 'comm'
  |              diag( X0 diag( A(j) V(t+1-j, t+1-k) A(k)' ) X0' );
  |              diag( X0 Rv(t) X0' );
@@ -2543,6 +2617,21 @@ class DFbVIF(builtins.object)
  |      -------------
  |
  |      indiv_var_parts = DFbVIF_obj.get_indiv_var_parts()
+ |
+ |  get_min_len_ts(self)
+ |      Get minimum length of time-series to satisfy parameters
+ |          of vector autoregressive model analysis
+ |
+ |      Returns
+ |      -------
+ |
+ |      min_len_ts : int
+ |          Minimum length of time-series for VAR analysis
+ |
+ |      Function call
+ |      -------------
+ |
+ |      min_len_ts = DFbVIF_obj.get_min_len_ts()
  |
  |  get_param(self, param_name_list)
  |      Get values of specified parameters
@@ -2606,14 +2695,14 @@ class DFbVIF(builtins.object)
  |              of QAR (quadratic autoregressive)
  |              method forecasting implied variance
  |          Reference expression:
- |              A_qar = VI2(t) uv2_pe(t) Inv[ v2_und(t+0) ]
+ |              A_qar = VI2(t) pv_und('prederr',t) Inv[ v2_und(t+1) ]
  |
  |      mult_qar : pd.Series, index (idx_list),
  |          Multiplier of value-adjustment of QAR
  |              (quadratic autoregressive) method
  |              forecasting implied variance
  |          Reference expression:
- |              B_qar = [ VI2(t) - A_qar ] Inv[ VI2_qar(t|t-1) ]
+ |              B_qar = [ VI2(t) - A_qar ] Inv[ vi2_qar(t|t-1) ]
  |
  |      min_vi2f_ratio : pd.DataFrame,
  |              index (idx_list),
@@ -2638,7 +2727,7 @@ class DFbVIF(builtins.object)
  |      -------
  |
  |      stdev_vec : pd.Series, index (ts_list)
- |          Sample standard deviation vector of combined
+ |          Sample standard deviation vector of DFM-input
  |              vector time-series on data points in last
  |              learning window
  |          stdev_vec.name = asof
@@ -2675,13 +2764,21 @@ class DFbVIF(builtins.object)
  |      und_variance, mult_uvf = (
  |          DFbVIF_obj.get_und_variance())
  |
- |  get_vi2_attrib_qar(self)
- |      Get weights of attribution of QAR forecast
- |          (of implied variance) to dynamic sources
- |          of volatility of volatility indexes
+ |  get_vi2_attrib(self)
+ |      Get weights of attribution of UVF or QAR forecast
+ |          (of implied variance) to dynamic sources of
+ |          volatility of volatility indexes
  |
  |      Inputs
  |      ------
+ |
+ |      vif_type : str, in ('uvf', 'qar')
+ |          Type of volatility index forecasts (VIF)
+ |              and dynamic volatility attributions
+ |              to be generated
+ |          Type of VIF
+ |              'uvf', UVF forecasts and attributions
+ |              'qar', QAR forecasts and attributions
  |
  |      vi2_source_list : list, [
  |              'Common volatility',
@@ -2708,8 +2805,12 @@ class DFbVIF(builtins.object)
  |              prediction error, and residual error
  |          (6) 'Total': sum total
  |
- |      Returns
- |      -------
+ |      vi2_attrib_uvf : pd.DataFrame, index (idx_list),
+ |              columns (vi2_source_list + ['asof'])
+ |          Weights of attribution of UVF forecast
+ |              (of implied variance) to dynamic
+ |              sources of volatility of volatility
+ |              indexes
  |
  |      vi2_attrib_qar : pd.DataFrame, index (idx_list),
  |              columns (vi2_source_list + ['asof'])
@@ -2718,67 +2819,38 @@ class DFbVIF(builtins.object)
  |              sources of volatility of volatility
  |              indexes
  |
- |      Function call
- |      -------------
- |
- |      vi2_attrib_qar = DFbVIF_obj.get_vi2_attrib_qar()
- |
- |  get_vi2_attrib_uvf(self)
- |      Get weights of attribution of UVF forecast
- |          (of implied variance) to dynamic sources
- |          of volatility of time-series underlying
- |          volatility indexes
- |
- |      Inputs
- |      ------
- |
- |      vi2_source_list : list, [
- |              'Common volatility',
- |              'Common serial-correlation',
- |              'Idiosyncratic volatility',
- |              'Idiosyncratic serial-correlation',
- |              'Prediction error',
- |              'Total']
- |          List of aggregated dynamic sources of volatility
- |              measured by contributions to (UVF or QAR)
- |              forecasts of implied variance
- |          (1) 'Common volatility': contribution from
- |              variances of dynamic common factors
- |          (2) 'Common serial-correlation': contribution
- |              from autocovariances of daynmic common
- |              factos
- |          (3) 'Idiosyncratic volatility': contribution
- |              from variance of idiosyncratic UDC
- |          (4) 'Idiosyncratic serial-correlation':
- |              contribution from autocovariance of
- |              idiosyncratic UDC
- |          (5) 'Prediction error': contribution from
- |              dynamic factor prediction error, UDC
- |              prediction error, and residual error
- |          (6) 'Total': sum total
- |
  |      Returns
  |      -------
  |
- |      vi2_attrib_uvf : pd.DataFrame, index (idx_list),
+ |      vi2_attrib : pd.DataFrame, index (idx_list),
  |              columns (vi2_source_list + ['asof'])
- |          Weights of attribution of UVF forecast
- |              (of implied variance) to dynamic sources
- |              of volatility of time-series underlying
- |              volatility indexes
+ |          Weights of attribution of forecast (of
+ |              implied variance) to dynamic sources
+ |              of volatility of volatility indexes
+ |          Reference expression: vi2_attrib =
+ |              = vi2_attrib_uvf or vi2_attrib_qar
  |
  |      Function call
  |      -------------
  |
- |      vi2_attrib_uvf = DFbVIF_obj.get_vi2_attrib_uvf()
+ |      vi2_attrib = DFbVIF_obj.get_vi2_attrib()
  |
- |  get_vi2_forec_modav(self)
+ |  get_vi2_forec(self)
  |      Get multi-step multivariate forecasts of implied
- |          variances by model averaging of UVF forecasts
- |          and QAR forecasts
+ |          variances, with underlying volatility forecasts
+ |          (UVF) as predictors, or with quadratic auto-
+ |          regressive (QAR) equation
  |
  |      Inputs
  |      ------
+ |
+ |      vif_type : str, in ('uvf', 'qar')
+ |          Type of volatility index forecasts (VIF)
+ |              and dynamic volatility attributions
+ |              to be generated
+ |          Type of VIF
+ |              'uvf', UVF forecasts and attributions
+ |              'qar', QAR forecasts and attributions
  |
  |      idx_list : list
  |          Sublist of vi_list of name/symbol/label
@@ -2791,40 +2863,11 @@ class DFbVIF(builtins.object)
  |          List of variance or covariance forecast steps
  |          Note: step = 0 for nowcast or estimate
  |
- |      Returns
- |      -------
- |
- |      vi2_forec_modav : pd.DataFrame, index (idx_list),
+ |      vi2_forec_uvf : pd.DataFrame, index (idx_list),
  |              columns (vcf_step_list + ['asof'])
  |          Multi-step multivariate forecasts of implied
- |              variances by model averaging of UVF and
- |              QAR forecasts
- |
- |      Function call
- |      -------------
- |
- |      vi2_forec_modav = DFbVIF_obj.get_vi2_forec_modav()
- |
- |  get_vi2_forec_qar(self)
- |      Get multi-step multivariate quadratic autoregressive
- |          (QAR) forecasts of implied variance
- |
- |      Inputs
- |      ------
- |
- |      idx_list : list
- |          Sublist of vi_list of name/symbol/label
- |              strings of volatility index time-series
- |              to be forecasted, each serving as expected
- |              volatility levels of its underlying time-
- |              series
- |
- |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
- |          List of variance or covariance forecast steps
- |          Note: step = 0 for nowcast or estimate
- |
- |      Returns
- |      -------
+ |              variances with underlying volatility
+ |              forecasts (UVF) as predictors
  |
  |      vi2_forec_qar : pd.DataFrame, index (idx_list),
  |              columns (vcf_step_list + ['asof'])
@@ -2832,10 +2875,20 @@ class DFbVIF(builtins.object)
  |              variances with quadratic autoregression
  |              (QAR) equation
  |
+ |      Returns
+ |      -------
+ |
+ |      vi2_forec : pd.DataFrame, index (idx_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step multivariate forecasts of implied
+ |              variances
+ |          Reference expression: vi2_forec =
+ |              = vi2_forec_uvf or vi2_forec_qar
+ |
  |      Function call
  |      -------------
  |
- |      vi2_forec_qar = DFbVIF_obj.get_vi2_forec_qar()
+ |      vi2_forec = DFbVIF_obj.get_vi2_forec()
  |
  |  get_vi2_forec_ratio(self)
  |      Get ratios of forecasts of implied variances
@@ -2858,12 +2911,13 @@ class DFbVIF(builtins.object)
  |              or autocovariance of vector time-series
  |          Note: step = 0 for nowcast or estimate
  |
- |      VIL : pandas.DataFrame,
- |              index (vi_list), columns (observed_asof_list)
- |          Volatility index level vector time-series, as input
- |              data for DFbVIF model learning and inference
- |          Row time-series of column vector with first column
- |              as oldest and last one as latest
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
+ |          Volatility index level vector time-series,
+ |              as input data for DFbVIF model learning
+ |              and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
  |
  |      vi2_forec_uvf : pd.DataFrame, index (idx_list),
  |              columns (vcf_step_list + ['asof'])
@@ -2877,69 +2931,37 @@ class DFbVIF(builtins.object)
  |              variances with quadratic autoregression
  |              (QAR) equation
  |
- |      vi2_forec_modav : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of implied
- |              variances by model averaging of UVF and
- |              QAR forecasts
- |
  |      Returns
  |      -------
  |
- |      vi2_forec_ratio : dict, keys
- |                  ('uvf', 'qar', 'modav', 'asof')
- |              obj[key] : pd.DataFrame, index (idx_list),
- |                  columns (vcf_step_list)
- |          Ratios of UVF, QAR and ModAv forecasts of
- |              implied variances over realized values
- |              of implied variances at vcf_step = 0,
- |              with ratios = 1 at vcf_step = 0
+ |      vi2_forec_ratio : pd.DataFrame, index (idx_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Ratios of UVF and QAR forecasts of implied
+ |              variances over realized values of implied
+ |              variances at vcf_step = 0, with ratios
+ |              = 1 at vcf_step = 0
  |
  |      Function call
  |      -------------
  |
  |      vi2_forec_ratio = DFbVIF_obj.get_vi2_forec_ratio()
  |
- |  get_vi2_forec_uvf(self)
- |      Get multi-step multivariate forecasts of implied
- |          variances with underlying volatility forecasts
- |          (UVF) as predictors
- |
- |      Inputs
- |      ------
- |
- |      idx_list : list
- |          Sublist of vi_list of name/symbol/label
- |              strings of volatility index time-series
- |              to be forecasted, each serving as expected
- |              volatility levels of its underlying time-
- |              series
- |
- |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
- |          List of variance or covariance forecast steps
- |          Note: step = 0 for nowcast or estimate
- |
- |      Returns
- |      -------
- |
- |      vi2_forec_uvf : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of implied
- |              variances with underlying volatility
- |              forecasts (UVF) as predictors
- |
- |      Function call
- |      -------------
- |
- |      vi2_forec_uvf = DFbVIF_obj.get_vi2_forec_uvf()
- |
- |  get_vil_forecast_modav(self)
+ |  get_vil_forecast(self)
  |      Get multi-step multivariate forecasts of volatility
- |          indexes by model averaging of UVF forecasts
- |          and QAR forecasts
+ |          indexes, with underlying volatility forecasts
+ |          (UVF) as predictors, or with quadratic auto-
+ |          regressive (QAR) equation
  |
  |      Inputs
  |      ------
+ |
+ |      vif_type : str, in ('uvf', 'qar')
+ |          Type of volatility index forecasts (VIF)
+ |              and dynamic volatility attributions
+ |              to be generated
+ |          Type of VIF
+ |              'uvf', UVF forecasts and attributions
+ |              'qar', QAR forecasts and attributions
  |
  |      idx_list : list
  |          Sublist of vi_list of name/symbol/label
@@ -2951,74 +2973,6 @@ class DFbVIF(builtins.object)
  |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
  |          List of variance or covariance forecast steps
  |          Note: step = 0 for nowcast or estimate
- |
- |      Returns
- |      -------
- |
- |      vil_forecast_modav : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of volatility
- |              indexes by model averaging of UVF and QAR
- |              forecasts
- |
- |      Function call
- |      -------------
- |
- |      vil_forecast_modav = DFbVIF_obj.get_vil_forecast_modav()
- |
- |  get_vil_forecast_qar(self)
- |      Get multi-step multivariate quadratic autoregressive
- |          (QAR) forecasts of volatility index
- |
- |      Inputs
- |      ------
- |
- |      idx_list : list
- |          Sublist of vi_list of name/symbol/label
- |              strings of volatility index time-series
- |              to be forecasted, each serving as expected
- |              volatility levels of its underlying time-
- |              series
- |
- |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
- |          List of variance or covariance forecast steps
- |          Note: step = 0 for nowcast or estimate
- |
- |      Returns
- |      -------
- |
- |      vil_forecast_qar : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of volatility
- |              indexes with quadratic autoregression (QAR)
- |              equation
- |
- |      Function call
- |      -------------
- |
- |      vil_forecast_qar = DFbVIF_obj.get_vil_forecast_qar()
- |
- |  get_vil_forecast_uvf(self)
- |      Get multi-step multivariate forecasts of volatility
- |          indexes with underlying volatility forecasts
- |          (UVF) as predictors
- |
- |      Inputs
- |      ------
- |
- |      idx_list : list
- |          Sublist of vi_list of name/symbol/label
- |              strings of volatility index time-series
- |              to be forecasted, each serving as expected
- |              volatility levels of its underlying time-
- |              series
- |
- |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
- |          List of variance or covariance forecast steps
- |          Note: step = 0 for nowcast or estimate
- |
- |      Returns
- |      -------
  |
  |      vil_forecast_uvf : pd.DataFrame, index (idx_list),
  |              columns (vcf_step_list + ['asof'])
@@ -3026,73 +2980,83 @@ class DFbVIF(builtins.object)
  |              indexes with underlying volatility forecasts
  |              (UVF) as predictors
  |
- |      Function call
- |      -------------
- |
- |      vil_forecast_uvf = DFbVIF_obj.get_vil_forecast_uvf()
- |
- |  min_ts_len(self)
- |      Get minimum length of time-series to satisfy parameters
- |          of vector autoregressive model analysis
+ |      vil_forecast_qar : pd.DataFrame, index (idx_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step multivariate forecasts of volatility
+ |              indexes with quadratic autoregression (QAR)
+ |              equation
  |
  |      Returns
  |      -------
  |
- |      min_len_ts : int
- |          Minimum length of time-series for VAR analysis
+ |      vil_forecast : pd.DataFrame, index (idx_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step multivariate forecasts of
+ |              volatility indexes
+ |          Reference expression: vil_forecast =
+ |              = vil_forecast_uvf or vil_forecast_qar
  |
  |      Function call
  |      -------------
  |
- |      min_len_ts = DFbVIF_obj.min_ts_len()
+ |      vil_forecast = DFbVIF_obj.get_vil_forecast()
  |
- |  set_data(self, VIL, VTS)
+ |  set_data(self, MTS)
  |      Set, or reset, observed vector time-series (VTS) data
  |
  |      Arguments
  |      ---------
  |
- |      VIL : pandas.DataFrame,
- |              index (vi_list), columns (observed_asof_list)
- |          Volatility index level vector time-series, as input
- |              data for DFbVIF model learning and inference
- |          Row time-series of column vector with first column
- |              as oldest and last one as latest
- |
- |      VTS : pandas.DataFrame,
- |              index (ts_list), columns (observed_asof_list)
- |          Combined vector time-series (of changes in prices/
- |              values/indexes) stacking together underlying
- |              time-series (underlying volatility indexes)
- |              and other dynamically correlated time-series,
- |              as input data for DFbVIF model learning and
- |              inference
- |          Row time-series of column vector with first column
- |              as oldest and last one as latest
+ |      MTS : pandas.DataFrame,
+ |              index (vi_list + ts_list),
+ |              columns (asof_list)
+ |          Multiple time-series data set including
+ |              volatility index level vector time-
+ |              series (VIL, pd.DataFrame, index=vi_list)
+ |              and DFM-input vector time-series (VTS,
+ |              pd.DataFrame, index=ts_list)
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
  |
  |      Outputs
  |      -------
  |
- |      VIL : pandas.DataFrame,
- |          index (vi_list), columns (observed_asof_list)
+ |      VIL : pandas.DataFrame, index (vi_list),
+ |              columns (asof_list)
+ |          Volatility index level vector time-series,
+ |              as input data for DFbVIF model learning
+ |              and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
  |
- |      VTS : pandas.DataFrame,
- |          index (ts_list), columns (observed_asof_list)
+ |      VTS : pandas.DataFrame, index (ts_list),
+ |              columns (asof_list)
+ |          DFM-input vector time-series (of logarithmic/
+ |              percent changes in prices/values/indexes)
+ |              including underlying vector time-series
+ |              (underlying volatility indexes) and other
+ |              information-enhancing vector time-series
+ |              (dynamically correlated with underlying
+ |              ones), as input data for DFbVIF model
+ |              learning and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
  |
  |      vi_list : list
  |          List of name/symbol/label strings of multiple
  |              volatility index time-series, as list of
  |              index axis of VIL DataFrame
  |
- |      ts_list : list
+ |      ts_list : list ([ts_1, ts_2, ...])
  |          List of name/symbol/label strings of individual
- |              time-series of combined vector time-series,
+ |              time-series of DFM-input vector time-series,
  |              as list of index axis of VTS DataFrame
  |
  |      asof_list : list
- |          List of as-of time-stamps of observed (combined
+ |              ([t_stamp_1, t_stamp_2, ..., t_stamp_T])
+ |          List of as-of time-stamps of observed (DFM-input
  |              vector) time-series, as list of columns axis
- |              of VTS DataFrame
+ |              of VIL or VTS DataFrame
  |
  |      num_vi : int >= 1
  |          Number of volatility indexes = len(vi_list)
@@ -3103,28 +3067,36 @@ class DFbVIF(builtins.object)
  |
  |      len_ts : int > 1
  |          Length of observed (vector) time-series
- |              = len(observed_asof_list)
+ |              = len(asof_list)
+ |
+ |      idx_list : obj
+ |
+ |      und_list : obj
  |
  |      Function call
  |      -------------
  |
- |      DFbVIF_obj.set_data(VIL, VTS)
+ |      DFbVIF_obj.set_data(MTS)
  |
- |  set_param(self, vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, max_forecast_step=None)
+ |  set_param(self, vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, vif_type=None, max_forecast_step=None)
  |      Set, update or reset value(s) of any, some or all parameter(s)
  |
  |      Learning parameters
  |      -------------------
  |
  |      vol_index_dict : dict,
- |              keys (idx_list), values (und_list)
- |                  idx_list : list (vi1, vi2, ...)
- |                  und_list : list (ts1, ts2, ...)
+ |              keys (vi_list),
+ |                  vi_list : list (vi1, vi2, ...)
+ |              values (sub(ts_list) or =None)
+ |                  ts_list : list (ts1, ts2, ...)
  |          dict-Type list of key-value pairs of volatility
- |              indexes (keys) and correspondent underlying
- |              time-series (values)
- |          Notes: idx_list = sublist of vi_list,
- |              und_list = sublist of ts_list
+ |              indexes (keys, vi_list) and, if to be
+ |              forecasted, correspondent underlying time-
+ |              series (values, sub(ts_list))
+ |          Reference expression:
+ |              und_list = [v for v in obj.values() if (v in ts_list)]
+ |              idx_list = [k for k in vi_list if (obj[k] in und_list)]
+ |              und_list = [obj[k] for k in idx_list]
  |
  |      len_learn_window : int >> 1
  |          Length of trailing time window of data points
@@ -3183,9 +3155,18 @@ class DFbVIF(builtins.object)
  |      Inference parameters
  |      --------------------
  |
+ |      vif_type : str, in ('uvf', 'qar')
+ |          Type of volatility index forecasts (VIF)
+ |              and dynamic volatility attributions
+ |              to be generated
+ |          Type of VIF
+ |              'uvf', UVF forecasts and attributions
+ |              'qar', QAR forecasts and attributions
+ |
  |      max_forecast_step : int >= 1
- |          Maximum number of forecasting steps of volatility
- |              (variance-covariance) forecasts
+ |          Maximum number of forecasting steps
+ |              of volatility (variance-covariance)
+ |              forecasts
  |
  |      Function call
  |      -------------
@@ -3206,15 +3187,25 @@ class DFbVIF(builtins.object)
  |          num_pcs=num_pcs,
  |          alt_ar_order=alt_ar_order,
  |          alt_num_pcs=alt_num_pcs,
+ |          vif_type=vif_type,
  |          max_forecast_step=max_forecast_step)
  |
  |  variance(self)
- |      Generate data objects of forecasts and attributions
- |          of implied variance, and forecasts of volatility
- |          indexes
+ |      Generate data objects of multi-step multivariate
+ |          forecasts of implied variance and volatility
+ |          index, and associated dynamic volatility
+ |          attributions
  |
  |      Inputs
  |      ------
+ |
+ |      vif_type : str, in ('uvf', 'qar')
+ |          Type of volatility index forecasts (VIF)
+ |              and dynamic volatility attributions
+ |              to be generated
+ |          Type of VIF
+ |              'uvf', UVF forecasts and attributions
+ |              'qar', QAR forecasts and attributions
  |
  |      all_step_list : list, [
  |              (- max(var_order, max_ar_order)), ...,
@@ -3225,8 +3216,8 @@ class DFbVIF(builtins.object)
  |      all_variance : pd.DataFrame, index (ts_list),
  |              columns (all_step_list + ['asof'])
  |          All estimated and forecasted variance of
- |              combined vector time-series, estimated
- |              and forecasted by underlying volatility
+ |              DFM-inputd vector time-series, estimated
+ |              and forecasted by DFM-based volatility
  |              forecast model DFVCM
  |          Reference expression:
  |              diag( X0 V(t+s-j) X0' ) + W(t+s-j)) + Rr(t)
@@ -3252,9 +3243,9 @@ class DFbVIF(builtins.object)
  |              obj['idio'] : pd.DataFrame, index (ts_list),
  |                  columns (idio_lagtub_list + ['pred_err'])
  |          Parts of variance of individual time-series of
- |              combined vector time-series, predicted by
+ |              DFM-input vector time-series, predicted by
  |              dynamic common factors for obj['comm'], and
- |              predicted by idiosycratic UDC for obj['idio']
+ |              by idiosycratic UDC for obj['idio']
  |          Reference expression of 'comm'
  |              diag( X0 diag( A(j) V(t+1-j, t+1-k) A(k)' ) X0' );
  |              diag( X0 Rv(t) X0' );
@@ -3322,18 +3313,12 @@ class DFbVIF(builtins.object)
  |              variances with quadratic autoregression
  |              (QAR) equation
  |
- |      vi2_forec_modav : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of implied
- |              variances by model averaging of UVF and
- |              QAR forecasts
- |
  |      vi2_attrib_uvf : pd.DataFrame, index (idx_list),
  |              columns (vi2_source_list + ['asof'])
  |          Weights of attribution of UVF forecast
- |              (of implied variance) to dynamic sources
- |              of volatility of time-series underlying
- |              volatility indexes
+ |              (of implied variance) to dynamic
+ |              sources of volatility of volatility
+ |              indexes
  |
  |      vi2_attrib_qar : pd.DataFrame, index (idx_list),
  |              columns (vi2_source_list + ['asof'])
@@ -3353,12 +3338,6 @@ class DFbVIF(builtins.object)
  |          Multi-step multivariate forecasts of volatility
  |              indexes with quadratic autoregression (QAR)
  |              equation
- |
- |      vil_forecast_modav : pd.DataFrame, index (idx_list),
- |              columns (vcf_step_list + ['asof'])
- |          Multi-step multivariate forecasts of volatility
- |              indexes by model averaging of UVF and QAR
- |              forecasts
  |
  |      Function call
  |      -------------
