@@ -3,15 +3,28 @@
 Help on class DFbVIF in module DFbVIF:
 
 class DFbVIF(builtins.object)
- |  DFbVIF(vol_index_dict=None, len_learn_window=None, var_order=1, num_factors=1, ar_order_idio=1, num_pcs=1, alt_ar_order={}, alt_num_pcs={}, vif_type='', max_forecast_step=1)
+ |  DFbVIF(
+ |      vol_index_dict=None,
+ |      len_learn_window=None,
+ |      var_order=1,
+ |      num_factors=1,
+ |      ar_order_idio=1,
+ |      num_pcs=1,
+ |      alt_ar_order={},
+ |      alt_num_pcs={},
+ |      vif_type='',
+ |      max_forecast_step=1
+ |  )
  |
- |  Dynamic Factor Based Volatility Index Forecast (DFbVIF)
- |  model to make multi-step forecasts of multiple volatility
- |  indexes, and dynamic volatility attributions, by applying
- |  dynamic factor model (DFM) volatility analysis on DFM-
- |  input time-series, which are multiple time-series including
- |  both price time-series underlying the volatility indexes
- |  and other infomation-enhancing time-series.
+ |  Dynamic Factor Based Volatility Index Forecast
+ |  (DFbVIF) model to make (1) multi-step forecasts
+ |  of multiple volatility indexes and (2) dynamic
+ |  attributions of forecasted volatilities, by
+ |  applying dynamic factor model (DFM) volatility
+ |  analysis on DFM-input vector time-series
+ |  including both (1) price time-series underlying
+ |  volatility indexes and (2) other information-
+ |  enhancing time-series.
  |
  |  Volatility indexes time-series VI(t)
  |  ------------------------------------
@@ -33,7 +46,7 @@ class DFbVIF(builtins.object)
  |  Vector time-series y_und(t), y_info(t) & y(t)
  |  ---------------------------------------------
  |
- |  Notaion
+ |  Notation
  |      "Underlying time-series"
  |          An underlying time-series, underlying
  |          a given volatility index, is a time-
@@ -78,68 +91,71 @@ class DFbVIF(builtins.object)
  |  Dynamic VI forecast
  |  -------------------
  |
- |  Reference phrase
- |      "Underlying volatility", "underlying variance":
- |          Volatilities, v1_und(t), or variances,
- |          v2_und(t), of underlying time-series,
- |          y_und(t)
- |
- |  Approaches
+ |  Methodology of dynamic VI forecast
  |      * Values of volatility indexes, VI(t), represent
- |        expected volatility levels of underlying time-
- |        series, y_und(t), expected at a specified future
- |        time, therefore volatility indexes and under-
- |        lying volatilities are closely related
+ |        expected volatility levels of underlying
+ |        time-series, y_und(t), expected at a specified
+ |        future time
+ |      * Volatility indexes are closely related to
+ |        forecasted volatilities of underlying time-
+ |        series
  |      * Volatilities of DFM-input vector time-
  |        series y(t), can be effectively modeled and
  |        forecasted by dynamic factor models (DFMs)
- |      * DFbVIF utilizes DFM volatility analysis on
- |        DFM-input vector time-series to forecast
- |        volatility indexes
- |      * For example, volatility index forecasts by
- |        DFbVIF include: (1) UVF forecasts, (2) QAR
- |        forecasts, and (3, a future development)
- |        TSF forecasts
- |      * Data set of DFM-input vector time-series
- |        can have much more informatoin, and therefore
- |        much more predictive power, than sub-set of
- |        underlying time-series alone
- |      * In addition, with DFM modeling, DFbVIF is
- |        able to attribute volatility index forecasts
- |        to dynamic sources of volatility, e.g.
- |        variance of common factors and idiosyncratic
- |        UDCs, autocovariance of factors and UDCs,
- |        and varaiance of prediction/residual errors
+ |      * DFM-input vector time-series include both
+ |        (1) price time-series underlying volatility
+ |        indexes and (2) other information-enhancing
+ |        time-series
+ |      * DFM-input vector time-series can have much
+ |        more information, and therefore much more
+ |        predictive power, than underlying time-series
+ |        alone
+ |      * DFbVIF uses DFM volatility model on DFM-input
+ |        vector time-series to forecast volatility
+ |        indexes
+ |      * Volatility index forecasts by DFbVIF include:
+ |        (1) UVF forecasts and (2) QAR forecasts
+ |      * (and 3, FUTURE development, by TSF forecasts)
+ |      * With DFM modeling, DFbVIF is able to attribute
+ |        volatility index forecasts to dynamic sources
+ |        of volatility, e.g. variance of common factors
+ |        and idiosyncratic UDCs, autocovariance of
+ |        factors and UDCs, and variance of prediction/
+ |        residual errors
+ |
+ |  "Underlying volatility", "underlying variance":
+ |      Volatilities, v1_und(t), or variances, v2_und(t),
+ |          of underlying time-series, y_und(t)
  |
  |  UVF forecast
  |      "Volatility index forecasts with underlying
  |          volatility forecasts (UVF) as predictors"
  |      Forecasting changes in volatility indexes
- |          with forecasted changes in underlying
- |          volatilities
+ |          with forecasted changes in volatilities
+ |          of underlying time-series
  |
  |  QAR forecast
  |      "Volatility index forecasts by quadratic
  |          autoregressive (QAR) equation with QAR
  |          coefficients of underlying volatilities"
- |      Making quadratic autoregressive (QAR)
- |          forecasts of volatility indexes with
- |          QAR equation of underlying volatilities
+ |      Making quadratic autoregressive (QAR) forecasts
+ |          of volatility indexes with QAR equation of
+ |          volatilities of underlying time-series
  |
- |  TSF forecast (future development)
- |      "Volatility index forecasts by direct time-
- |          series forecasts (TSF)"
+ |  (TSF forecast, NOT yet, FUTURE development)
+ |      ("Volatility index forecasts by direct
+ |          time-series forecasts (TSF)"
  |      Forecasting volatility indexes by making
  |          time-series forecasts of volatility
- |          indexes directly
+ |          indexes directly)
  |
- |  Optimal UVF, QAR and TSF forecasts
- |      Optimal UVF, QAR and TSF forecasts may
- |      be achieved by different sets of parameters
- |      of dynamic factor model
+ |  Optimal UVF and QAR (and TSF) forecasts
+ |      Optimal UVF and QAR (and TSF) forecasts may
+ |          be achieved by different sets of parameters
+ |          of dynamic factor model
  |
  |  Model average forecast of VI(t)
- |      Simple averages of UVF, QAR and TSF
+ |      Simple averages of UVF and QAR (and TSF)
  |      forecasts of volatility indexes
  |
  |  Dynamic factor model (DFM) on VTS y(t)
@@ -950,7 +966,7 @@ class DFbVIF(builtins.object)
  |      Notes:
  |          num_pcs < ar_order_idio
  |
- |  alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |  alt_ar_order : dict, {ts1id: q1, ts2id: q2, ...} or {}
  |      Autoregressive (AR) orders, q1, q2, ..., if any,
  |          applying to idiosyncratic components of
  |          specified time-series ts1, ts2, ...
@@ -958,7 +974,7 @@ class DFbVIF(builtins.object)
  |          ts1id, ts2id, ...: in VTS.index, labels of
  |          specified time-series ts1, ts2, ...
  |
- |  alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |  alt_num_pcs : dict, {ts1id: m1, ts2id: m2, ...} or {}
  |      Numbers of principal components (PCs), m1, m2,
  |          ..., if any, applying to idiosyncratic
  |          components of specified time-series ts1,
@@ -1686,7 +1702,19 @@ class DFbVIF(builtins.object)
  |
  |      self.__impl_variance_uvf__()
  |
- |  __init__(self, vol_index_dict=None, len_learn_window=None, var_order=1, num_factors=1, ar_order_idio=1, num_pcs=1, alt_ar_order={}, alt_num_pcs={}, vif_type='', max_forecast_step=1)
+ |  __init__(
+ |      self,
+ |      vol_index_dict=None,
+ |      len_learn_window=None,
+ |      var_order=1,
+ |      num_factors=1,
+ |      ar_order_idio=1,
+ |      num_pcs=1,
+ |      alt_ar_order={},
+ |      alt_num_pcs={},
+ |      vif_type='',
+ |      max_forecast_step=1
+ |  )
  |      Initialize object self
  |
  |      Learning parameters
@@ -1743,7 +1771,7 @@ class DFbVIF(builtins.object)
  |          Notes:
  |              num_pcs < ar_order_idio
  |
- |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |      alt_ar_order : dict, {ts1id: q1, ts2id: q2, ...} or {}
  |          Autoregressive (AR) orders, q1, q2, ..., if any,
  |              applying to idiosyncratic components of
  |              specified time-series ts1, ts2, ...
@@ -1751,7 +1779,7 @@ class DFbVIF(builtins.object)
  |              ts1id, ts2id, ...: in VTS.index, labels of
  |              specified time-series ts1, ts2, ...
  |
- |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |      alt_num_pcs : dict, {ts1id: m1, ts2id: m2, ...} or {}
  |          Numbers of principal components (PCs), m1, m2,
  |              ..., if any, applying to idiosyncratic
  |              components of specified time-series ts1,
@@ -2176,7 +2204,19 @@ class DFbVIF(builtins.object)
  |
  |      self.__take_data__(MTS)
  |
- |  __take_param__(self, vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, vif_type=None, max_forecast_step=None)
+ |  __take_param__(
+ |      self,
+ |      vol_index_dict=None,
+ |      len_learn_window=None,
+ |      var_order=None,
+ |      num_factors=None,
+ |      ar_order_idio=None,
+ |      num_pcs=None,
+ |      alt_ar_order=None,
+ |      alt_num_pcs=None,
+ |      vif_type=None,
+ |      max_forecast_step=None
+ |  )
  |      Take prameter values
  |
  |      Arguments
@@ -2645,7 +2685,7 @@ class DFbVIF(builtins.object)
  |      Returns
  |      -------
  |
- |      param_dict : dict {str: obj}
+ |      param_dict : dict, {str: obj}
  |          dict of name and value of specified parameters
  |
  |      Function call
@@ -3078,7 +3118,19 @@ class DFbVIF(builtins.object)
  |
  |      DFbVIF_obj.set_data(MTS)
  |
- |  set_param(self, vol_index_dict=None, len_learn_window=None, var_order=None, num_factors=None, ar_order_idio=None, num_pcs=None, alt_ar_order=None, alt_num_pcs=None, vif_type=None, max_forecast_step=None)
+ |  set_param(
+ |      self,
+ |      vol_index_dict=None,
+ |      len_learn_window=None,
+ |      var_order=None,
+ |      num_factors=None,
+ |      ar_order_idio=None,
+ |      num_pcs=None,
+ |      alt_ar_order=None,
+ |      alt_num_pcs=None,
+ |      vif_type=None,
+ |      max_forecast_step=None
+ |  )
  |      Set, update or reset value(s) of any, some or all parameter(s)
  |
  |      Learning parameters
@@ -3135,7 +3187,7 @@ class DFbVIF(builtins.object)
  |          Notes:
  |              num_pcs < ar_order_idio
  |
- |      alt_ar_order : dict {ts1id: q1, ts2id: q2, ...} or {}
+ |      alt_ar_order : dict, {ts1id: q1, ts2id: q2, ...} or {}
  |          Autoregressive (AR) orders, q1, q2, ..., if any,
  |              applying to idiosyncratic components of
  |              specified time-series ts1, ts2, ...
@@ -3143,7 +3195,7 @@ class DFbVIF(builtins.object)
  |              ts1id, ts2id, ...: in VTS.index, labels of
  |              specified time-series ts1, ts2, ...
  |
- |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
+ |      alt_num_pcs : dict, {ts1id: m1, ts2id: m2, ...} or {}
  |          Numbers of principal components (PCs), m1, m2,
  |              ..., if any, applying to idiosyncratic
  |              components of specified time-series ts1,
