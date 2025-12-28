@@ -3,393 +3,739 @@
 Help on class YWpcAR in module YWpcAR:
 
 class YWpcAR(builtins.object)
- |  YWpcAR(len_learn_window=0, ar_order=3, num_pcs=2, alt_ar_order={}, alt_num_pcs={}, max_forecast_step=1, target_type='Original', fwd_cumsum=False)
- |  
- |  Yule-Walker-PCA (YWpca) autoregressive (AR) model
- |  (YWpcAR) for analyzing and forecasting multiple
- |  univariate time-series individually
- |  
- |  AR model
- |  --------
- |  
- |  Acronyms
- |      AR : univariate autoregressive model of a time-series
- |  
- |  Notations
- |      y(t) : univariate time-series with time index t
- |      c : mean of time-series y(t)
- |      p : AR order
- |      a(j) : AR model coefficients
- |      e(t) : random errors
- |  
- |  Parameter values
- |      c = 0 : assuming y(t) is a zero-mean time-series
- |      t = 0, 1, 2, ..., T
- |      T : last time stamp
- |      j = 1, 2, ..., p
- |  
- |  Autoregressive (AR) model
- |      y(t) = a(1) y(t-1) + a(2) y(t-2) + ... + a(p) y(t-p) + e(t)
- |  
- |  Algorithm
- |  ---------
- |  
- |  Description
- |      YWpcAR: univariate Yule-Walker-PCA autogressive model
- |  
- |  Acronyms
- |      YW : Yule-Walker equation of AR model
- |      PC : principal component
- |      PCA : principal components analysis
- |  
- |  Methodology
- |      * Applying PCA to sample variance-autocovariance matrix VAC
- |        in YW equation
- |      * Replacing elements of VAC by PCA-based common components
- |      * Replacing elements of matrix and vector in YW equation by
- |        correspondent PCA-based common components of VAC
- |      * Estimating AR model coefficients by PCA-based YW equation
- |      * In time-series forecasting with YW-PCA AR model, replacing
- |        observed data by unobserved components associated with PCs
- |  
- |  Benefits
- |      * Noise reduction due to dimension reduction when number
- |        of PCs, m, smaller than autoregressiv order, p
- |      * Avoid over-fitting when estimating long-memory AR model
- |        of large order p
- |  
- |  YWpcAR model
- |  ------------
- |  
- |  Notations
- |      m : number of PCs
- |      b(k) : unobserved component filter coefficients
- |  
- |  Parameter values
- |      1 <= m <= p
- |      k = 0, 1, ..., p
- |  
- |  Filter generating unobserved components
- |      z(t) = b(0) y(t) + b(1) y(t-1) + ... + b(p) y(t-p)
- |  
- |  Forecasts by YW-PCA AR model
- |      y(t+s) = a(1) z(t+s-1) + a(2) z(t+s-2) + ... + a(p) z(t+s-p)
- |  
- |  Note:
- |      When k >= s, i.e. s-k <= 0: y(t+s-k|t) = z(t+s-k)
- |  
- |  References
- |  ----------
- |  
- |  DW. R. Derryberry. 2014. "Chapter 15. The Yule–Walker Equations
- |  and the Partial Autocorrelation Function”, in Basic Data Analysis
- |  for Time Series with R. John Wiley & Sons, Inc., 2014.
- |  https://doi.org/10.1002/9781118593233
- |  
- |  I.T. Jolliffe. 2002. Principal Component Analysis, Second Edition.
- |  Springer, 2002. https://www.springer.com/gp/book/9780387954424
- |  
- |  Data
- |  ----
- |  
- |  Y : pandas.Series, size (len_ts), name (ts_label)
- |      Univariate time-series
- |      First value as the oldest, last value as the latest
- |      Input of method fit(Y)
- |      For AR model learning (and inference)
- |  
- |  Y_infer : pd.Series, size (len_ts_infer), name (ts_label)
- |      Univariate time-series
- |      First value as the oldest, last value as the latest
- |      Input, Y = Y_infer, of optional apply(Y)
- |      For AR model inference only
- |  
- |  len_ts and len_ts_infer : int > 1
- |      Length of time-series
- |  
- |  Notes on Y and Y_infer:
- |      Y_infer.name = Y.name, i.e. same time-series
- |      When Y_infer not applied, Y is assumed for inference
- |  
- |  VTS : pandas.DataFrame, shape (num_ts, len_ts)
- |      Vector time-series: row time-series of column vector
- |      First column as the oldest, last column as the latest
- |      Input of method fit(VTS)
- |      For multiple univariate AR model learning (and inference)
- |  
- |  VTS_infer : pandas.DataFrame, shape (num_ts, len_ts_infer)
- |      Vector time-series: row time-series of column vector
- |      First column as the oldest, last column as the latest
- |      Input, VTS = VTS_infer, of optional apply(VTS)
- |      For multiple univariate AR model inference only
- |  
- |  num_ts : int >= 1
- |      Number of time-series
- |  
- |  Notes on VTS and VTS_infer:
- |      VTS_infer.index = VTS.index, i.e. same set of time-series
- |      When VTS_infer not applied, VTS is assumed for inference
- |  
- |  Parameters
- |  ----------
- |  
- |  len_learn_window : int >> 1
- |      Length of trailing time window for model learning
- |  
- |  ar_order : int >= 1
- |      Autoregressive (AR) model order, p, applied to all
- |          time-series other than those specified, if any,
- |          in alt_ar_order
- |      Notes:
- |          ar_order <= len_learn_window
+ |  YWpcAR(
+ |      len_learn_window=None,
+ |      ar_order=None,
+ |      num_pcs=None,
+ |      alt_ar_order={},
+ |      alt_num_pcs={},
+ |      max_forecast_step=1,
+ |      target_type='Original',
+ |      fwd_cumsum=False
+ |  )
+ |
+ |      Yule-Walker-PCA (YWpca) autoregressive (AR) model
+ |      (YWpcAR) for
+ |          (1) analysis,
+ |          (2) multi-step forecasts, and
+ |          (3) multi-step forecasts of variance
+ |      of multiple univariate time-series individually
+ |
+ |      AR model
+ |      --------
+ |
+ |      Acronyms
+ |          AR : univariate autoregressive model of single
+ |               time-series
+ |
+ |      Notations
+ |          y(t) : observed univariate time-series with time
+ |                 index t
+ |          c : mean of observed time-series y(t)
+ |          q : AR order
+ |          d(j) : AR model coefficients
+ |          r(t) : AR residual error of y(t)
+ |
+ |      Parameter values
+ |          c = 0 : assuming y(t) is a zero-mean time-series
+ |          t = 0, 1, 2, ..., T
+ |          T : last time stamp
+ |          j = 1, 2, ..., q
+ |
+ |      Autoregressive (AR) model
+ |          y(t) = d(1) y(t-1) + d(2) y(t-2) + ... + d(q) y(t-q) + r(t)
+ |
+ |      YWpcAR method
+ |      -------------
+ |
+ |      Acronyms
+ |          YWpcAR: univariate Yule-Walker-PCA autoregressive model
+ |          YW : Yule-Walker equation of AR model
+ |          PCA : principal components analysis
+ |
+ |      Methodology
+ |          * Yule-Walker-PCA autoregressive model (YWpcAR)
+ |            is an implementation of estimating non-stationary
+ |            autoregressive (AR) model by Yule-Walker dimension
+ |            reduction method. This algorithm can be summarized
+ |            as follows:
+ |          * A set of AR coefficients of AR model on observed
+ |            univariate time-series is a solution vector of
+ |            linear Yule-Walker (YW) equation of the AR time-
+ |            series.
+ |          * Design matrix and response vector of the YW
+ |            equation are expressed in terms of variances and
+ |            autocovariances of the time-series at a range of
+ |            time-lags.
+ |          * The YW solution vector can be expressed with
+ |            all eigenvalues and all eigenvectors of symmetric
+ |            (sample) variance-autocovariance matrixes (VACMs)
+ |            associated with the YW equation.
+ |          * Replacing the set of all eigenpairs with selected
+ |            principal eigenvalues and principal eigenvectors
+ |            of the VACMs, the YW solution vector becomes
+ |            dimension-reduced set of AR coefficients.
+ |          * Combe principal eigen score time-series into
+ |            an unobserved dynamic component (UDC) time-series
+ |            of the observed time-series.
+ |          * The UDC time-series is of an AR process governed
+ |            by the dimension-reduced AR coefficients.
+ |          * Forecast values of observed time-series by
+ |            dimension-reduced AR forecasts of the UDC time-
+ |            series.
+ |          * Forecast variances of observed time-series by
+ |            dimension-reduced AR forecasts of variances of
+ |            the UDC as well as estimated residual variance.
+ |
+ |      Benefits
+ |          * Noise reduction due to dimension reduction when number
+ |            of PCs, m, smaller than autoregressiv order, q
+ |          * Avoid over-fitting when estimating long-memory AR model
+ |            of large order q
+ |
+ |      YWpcAR model
+ |      ------------
+ |
+ |      Notations
+ |          m : number of principal components (PCs)
+ |          d(j) : PC-based autoregression (AR) coefficients
+ |          g(t) : unobserved dynamic component (UDC) time-series of
+ |                 observed time-series y(t)
+ |          b(j) : PC-based filter coefficients to generate UDC g(t)
+ |          w((t-j),k) : variance and k-lag autocovariance of UDC g(t)
+ |
+ |      Parameter values
+ |          1 <= m <= q
+ |          j = 0, 1, ..., q
+ |
+ |      Filter to generate UDC g(t) by observed y(t)
+ |          g(t) = b(0) y(t) + b(1) y(t-1) + ... + b(q) y(t-q)
+ |
+ |      Autoregression by YW-PCA AR model
+ |          y(t) = g(t) + r(t)
+ |          g(t) = d(1) g(t-1) + d(2) g(t-2) + ... + d(q) g(t-q) + e(t)
+ |
+ |      Variance and k-Lag autocovariance of UDC time-series
+ |          w(t-j,0) = Var( g(t-j) )
+ |          w(t-j,k) = Cov( g(t-j), g(t-j-k) )
+ |          time-index-lag j = 0,1,...; time-sample-lag k = 0,1,...
+ |
+ |      Autocovariance of UDC time-series
+ |          Cov( g(t-j-k), g(t-j) ) = Cov( g(t-j), g(t-j-k) ) = w(t-j,k)
+ |          Cov( g(t-j1), g(t-j2) ) = w(t-min(j1,j2), abs(j1-j2))
+ |          lag j1, j2 = 0, 1, 2, ...
+ |
+ |      Notes on error in AR prediction of UDC
+ |          Var( e(t) ) = Var(
+ |              d(1) g(t-1) + d(2) g(t-2) + ... + d(q) g(t-q) - g(t) )
+ |
+ |      Multiple YWpcAR models
+ |      ----------------------
+ |
+ |      Notations
+ |          n : number of univariate time-series
+ |          y(t) : time-series of n-by-1 vector of observed data
+ |          g(t) : time-series of n-by-1 vector of unobserved dynamic
+ |                 component (UDC) of observed vector time-series y(t)
+ |          D(j) : n-by-n diagonal matrix of AR coefficients
+ |          r(t) : n-by-1 vector of residuals
+ |          e(t) : n-by-1 vector of AR prediction errors
+ |
+ |      Autoregression by multiple YW-PCA AR models
+ |          y(t) = g(t) + r(t)
+ |          g(t) = D(1) g(t-1) + D(2) g(t-2) + ... + D(q) g(t-q) + e(t)
+ |
+ |      Variance and k-Lag autocovariance of multiple UDCs
+ |          W(t-j,0) = Diag( E( g(t-j) g(t-j)' ) )
+ |          W(t-j,k) = Diag( E( g(t-j) g(t-j-k)' ) )
+ |          time-index-lag j = 0,1,2,...; time-sample-lag k = 1,2,...
+ |
+ |      Autocovariance of UDC time-series
+ |          Diag( Cov( g(t-j1), g(t-j2) ) ) = W(t-min(j1,j2), abs(j1-j2))
+ |          lag j1, j2 = 0, 1, 2, ...
+ |
+ |      Notes on error in AR prediction of UDC
+ |          Var( e(t) ) = Diag( Var(
+ |              D(1) g(t-1) + D(2) g(t-2) + ... + D(q) g(t-q) - g(t) ) )
+ |
+ |      Forecast of time-series
+ |      -----------------------
+ |
+ |      Autoregression by YW-PCA AR model
+ |          y(t) = g(t) + r(t)
+ |          g(t) = d(1) g(t-1) + d(2) g(t-2) + ... + d(q) g(t-q) + e(t)
+ |
+ |      s-Step forecasts of UDC and of observed time-series (OTS)
+ |          g(t+s|t) = d(1) g(t+s-1) + d(2) g(t+s-2) + ... + d(q) g(t+s-q)
+ |          y(t+s|t) = g(t+s)
+ |
+ |      Autoregression by multiple YW-PCA AR models
+ |          y(t) = g(t) + r(t)
+ |          g(t) = D(1) g(t-1) + D(2) g(t-2) + ... + D(q) g(t-q) + e(t)
+ |
+ |      s-Step forecasts of multiple UDCs & OTSs by multiple YWpcAR models
+ |          g(t+s|t) = D(1) g(t+s-1) + D(2) g(t+s-2) + ... + D(q) g(t+s-q)
+ |          y(t+s|t) = g(t+s)
+ |
+ |      Note:
+ |          When j >= s, i.e. s-j <= 0: g(t+s-j|t) = g(t+s-j)
+ |
+ |      Forecast of UDC variance
+ |      without autocovariance estimate
+ |      -------------------------------
+ |
+ |      Notes on error in AR prediction of UDC
+ |          simple forecast: Var( e(t+s) ) = Var( e(t) )
+ |
+ |      Approximation of s-step UDC variance ratio
+ |          w(t+s,0) / w(t,0) = w(t,0) / w(t-s,0)
+ |
+ |      s-Step forecast of variance of UDC time-series
+ |          w(t+s,0) = [ w(t,0) / w(t-s,0) ] w(t,0)
+ |
+ |      s-Step forecast of variances of multiple UDCs
+ |          W(t+s,0) = [ W(t,0) / W(t-s,0) ] W(t,0)
+ |
+ |      Forecast of UDC variance
+ |      having autocovariance estimate
+ |      ------------------------------
+ |
+ |      Notes on error in AR prediction of UDC
+ |          simple forecast: Var( e(t+s) ) = Var( e(t) )
+ |
+ |      s-Step forecast of, and autocovariance of, UDC
+ |          g(t+s|t) = d(1) g(t+s-1) + ... + d(q) g(t+s-q) + e(t+s|t)
+ |          Cov( g(t-j1), g(t-j2) ) = w(t-min(j1,j2), abs(j1-j2))
+ |
+ |      s-Step forecast of variance of UDC time-series
+ |          w(t+s,0) = Sum(
+ |              d(min(j1,j2)) w(t+s-min(j1,j2), abs(j1-j2)) d(max(j1,j2));
+ |              j1,j2 = 1,2,...,q ) + Var( e(t) )
+ |
+ |      s-Step forecast of k-lag autocovariance of UDC
+ |          w(t+s,k) = Sum(
+ |              d(j) w(t+s-min(j,k), abs(j-k)); j = 1,2,...,q );
+ |          k = 1, 2, ...
+ |
+ |      s-Step forecast of, and autocovariance of, multiple UDCs
+ |          g(t+s|t) = D(1) g(t+s-1) + ... + D(q) g(t+s-q) + e(t+s|t)
+ |          Cov( g(t-j1), g(t-j2) ) = W(t-min(j1,j2), abs(j1-j2))
+ |
+ |      s-Step forecast of variances of multiple UDCs
+ |          W(t+s,0) = Diag( Sum(
+ |              D(min(j1,j2)) W(t+s-min(j1,j2), abs(j1-j2)) D(max(j1,j2));
+ |              j1,j2 = 1,2,...,q ) + Var( e(t) )
+ |
+ |      s-Step forecast of k-lag autocovariances of mutiple UDCs
+ |          W(t+s,k) = Diag( Sum(
+ |              D(j) W(t+s-min(j,k), abs(j-k)); j = 1,2,...,q );
+ |          k = 1, 2, ...
+ |
+ |      Forecast of variance of time-series
+ |      -----------------------------------
+ |
+ |      Notes on AR model residual error
+ |          simple forecast: Var( r(t+s) ) = Var( r(t) )
+ |          assumed, Cov( r(t+s), r(t+s-k) ) = 0
+ |
+ |      s-Step forecast of variance of observed time-series y(t)
+ |            Var( y(t+s) ) = E( y(t+s) y(t+s)' )
+ |          = E( g(t+s) g(t+s)' ) + Var( r(t+s) )
+ |          = W(t+s,0) + Var( r(t) )
+ |
+ |      References
+ |      ----------
+ |
+ |      DW. R. Derryberry. 2014. "Chapter 15. The Yule-Walker Equations
+ |      and the Partial Autocorrelation Function", in Basic Data Analysis
+ |      for Time Series with R. John Wiley & Sons, Inc., 2014.
+ |      https://doi.org/10.1002/9781118593233
+ |
+ |      I.T. Jolliffe. 2002. Principal Component Analysis, Second Edition.
+ |      Springer, 2002. https://www.springer.com/gp/book/9780387954424
+ |
+ |      Data: observed (vector) time-series
+ |      -----------------------------------
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data for YWpcAR
+ |              model learning and inference
+ |          Row time-series of column vector with first column
+ |              as oldest and last one as latest
+ |          Input of method set_data(VTS) for multiple univariate
+ |              AR model learning and inference
+ |
+ |      Y : pandas.Series,
+ |              index (asof_list), name (ts_label)
+ |          Observed single univariate time-series, as input data
+ |              for YWpcAR model learning and inference
+ |          First value as oldest and last one as latest
+ |          Input of method set_data(Y) for univariate AR model
+ |              learning and inference
+ |
+ |      ts_list : list
+ |          List of name/symbol/label strings of observed
+ |              time-series data, as list of index axis
+ |              of VTS DataFrame
+ |
+ |      asof_list : list
+ |          List of as-of time-stamps of observed (vector)
+ |              time-series data, as list of columns axis
+ |              of VTS DataFrame (or as list of index axis
+ |              of Y Series)
+ |
+ |      num_ts : int >= 1
+ |          Number of observed time-series
+ |              = len(ts_list)
+ |
+ |      len_ts : int > 1
+ |          Length of observed (vector) time-series
+ |              = len(asof_list)
  |          len_ts >= len_learn_window + (2 ar_order)
- |          len_ts_infer >= (2 ar_order) + 1
- |  
- |  num_pcs : int >= 1
- |      Number of principal components (PCs), m, applied to
- |          all time-series other than those specified, if any,
- |          in alt_num_pcs
- |      Notes:
- |          num_pcs < ar_order
- |  
- |  alt_ar_order : dict {ts1id: p1, ts2id: p2, ...} or {}
- |      Autoregressive (AR) model order, p, applied to specified
- |          time-series ts1, ts2, ...
- |      Notes:
- |          ts1id, ts2id, ...: labels of time-series in VTS.index,
- |          as key of alternative AR order value applied to the
- |          specified time-series
- |  
- |  alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
- |      Number of principal components (PCs), m, applied to 
- |          specified time-series ts1, ts2, ...
- |      Notes:
- |          ts1id, ts2id, ...: labels of time-series in VTS.index,
- |          as key of alternative number of PCs applied to the
- |          specified time-series
- |  
- |  max_forecast_step : int >= 1
- |      Maximum number of forward steps of time-series forecasts
- |  
- |  target_type : str {'zero-mean', 'z', 'Z', 'original', 'o', 'O'}
- |      Type of time-series data to be forecasted
- |      If 'z', 'Z' or 'zero-mean':
- |          forecasting zero-mean, i.e. de-meaned, time-series
- |      If 'o', 'O' or 'origional':
- |          forecasting original time-series
- |  
- |  fwd_cumsum : bool {True, False}
- |      Whether or not to make cum-sum forecast
- |  
- |  Attributes (if data = Y, Y_infer)
- |  ---------------------------------
- |  
- |  mean_vec.iloc[0] : float
- |      Sample mean of time-series of last
- |          len_learn_window data points
- |      Value c in AR model expression
- |  
- |  stdev_vec.iloc[0] : float
- |      Sample standard deviation of time-series of last
- |          len_learn_window data points
- |  
- |  ar_coefs : pandas.Series, index [1, 2, ..., ar_order, Tfl]
- |      Autoregressive (AR) model coefficients
- |      Estimated AR coefficients a(k) in AR model expression
- |      Tfl: last time stamp of Y, Y.index[-1], for model learning
- |  
- |  uoc_filter : pandas.Series, index [0, 1, 2, ..., ar_order, Tfl]
- |      Coefficients of filter to generate unobserved components
- |          associated with PCs of time-series
- |      Estimated filter coefficients b(k) in YWpcAR expression
- |      Tfl: last time stamp of Y, Y.index[-1], for model learning
- |  
- |  ts_unobs : dict, keys ('Learning', 'Inference')
- |      ts_unobs[k] : pd.Series, size (len_unobs[k])
- |      Unobserved component of univariate time-series
- |      Unobserved z(t) in YWpcAR algorithm expression
- |  
- |  ts_forecast : Series, index [Tfi, 1, 2, ..., max_forecast_step]
- |      Out-of-sample s-step forecasts of univariate time-series
- |          with two specifications, target_type and fwd_cumsum
- |      Note:
- |          Tfi = last time stamp of Y or Y_infer for inference
- |          target_type = 'zero-mean', or 'original'
- |          fwd_cumsum = False, or True
- |  
- |  Attributes (if data = VTS, VTS_infer)
- |  -------------------------------------
- |  
- |  mean_vec : pandas.Series, size (num_ts)
- |      Sample mean of multiple time-series of last
- |          len_learn_window data points
- |      Value c in AR model expression
- |  
- |  stdev_vec : pandas.Series, size (num_ts)
- |      Sample standard deviation of multiple time-series of last
- |          len_learn_window data points
- |  
- |  ar_coefs : pandas.DataFrame, shape (num_ts, (ar_order + 1))
- |      Multiple autoregressive (AR) model coefficients
- |      Estimated AR coefficients a(k) in AR model expression
- |  
- |  uoc_filter : pandas.DataFrame, shape (num_ts, (ar_order + 2))
- |      Coefficients of filter to generate unobserved components
- |          associated with PCs of each time-series
- |      Estimated filter coefficients b(k) in YWpcAR expression
- |  
- |  ts_unobs : dict, keys ('Learning', 'Inference')
- |      ts_unobs[k] : pd.DataFrame, shape (num_ts, len_unobs[k])
- |      Unobserved components of multiple time-series individually
- |  
- |  ts_forecast : DataFrame, shape (num_ts, (max_forecast_step + 1))
- |      Out-of-sample s-step forecasts of multiple time-series
- |          with two specifications, target_type and fwd_cumsum
- |      Note:
- |          target_type = 'zero-mean', or 'original'
- |          fwd_cumsum = False, or True
- |  
- |  Attributes (info)
- |  -----------------
- |  
- |  asof_time : dict, keys ('Learning', 'Inference')
- |          asof_time['Learning']: last time stamp of Y or VTS
- |          asof_time['Inference']: last time stamp of
- |              Y_infer or VTS_infer
- |          asof_time['Inference'] = asof_time['Learning'] if
- |              Y_infer and VTS_infer not applied
- |      As-of times of learning and of inference
- |  
- |  Examples
- |  --------
- |  
- |  Sample codes:
- |      demo_YWpcAR.jpynb
- |      demo_YWpcAR.py
- |  
- |  Methods
- |  -------
- |  
- |  For model setup
- |      YWpcAR_obj = YWpcAR(len_learn_window, ar_order,
- |          num_pcs, alt_ar_order, alt_num_pcs,
- |          max_forecast_step, target_type, fwd_cumsum)
- |      YWpcAR_obj.set_param(len_learn_window, ar_order,
- |          num_pcs, alt_ar_order, alt_num_pcs,
- |          max_forecast_step, target_type, fwd_cumsum)
- |      param_value = YWpcAR_obj.get_param(param_name_list)
- |      target_type_list = YWpcAR_obj.get_target_type_list()
- |      min_len_ts = YWpcAR_obj.min_ts_len()
- |  
- |  For model learning
- |      YWpcAR_obj.fit(Y)
- |      YWpcAR_obj.fit(VTS)
- |      dim_param = YWpcAR_obj.get_dimension()
- |      mean_vec = YWpcAR_obj.get_mean()
- |      stdev_vec = YWpcAR_obj.get_stdev()
- |      ar_coefs = YWpcAR_obj.get_ARcoefs()
- |      uoc_filter = YWpcAR_obj.get_filter()
- |  
- |  For model inference
- |      YWpcAR_obj.apply(Y)
- |      YWpcAR_obj.apply(VTS)
- |      ts_unobs = YWpcAR_obj.get_unobs()
- |      ts_forecast = YWpcAR_obj.forecast(target_type, fwd_cumsum)
- |      ts_forecast = YWpcAR_obj.predict(target_type, fwd_cumsum)
- |  
- |  For time stamp of model estimates
- |      asof_time = YWpcAR_obj.get_asof()
- |  
- |  Notes on Y in methods:
- |      * Y or VTS, for learning and inference, input of fit(data)
- |      * Y_infer or VTS_infer, for inference, input of optional apply()
- |      * if Y_infer or VTS_infer not applied, Y or VTS is assumed
- |  
- |  Methods defined here:
- |  
- |  __data_holder__(self)
- |      Initialize or reset data and related items
- |      
- |      Function call
- |      -------------
- |      
- |      self.__data_holder__()
- |  
- |  __data_validate__(self, VTS)
- |      Validate data input
- |      
- |      Raises
- |      ------
- |      
- |      ValueError
- |          If len_ts < len_learn_window + (2 ar_order)
- |      
- |      Notes
- |      -----
- |      
- |      TypeError, ValueError
- |      https://docs.python.org/3/library/exceptions.html
- |      
- |      Function call
- |      -------------
- |      
- |      self.__data_validate__(VTS)
- |  
- |  __init__(self, len_learn_window=0, ar_order=3, num_pcs=2, alt_ar_order={}, alt_num_pcs={}, max_forecast_step=1, target_type='Original', fwd_cumsum=False)
- |      Initialize object self
- |      
+ |
  |      Parameters
  |      ----------
- |      
+ |
  |      len_learn_window : int >> 1
- |          Length of trailing time window for model learning
- |      
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
  |      ar_order : int >= 1
- |          Autoregressive (AR) model order, p, applied to all
- |              time-series other than those specified, if any,
- |              in alt_ar_order
- |      
+ |          Autoregressive (AR) order, q, applying to all time-
+ |              series other than those specified, if any, in
+ |              dict-type parameter alt_ar_order
+ |          Notes:
+ |              ar_order <= len_learn_window
+ |              len_ts >= len_learn_window + (2 ar_order)
+ |
  |      num_pcs : int >= 1
- |          Number of principal components (PCs), m, applied to
- |              all time-series other than those specified, if any,
- |              in alt_num_pcs
- |      
- |      alt_ar_order : dict {ts1id: p1, ts2id: p2, ...} or {}
- |          Autoregressive (AR) model order, p, applied to specified
- |              time-series ts1, ts2, ...
+ |          Number of principal components (PCs), m, applying
+ |              to all time-series other than those specified,
+ |              if any, in dict-type parameter alt_num_pcs
  |          Notes:
- |              ts1id, ts2id, ...: labels of time-series in VTS.index
- |      
- |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
- |          Number of principal components (PCs), m, applied to 
+ |              num_pcs < ar_order
+ |
+ |      alt_ar_order : dict, {ts1id: p1, ts2id: p2, ...} or {}
+ |          Autoregressive (AR) orders, p1, p2, ..., if any,
+ |              applying to specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: in VTS.index, labels of
  |              specified time-series ts1, ts2, ...
+ |
+ |      alt_num_pcs : dict, {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2,
+ |              ..., if any, applying to specified time-series
+ |              ts1, ts2, ...
  |          Notes:
- |              ts1id, ts2id, ...: labels of time-series in VTS.index
- |      
+ |              ts1id, ts2id, ...: in VTS.index, labels of
+ |              specified time-series ts1, ts2, ...
+ |
  |      max_forecast_step : int >= 1
- |          Maximum number of forward steps of time-series forecasts
- |      
- |      target_type : str {'zero-mean', 'z', 'Z', 'original', 'o', 'O'}
- |          Type of time-series data to be forecasted
- |      
- |      fwd_cumsum : bool {True, False}
+ |          Maximum number of forecasting steps of time-series
+ |              forecasts, and of volatility (variance) forecasts
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed (multiple)
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed (multiple) time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
  |          Whether or not to make cum-sum forecast
- |      
+ |
+ |      Attributes (parameters)
+ |      -----------------------
+ |
+ |      ar_order_vec : pd.Series, index (ts_list), dtype: int
+ |          Autoregressive (AR) model orders applied to
+ |              individual observed time-series
+ |
+ |      num_pcs_vec : pd.Series, index (ts_list), dtype: int
+ |          Numbers of principal components (PCs) applied
+ |              to individual observed time-series
+ |
+ |      max_ar_order : int >= 1
+ |          Maximum autoregressive (AR) order of all individual
+ |              time-series
+ |          Notes:
+ |              max_ar_order <= len_learn_window
+ |              len_ts >= len_learn_window + (2 max_ar_order)
+ |
+ |      asof : time-stamp object
+ |          Last time-stamp of observed time-series data
+ |              utilized in estimation of values in object obj
+ |          Examples:
+ |              obj['asof'] = asof
+ |                  when isinstance(obj, type(dict()))
+ |              obj.loc['asof'] = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |              obj.loc[:, 'asof'] = asof
+ |                  when isinstance(obj, type(pd.DataFrame()))
+ |              obj.name = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |
+ |      Attributes (statistics)
+ |      -----------------------
+ |
+ |      mean_vec : pd.Series, index (ts_list)
+ |          Sample mean vector of observed multiple time-
+ |              series of data points in last learning window
+ |          mean_vec.name: T, last time-stamp of data in
+ |              learning window
+ |          Mean value vector c in YWpcAR model expression
+ |
+ |      stdev_vec : pd.Series, index (ts_list)
+ |          Sample standard deviation vector of observed
+ |              multiple time-series of data points in last
+ |              learning window
+ |          stdev_vec.name: T, last time-stamp of data in
+ |              learning window
+ |
+ |
+ |  return 1
+ |
+ |      pca_stats : dict, keys (
+ |              'ts', 'ar_order', 'num_pcs',
+ |              'hi_pev_ratio', 'avg_pev_ratio',
+ |              'lo_pev_ratio', 'pc_var_ratio')
+ |          dict-Type collection of summary statistics
+ |              of principal components analysis (PCA)
+ |              on variance-autocovariance (VAC) matrix
+ |              for Yule-Walker equation of AR(p)
+ |              processeses of individual univariate
+ |              time-series
+ |          ts : list, ts[i] : str
+ |              Symnbol/label/name string of i-th time-
+ |                  series
+ |          ar_order : list, ar_order[i] : int
+ |              Order of AR(p) process of i-th times-
+ |                  series
+ |          num_pcs : list, num_pcs[i]] : int
+ |              Number of PCs of VAC matrix of i-th
+ |                  time-series
+ |          hi_pev_ratio : list,
+ |                  hi_pev_ratio[i] : float
+ |              High principal eigenvalue to {average
+ |                  variance) ratio of i-th time-series
+ |          avg_pev_ratio : list,
+ |                  avg_pev_ratio[i] : float
+ |              Average principal eigenvalue to {average
+ |                  variance} ratio of i-th time-series
+ |          lo_pev_ratio : list
+ |                  lo_pev_ratio[i] : float
+ |              Low principal eigenvalue to {average
+ |                  variance} ratio of i-th time-series
+ |          pc_var_ratio : list,
+ |                  pc_var_ratio[i] : float
+ |              {Sum of all principal eigenvalues} to
+ |                  {sum of all diagonal values of VAC
+ |                  matrix} ratio of i-th time-series
+ |
+ |  return 1
+ |
+ |
+ |      Attributes (coefficients)
+ |      -------------------------
+ |
+ |      uar_coef : pd.DataFrame, index (ts_list),
+ |              columns (1, 2, ..., max_ar_order, 'asof')
+ |          Univariate autoregressive (AR) model coefficients
+ |              of multiple observed time-series and of
+ |              multiple unobserved dynamic component (UDC)
+ |              time-series
+ |          Estimated univariate AR coefficients, D(k),
+ |              in YwpcAR model expression
+ |
+ |      udc_filter : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, 2, ..., max_ar_order, 'asof')
+ |          Coefficients of filters to generate multiple un-
+ |              observed dynamic components (UDCs) associated
+ |              with principal components (PCs) of correspondent
+ |              observed multiple univariate time-series
+ |          Estimated UDC filter coefficients, b(j), in YWpcAR
+ |              model expression
+ |
+ |      ts_unobsdync : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent observed multiple time-
+ |              series
+ |          Estimated UDC, g(t), in YWpcAR model expression
+ |
+ |      time_lag_list : list, [(- max_ar_order), ..., -1, 0]
+ |          List of time lags of estimated variance and
+ |              autocovariance data
+ |
+ |      sample_lag_list : list, [0, 1, ..., max_ar_order]
+ |          List of sample lags of estimated and forecasted
+ |              autocovariance data
+ |
+ |      udc_serialcov : dict, keys (time_lag_list + ['asof'])
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (sample_lag_list)
+ |          Estimated current (key = 0) and past (key <= -1)
+ |              autocovariance (series-covariance) vector with
+ |              sample lag of multiple unobserved dynamic
+ |              component (UDC) time-series
+ |          Estimated current and past autocovariance vector,
+ |              Cov(g(t-j),g(t-j-k)), of UDC time-series g(t)
+ |
+ |      udc_prederr : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              error vector time-series in autoregressive
+ |              prediction of unobserved dynamic component
+ |              (UDC)
+ |
+ |      Attributes (forecasts)
+ |      ----------------------
+ |
+ |      tsf_step_list : list, [1, 2, ..., max_forecast_step]
+ |          List of time-series forecast steps, in multi-step
+ |              forecasts of vector time-series
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps,
+ |              in multi-step forecasts of variance, covariance
+ |              or autocovariance of vector time-series
+ |          Note: step = 0 for nowcast or estimate
+ |
+ |      ts_forecast : pd.DataFrame, index (ts_list),
+ |              columns (tsf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of target_type
+ |              values of multiple univariate observed time-
+ |              series with, one additional specifications,
+ |              fwd_cumsum
+ |
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of variance
+ |              vectors of multiple unobserved dynamic
+ |              component (UDC) time-series of observed
+ |              time-series
+ |
+ |      udc_autocov : dict, keys (vcf_step_list + ['asof'])
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (sample_lag_list)
+ |          Forecasted autocovariance vector with time sample
+ |              lag of multiple unobserved dynamic component
+ |              (UDC) time-series of observed time-series
+ |          Forecasted autocovariance vector,
+ |              Cov(g(t+s),g(t+s-k)), of UDC time-series g(t)
+ |
+ |      ts_residerr_var : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              multiple residual error time-series of
+ |              observed time-series
+ |
+ |      ts_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance vector of
+ |              observed multiple time-series
+ |          Notes: ts_variance = udc_variance.add(
+ |              ts_residerr_var.loc[:, 0], axis='index')
+ |
+ |      indiv_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance of individual
+ |              observed time-series
+ |          Notes: indiv_variance = ts_variance
+ |
+ |      indiv_var_udc : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance of unobserved
+ |              dynamic component (UDC) time-series of
+ |              individual observed time-series
+ |          Notes: indiv_var_udc = udc_variance
+ |
+ |      indiv_var_err : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              individual residual error time-series of
+ |              observed time-series
+ |          Notes: indiv_var_err = ts_residerr_var
+ |
+ |      Methods
+ |      -------
+ |
+ |      For model setup
+ |          YWpcAR()
+ |          YWpcAR(len_learn_window, ar_order, num_pcs,
+ |              alt_ar_order, alt_num_pcs, max_forecast_step,
+ |              target_type, fwd_cumsum)
+ |          YWpcAR_obj.set_param(len_learn_window, ar_order,
+ |              num_pcs, alt_ar_order, alt_num_pcs,
+ |              max_forecast_step, target_type, fwd_cumsum)
+ |          YWpcAR_obj.set_data(VTS)
+ |          YWpcAR_obj.set_data(Y)
+ |          YWpcAR_obj.get_param(param_name_list)
+ |          YWpcAR_obj.get_target_type_list()
+ |          YWpcAR_obj.get_min_len_ts()
+ |          YWpcAR_obj.get_data_info()
+ |
+ |      For model learning
+ |          YWpcAR_obj.fit()
+ |          YWpcAR_obj.get_dimension()
+ |          YWpcAR_obj.get_mean()
+ |          YWpcAR_obj.get_stdev()
+ |
+ |
+ |  return 1
+ |
+ |          YWpcAR_obj.get_pca_stats()
+ |
+ |  return 1
+ |
+ |
+ |          YWpcAR_obj.get_uar_coef()
+ |          YWpcAR_obj.get_udc_filter()
+ |          YWpcAR_obj.get_unobsdync()
+ |          YWpcAR_obj.get_udc_serialcov()
+ |          YWpcAR_obj.get_udc_prederr()
+ |
+ |      For model inference
+ |          YWpcAR_obj.forecast()
+ |          YWpcAR_obj.predict()
+ |          YWpcAR_obj.variance()
+ |          YWpcAR_obj.get_forecast(target_type, fwd_cumsum)
+ |          YWpcAR_obj.get_variance()
+ |          YWpcAR_obj.get_indiv_variance()
+ |          YWpcAR_obj.get_ts_variance()
+ |          YWpcAR_obj.get_udc_autocov()
+ |
+ |      For variance benchmark
+ |          YWpcAR_obj.get_asof()
+ |
+ |      Notes on Y and VTS in methods:
+ |          * Y or VTS, for learning and inference, input of
+ |            set_data(data)
+ |
+ |  Methods defined here:
+ |
+ |  __data_holder__(self)
+ |      Initialize or reset data and related items
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__data_holder__()
+ |
+ |  __data_validate__(self, VTS)
+ |      Validate data input
+ |
+ |      Raises
+ |      ------
+ |
+ |      ValueError
+ |          If len_ts < len_learn_window + (2 ar_order)
+ |
+ |      Notes
+ |      -----
+ |
+ |      TypeError, ValueError
+ |      https://docs.python.org/3/library/exceptions.html
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__data_validate__(VTS)
+ |
+ |  __init__(
+ |      self,
+ |      len_learn_window=None,
+ |      ar_order=None,
+ |      num_pcs=None,
+ |      alt_ar_order={},
+ |      alt_num_pcs={},
+ |      max_forecast_step=1,
+ |      target_type='Original',
+ |      fwd_cumsum=False
+ |  )
+ |      Initialize object self
+ |
+ |      Parameters
+ |      ----------
+ |
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
+ |      ar_order : int >= 1
+ |          Autoregressive (AR) order, q, applying to all time-
+ |              series other than those specified, if any, in
+ |              dict-type parameter alt_ar_order
+ |          Notes:
+ |              ar_order <= len_learn_window
+ |              len_ts >= len_learn_window + (2 ar_order)
+ |
+ |      num_pcs : int >= 1
+ |          Number of principal components (PCs), m, applying
+ |              to all time-series other than those specified,
+ |              if any, in dict-type parameter alt_num_pcs
+ |          Notes:
+ |              num_pcs < ar_order
+ |
+ |      alt_ar_order : dict, {ts1id: p1, ts2id: p2, ...} or {}
+ |          Autoregressive (AR) orders, p1, p2, ..., if any,
+ |              applying to specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: in VTS.index, labels of
+ |              specified time-series ts1, ts2, ...
+ |
+ |      alt_num_pcs : dict, {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2,
+ |              ..., if any, applying to specified time-series
+ |              ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: in VTS.index, labels of
+ |              specified time-series ts1, ts2, ...
+ |
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forecasting steps of time-series
+ |              forecasts, and of volatility (variance) forecasts
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed (multiple)
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed (multiple) time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
+ |          Whether or not to make cum-sum forecast
+ |
  |      Returns
  |      -------
- |      
+ |
  |      self : object
- |          Instance itself
- |      
- |      Class initiation call
- |      ---------------------
- |      
+ |          Class instance itself
+ |
+ |      Ojbect initiation call
+ |      ----------------------
+ |
+ |      YWpcAR_obj = YWpcAR()
+ |
  |      YWpcAR_obj = YWpcAR(param_name=param_value)
- |      
+ |
  |      YWpcAR_obj = YWpcAR(
  |          param1_name=param1_value,
  |          param2_name=param2_value, ...)
- |      
+ |
  |      YWpcAR_obj = YWpcAR(
  |          len_learn_window=len_learn_window,
  |          ar_order=ar_order,
@@ -399,510 +745,1202 @@ class YWpcAR(builtins.object)
  |          max_forecast_step=max_forecast_step,
  |          target_type=target_type,
  |          fwd_cumsum=fwd_cumsum)
- |  
+ |
  |  __is_fit__(self)
- |      Raise Exception if model not learned with .fit(Y) or .fit(VTS)
- |      
+ |      Check whether YWpcAR model is estimated with method
+ |          self.fit()
+ |
  |      Function call
  |      -------------
- |      
+ |
  |      self.__is_fit__()
- |  
- |  __multi_AR_forec__(self)
+ |
+ |  __multi_AR_forecast__(self)
  |      Generate multiple univariate autoregressive (AR)
- |          forcasts of multiple univariate time-series
- |      
+ |          forcasts of osbserved multiple univariate time-
+ |          series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      uar_coef : pd.DataFrame, index (ts_list),
+ |              columns (1, 2, ..., max_ar_order, 'asof')
+ |          Univariate autoregressive (AR) model coefficients
+ |              of multiple observed time-series and of
+ |              multiple unobserved dynamic component (UDC)
+ |              time-series
+ |
+ |      ts_unobsdync : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent observed multiple time-
+ |              series
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |
+ |      fwd_cumsum : bool (True, or False)
+ |          Whether or not to make cum-sum forecast
+ |
+ |      tsf_step_list : list, [1, 2, ..., max_forecast_step]
+ |          List of time-series forecast steps
+ |
+ |      Outputs
+ |      -------
+ |
+ |      ts_forecast : pd.DataFrame, index (ts_list),
+ |              columns (tsf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of target_type
+ |              values of multiple univariate observed time-
+ |              series with, one additional specifications,
+ |              fwd_cumsum
+ |
  |      Function call
  |      -------------
- |      
- |      self.__multi_AR_forec__()
- |  
+ |
+ |      self.__multi_AR_forecast__()
+ |
  |  __param_validate__(self)
  |      Validate parameters input
- |      
+ |
  |      Valid parameters
  |      ----------------
- |      
+ |
  |      len_learn_window : int >> 1
- |          Length of trailing time window for model learning
- |      
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
  |      ar_order : int >= 1
- |          Autoregressive (AR) model order, p, applied to all
- |              time-series other than those specified, if any,
- |              in alt_ar_order
+ |          Autoregressive (AR) order, q, applying to all time-
+ |              series other than those specified, if any, in
+ |              dict-type parameter alt_ar_order
  |          Notes:
  |              ar_order <= len_learn_window
  |              len_ts >= len_learn_window + (2 ar_order)
- |              len_ts_infer >= (2 ar_order) + 1
- |      
+ |
  |      num_pcs : int >= 1
- |          Number of principal components (PCs), m, applied to
- |              all time-series other than those specified, if any,
- |              in alt_num_pcs
+ |          Number of principal components (PCs), m, applying
+ |              to all time-series other than those specified,
+ |              if any, in dict-type parameter alt_num_pcs
  |          Notes:
  |              num_pcs < ar_order
- |      
- |      alt_ar_order : dict {ts1id: p1, ts2id: p2, ...} or {}
- |          Autoregressive (AR) model order, p, applied to specified
- |              time-series ts1, ts2, ...
+ |
+ |      alt_ar_order : dict, {ts1id: p1, ts2id: p2, ...} or {}
+ |          Autoregressive (AR) orders, p1, p2, ..., if any,
+ |              applying to specified time-series ts1, ts2, ...
  |          Notes:
- |              ts1id, ts2id, ...: labels of time-series in VTS.index
- |      
- |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
- |          Number of principal components (PCs), m, applied to 
+ |              ts1id, ts2id, ...: in VTS.index, labels of
  |              specified time-series ts1, ts2, ...
+ |
+ |      alt_num_pcs : dict, {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2,
+ |              ..., if any, applying to specified time-series
+ |              ts1, ts2, ...
  |          Notes:
- |              ts1id, ts2id, ...: labels of time-series in VTS.index
- |      
+ |              ts1id, ts2id, ...: in VTS.index, labels of
+ |              specified time-series ts1, ts2, ...
+ |
  |      max_forecast_step : int >= 1
- |          Maximum number of forward steps of time-series forecasts
- |      
- |      target_type : str {'zero-mean', 'z', 'Z', 'original', 'o', 'O'}
- |          Type of time-series data to be forecasted
- |      
- |      fwd_cumsum : bool {True, False}
+ |          Maximum number of forecasting steps of time-series
+ |              forecasts, and of volatility (variance) forecasts
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |
+ |      fwd_cumsum : bool (True, or False)
  |          Whether or not to make cum-sum forecast
- |      
+ |
  |      num_ts : int >= 1
- |          Number of time-series
- |      
+ |          Number of observed time-series
+ |              = len(ts_list)
+ |
  |      len_ts : int > 1
- |          Length of time-series
+ |          Length of observed (vector) time-series
+ |              = len(asof_list)
  |          len_ts >= len_learn_window + (2 ar_order)
- |      
+ |
  |      ts_list : list
- |          List of time-series labels
- |      
+ |          List of name/symbol/label strings of observed
+ |              time-series data, as list of index axis
+ |              of VTS DataFrame
+ |
+ |      Outputs
+ |      -------
+ |
+ |      ar_order_vec : pd.Series, index (ts_list), dtype: int
+ |          Autoregressive (AR) model orders applied to
+ |              individual observed time-series
+ |
+ |      num_pcs_vec : pd.Series, index (ts_list), dtype: int
+ |          Numbers of principal components (PCs) applied
+ |              to individual observed time-series
+ |
  |      Raises
  |      ------
- |      
+ |
  |      TypeError
  |          If data type of a parameter not as specified
- |      
+ |
  |      ValueError
  |          if ar_order.keys not = ts_list
  |          if num_pca.keys not = ts_list
- |      
+ |
  |      ValueError
  |          If value of integer parameters not positive
  |          If ar_order > len_learn_window
  |          If num_pcs >= ar_order
  |          If len_ts < len_learn_window + (2 ar_order)
  |          If value of string parameters not valid
- |      
+ |
  |      Notes
  |      -----
- |      
+ |
  |      TypeError, ValueError
  |      https://docs.python.org/3/library/exceptions.html
- |      
+ |
  |      Function call
  |      -------------
- |      
+ |
  |      self.__param_validate__()
- |  
- |  apply(self, ts_data)
- |      Set "for-inference-only" data = Y = Y_infer, or 
- |          data = VTS = VTS_infer, for model inference
- |      
+ |
+ |  __take_param__(
+ |      self,
+ |      len_learn_window=None,
+ |      ar_order=None,
+ |      num_pcs=None,
+ |      alt_ar_order=None,
+ |      alt_num_pcs=None,
+ |      max_forecast_step=None,
+ |      target_type=None,
+ |      fwd_cumsum=None
+ |  )
+ |      Take prameter values
+ |
  |      Arguments
  |      ---------
- |      
- |      ts_data : pandas.Series, size (len_ts), name (ts_label)
- |          Univariate time-series Y = Y_infer = ts_data
- |      
- |      ts_data : pandas.DataFrame, shape (num_ts, len_ts)
- |          Vector time-series VTS = VTS_infer = ts_data
- |      
- |      Notes
- |      -----
- |      
- |      Y (= Y_infer) : pandas.Series, size (len_ts_infer), name (ts) *
- |          Univariate time-series
- |          First value as the oldest, last value as the latest
- |      
- |      VTS (= VTS_infer) : pd.DataFrame, shape (num_ts, len_ts_infer) #
- |          Vector time-series: row time-series of column vector
- |          First column as the oldest, last column as the latest
- |      
- |      num_ts : int >= 1
- |          Number of time-series
- |      
- |      len_ts_infer : int > 1
- |          Length of time-series
- |          len_ts_infer >= (2 ar_order) + 1
- |      
- |      Note:
- |          * applying model by fit(Y) to data = Y_infer
- |          # appyting model by fit(VTS) to data = VTS_infer
- |          *,# set of TS for inference same as that for learning
- |      
- |      Note:
- |          When Y_infer (VTS_infer) not applied, Y (VTS) is assumed
- |              as data for inference
- |      
+ |
+ |      len_learn_window : int
+ |      ar_order : int
+ |      num_pcs : int
+ |
+ |      alt_ar_order : dict
+ |      alt_num_pcs : dict
+ |
+ |      max_forecast_step : int
+ |      target_type : str
+ |      fwd_cumsum : bool
+ |
  |      Function call
  |      -------------
- |      
- |      YWpcAR_obj.apply(Y)
- |      YWpcAR_obj.apply(VTS)
- |  
- |  fit(self, ts_data)
- |      Fit model with input data Y or VTS
- |      
- |      Arguments
- |      ---------
- |      
- |      ts_data : pandas.Series, size (len_ts), name (ts_label)
- |          Univariate time-series Y = ts_data
- |      
- |      ts_data : pandas.DataFrame, shape (num_ts, len_ts)
- |          Vector time-series VTS = ts_data
- |      
- |      Notes
- |      -----
- |      
- |      Y : pandas.Series, size (len_ts), name (ts_label)
- |          Univariate time-series
- |          First value as the oldest, last value as the latest
- |      
- |      VTS : pandas.DataFrame, shape (num_ts, len_ts)
- |          Vector time-series: row time-series of column vector
- |          First column as the oldest, last column as the latest
- |      
+ |
+ |      self.__take_param__(
+ |          len_learn_window=len_learn_window,
+ |          ar_order=ar_order,
+ |          num_pcs=num_pcs,
+ |          alt_ar_order=alt_ar_order,
+ |          alt_num_pcs=alt_num_pcs,
+ |          max_forecast_step=max_forecast_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |
+ |  __udc_autocov_forecast__(self)
+ |      Forecast variance and autocovariance of unobserved
+ |          dynamic component (UDC) time-series of observed
+ |          time-series, based on autorgressive estimates
+ |
+ |      Inputs
+ |      ------
+ |
+ |      uar_coef : pd.DataFrame, index (ts_list),
+ |              columns (1, 2, ..., max_ar_order, 'asof')
+ |          Univariate autoregressive (AR) model coefficients
+ |              of multiple observed time-series and of
+ |              multiple unobserved dynamic component (UDC)
+ |              time-series
+ |
+ |      time_lag_list : list, [(- max_ar_order), ..., -1, 0]
+ |          List of time lags of estimated variance and
+ |              autocovariance data
+ |
+ |      sample_lag_list : list, [0, 1, ..., max_ar_order]
+ |          List of sample lags of estimated and forecasted
+ |              autocovariance data
+ |
+ |      udc_serialcov : dict, keys (time_lag_list + ['asof'])
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (sample_lag_list)
+ |          Estimated current (key = 0) and past (key <= -1)
+ |              autocovariance (series-covariance) vector with
+ |              sample lag of multiple unobserved dynamic
+ |              component (UDC) time-series
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps
+ |          Note: step = 0 for nowcast or estimate
+ |
+ |      Outputs
+ |      -------
+ |
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of variance
+ |              vectors of multiple unobserved dynamic
+ |              component (UDC) time-series of observed
+ |              time-series
+ |
+ |      udc_autocov : dict, keys (vcf_step_list + ['asof'])
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (sample_lag_list)
+ |          Forecasted autocovariance vector with time sample
+ |              lag of multiple unobserved dynamic component
+ |              (UDC) time-series of observed time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__udc_autocov_forecast__()
+ |
+ |  __unobs_dyn_comp__(self)
+ |      Calculate unobserved dynamic component(s) (UDCs) of
+ |          (multiple) univariate time-series by (multiple)
+ |          univariate Yule-Walker-PCA autoregressive (YWpcAR)
+ |          model
+ |
+ |      Inputs
+ |      ------
+ |
+ |      max_ar_order : int >= 1
+ |          Maximum autoregressive (AR) order of all individual
+ |              time-series
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data for YWpcAR
+ |              model learning and inference
+ |          Row time-series of column vector with first column
+ |              as oldest and last one as latest
+ |
+ |      mean_vec : pd.Series, index (ts_list)
+ |          Sample mean vector of observed `multiple time-
+ |              series of data points in last learning window
+ |          mean_vec.name: T, last time-stamp of data in
+ |              learning window
+ |
+ |      udc_filter : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, 2, ..., max_ar_order, 'asof')
+ |          Coefficients of filters to generate multiple un-
+ |              observed dynamic components (UDCs) associated
+ |              with principal components (PCs) of correspondent
+ |              observed multiple univariate time-series
+ |
+ |      Outputs
+ |      -------
+ |
+ |      ts_unobsdync : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent observed multiple time-
+ |              series
+ |
+ |      Note:
+ |          len(asof_list) = len_ts - max_ar_order
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__unobs_dyn_comp__()
+ |
+ |  __variance_forecast__(self)
+ |      Forecast variance, and components of variance,
+ |          of osberved time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      ts_unobsdync : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent observed multiple time-
+ |              series
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps
+ |          Note: step = 0 for nowcast or estimate
+ |
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of variance
+ |              vectors of multiple unobserved dynamic
+ |              component (UDC) time-series of observed
+ |              time-series
+ |
+ |      Outputs
+ |      -------
+ |
+ |      ts_residerr_var : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              multiple residual error time-series of
+ |              observed time-series
+ |
+ |      ts_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance vector of
+ |              observed multiple time-series
+ |          Notes: ts_variance = udc_variance.add(
+ |              ts_residerr_var.loc[:, 0], axis='index')
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__variance_forecast__()
+ |
+ |  fit(self)
+ |      Fit YWpcAR model with observed vector time-series VTS
+ |          or single observed time-series Y
+ |
+ |      Inputs
+ |      ------
+ |
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
+ |      ar_order_vec : pd.Series, index (ts_list), dtype: int
+ |          Autoregressive (AR) model orders applied to
+ |              individual observed time-series
+ |
+ |      num_pcs_vec : pd.Series, index (ts_list), dtype: int
+ |          Numbers of principal components (PCs) applied
+ |              to individual observed time-series
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data for YWpcAR
+ |              model learning and inference
+ |          Row time-series of column vector with first column
+ |              as oldest and last one as latest
+ |          Input of method set_data(VTS) for multiple univariate
+ |              AR model learning and inference
+ |
+ |      Y : pandas.Series,
+ |              index (asof_list), name (ts_label)
+ |          Observed single univariate time-series, as input data
+ |              for YWpcAR model learning and inference
+ |          First value as oldest and last one as latest
+ |          Input of method set_data(Y) for univariate AR model
+ |              learning and inference
+ |
+ |      ts_list : list
+ |          List of name/symbol/label strings of observed
+ |              time-series data, as list of index axis
+ |              of VTS DataFrame
+ |
+ |      asof_list : list
+ |          List of as-of time-stamps of observed (vector)
+ |              time-series data, as list of columns axis
+ |              of VTS DataFrame (or as list of index axis
+ |              of Y Series)
+ |
  |      num_ts : int >= 1
- |          Number of time-series
- |      
+ |          Number of observed time-series
+ |              = len(ts_list)
+ |
  |      len_ts : int > 1
- |          Length of time-series
+ |          Length of observed (vector) time-series
+ |              = len(asof_list)
  |          len_ts >= len_learn_window + (2 ar_order)
- |      
+ |
  |      Function call
  |      -------------
- |      
- |      YWpcAR_obj.fit(Y)
- |      YWpcAR_obj.fit(VTS)
- |  
- |  forecast(self, target_type=None, fwd_cumsum=None)
- |      Make time-series forecasts by YWpcAR model
- |      
- |      Arguments
- |      ---------
- |      
- |      target_type : str {'zero-mean', 'z', 'Z', 'original', 'o', 'O'}
- |          Type of time-series data to be forecasted
- |      
- |      fwd_cumsum : bool {True, False}
+ |
+ |      self.fit()
+ |
+ |      YWpcAR_obj.fit()
+ |
+ |  forecast(self)
+ |      Generate forecasts of multiple observed time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed (multiple)
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed (multiple) time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
  |          Whether or not to make cum-sum forecast
- |      
- |      Returns
+ |
+ |      tsf_step_list : list, [1, 2, ..., max_forecast_step]
+ |          List of time-series forecast steps, in multi-step
+ |              forecasts of vector time-series
+ |
+ |      Outputs
  |      -------
- |      
- |      ts_forecast : Series, index [Tfi, 1, ..., max_forec_step] *
- |          Out-of-sample s-step forecasts of univariate time-series
- |              with two specifications, target_type and fwd_cumsum
- |      
- |      ts_forecast : DataFrame, shape (num_ts, (max_f_step + 1)) #
- |          Out-of-sample s-step forecasts of multiple time-series
- |              with two specifications, target_type and fwd_cumsum
- |      
- |      Note:
- |          * for model with fit(Y), apply(Y_infer): data = Y, Y_infer
- |          # for model with fit(VTS), apply(VTS_infer): VTS, VTS_infer
- |          *,# Tfi = last time stamp of data for inference
- |      
+ |
+ |      ts_forecast : pd.DataFrame, index (ts_list),
+ |              columns (tsf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of target_type
+ |              values of multiple univariate observed time-
+ |              series with, one additional specifications,
+ |              fwd_cumsum
+ |
  |      Function call
  |      -------------
- |      
- |      ts_forecast = self.forecast()
- |      
- |      ts_forecast = self.forecast(
- |          target_type=target_type, fwd_cumsum=fwd_cumsum)
- |      
- |      ts_forecast = YWpcAR_obj.forecast()
- |      
- |      ts_forecast = YWpcAR_obj.forecast(
- |          target_type=target_type, fwd_cumsum=fwd_cumsum)
- |  
- |  get_ARcoefs(self)
- |      Get (multiple) univariate autoressive (AR) model coefficients
- |      
- |      Returns
- |      -------
- |      
- |      ar_coefs : pandas.Series, index [1, 2, ..., ar_order, Tfl] *
- |          Autoregressive (AR) model coefficients
- |      
- |      ar_coefs : pandas.DataFrame, shape (num_ts, (ar_order + 1)) #
- |          Multiple autoregressive (AR) model coefficients
- |      
- |      Note:
- |          * if model learned with fit(Y): data = Y
- |          # if model learned with fit(VTS): data = VTS
- |          *,# Tfl: last time stamp of data for model learning
- |      
- |      Function call
- |      -------------
- |      
- |      ar_coefs = YWpcAR_obj.get_ARcoefs()
- |  
+ |
+ |      self.forecast()
+ |
+ |      YWpcAR_obj.forecast()
+ |
  |  get_asof(self)
  |      Get as-of times of estimates
  |          by model learning and for model inference
- |      
+ |
  |      Returns
  |      -------
- |      
- |      asof_time : dict, keys ('Learning', 'Inference')
- |              asof_time['Learning']: last time stamp of Y or VTS
- |              asof_time['Inference']: last time stamp of
- |                  Y_infer or VTS_infer
- |              asof_time['Inference'] = asof_time['Learning'] if
- |                  Y_infer and VTS_infer not applied
- |          As-of times of learning and of inference
- |      
+ |
+ |      asof : time-stamp object
+ |          Last time-stamp of observed time-series data
+ |              utilized in estimation of values in object obj
+ |          Examples:
+ |              obj['asof'] = asof
+ |                  when isinstance(obj, type(dict()))
+ |              obj.loc['asof'] = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |              obj.loc[:, 'asof'] = asof
+ |                  when isinstance(obj, type(pd.DataFrame()))
+ |              obj.name = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |
  |      Function call
  |      -------------
- |      
- |      asof_time = YWpcAR_obj.get_asof()
- |  
+ |
+ |      asof = YWpcAR_obj.get_asof()
+ |
+ |  get_data_info(self)
+ |      Generate summary descriptions of observed vector
+ |          time-series (VTS), or single time-series (Y),
+ |          data
+ |
+ |      Returns
+ |      -------
+ |
+ |      data_info_dict : dict
+ |          Summary description of dict type of observed
+ |          vector time-series (VTS), or single time-
+ |          series (Y), data
+ |
+ |      Function call
+ |      -------------
+ |
+ |      data_info_dict = YWpcAR_obj.get_data_info()
+ |
  |  get_dimension(self)
  |      Get values of model dimension parameters
- |      
+ |
  |      Returns
  |      -------
- |      
- |      dim_param : dict {
+ |
+ |      dim_param : dict, {
  |          'ar_order': ar_order,
  |          'alt_ar_order': alt_ar_order,
- |          'ar_order_dict': ar_order_dict,
+ |          'ar_order_vec': ar_order_vec,
  |          'num_pcs': num_pcs,
  |          'alt_num_pcs': alt_num_pcs,
- |          'num_pcs_dict': num_pcs_dict}
- |      
+ |          'num_pcs_vec': num_pcs_vec}
+ |
  |      Function call
  |      -------------
- |      
+ |
  |      dim_param = YWpcAR_obj.get_dimension()
- |  
- |  get_filter(self)
- |      Get coefficients of filter to generate unobserved components
- |          associated with principal components of time-series 
- |      
- |      Returns
- |      -------
- |      
- |      uoc_filter : pd.Series, index [0, 1, 2, ..., ar_order, Tfl] *
- |          Coefficients of filter to generate unobserved components
- |              associated with PCs of time-series
- |      
- |      uoc_filter : pd.DataFrame, shape (num_ts, (ar_order + 2)) #
- |          Coefficients of filter to generate unobserved components
- |              associated with PCs of each time-series
- |      
- |      Note:
- |          * if model learned with fit(Y): data = Y
- |          # if model learned with fit(VTS): data = VTS
- |          *,# Tfl: last time stamp of data for model learning
- |      
- |      Function call
- |      -------------
- |      
- |      uoc_filter = YWpcAR_obj.get_filter()
- |  
- |  get_mean(self)
- |      Get mean values of univariate time-series
- |      
- |      Returns
- |      -------
- |      
- |      mean_vec.iloc[0] : float *
- |          Sample mean of time-series of last
- |              len_learn_window data points
- |      
- |      mean_vec : pandas.Series, size (num_ts) #
- |          Sample mean of multiple time-series of last
- |              len_learn_window data points
- |      
- |      Note:
- |          * if model learned with fit(Y): data = Y
- |          # if model learned with fit(VTS): data = VTS
- |      
- |      Function call
- |      -------------
- |      
- |      mean_vec = YWpcAR_obj.get_mean()
- |  
- |  get_param(self, param_name_list)
- |      Get values of specified parameters
- |      
+ |
+ |  get_forecast(self, target_type=None, fwd_cumsum=None)
+ |      Get forecasts of observed multiple univariate time-series
+ |
  |      Arguments
  |      ---------
- |      
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed (multiple)
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed (multiple) time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
+ |          Whether or not to make cum-sum forecast
+ |
+ |      Inputs
+ |      ------
+ |
+ |      tsf_step_list : list, [1, 2, ..., max_forecast_step]
+ |          List of time-series forecast steps, in multi-step
+ |              forecasts of vector time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      ts_forecast : pd.DataFrame, index (ts_list),
+ |              columns (tsf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of target_type
+ |              values of multiple univariate observed time-
+ |              series with, one additional specifications,
+ |              fwd_cumsum
+ |
+ |      Function call
+ |      -------------
+ |
+ |      ts_forecast = YWpcAR_obj.get_forecast()
+ |
+ |      ts_forecast = YWpcAR_obj.get_forecast(
+ |          target_type=target_type, fwd_cumsum=fwd_cumsum)
+ |
+ |  get_indiv_variance(self)
+ |      Generate multi-step forecasts of variance of individual
+ |          observed time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps,
+ |              in multi-step forecasts of variance, covariance
+ |              or autocovariance of vector time-series
+ |          Note: step = 0 for nowcast or estimate
+ |
+ |      ts_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance vector of
+ |              observed multiple time-series
+ |          Notes: ts_variance = udc_variance.add(
+ |              ts_residerr_var.loc[:, 0], axis='index')
+ |
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of variance
+ |              vectors of multiple unobserved dynamic
+ |              component (UDC) time-series of observed
+ |              time-series
+ |
+ |      ts_residerr_var : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              multiple residual error time-series of
+ |              observed time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      indiv_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance of individual
+ |              observed time-series
+ |          Notes: indiv_variance = ts_variance
+ |
+ |      indiv_var_udc : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance of unobserved
+ |              dynamic component (UDC) time-series of
+ |              individual observed time-series
+ |          Notes: indiv_var_udc = udc_variance
+ |
+ |      indiv_var_err : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              individual residual error time-series of
+ |              observed time-series
+ |          Notes: indiv_var_err = ts_residerr_var
+ |
+ |      Function call
+ |      -------------
+ |
+ |      indiv_variance, indiv_var_udc, indiv_var_err = (
+ |          YWpcAR_obj.get_indiv_variance())
+ |
+ |  get_mean(self)
+ |      Get mean values of univariate time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      mean_vec : pd.Series, index (ts_list)
+ |          Sample mean vector of observed multiple time-
+ |              series of data points in last learning window
+ |          mean_vec.name: T, last time-stamp of data in
+ |              learning window
+ |
+ |      Function call
+ |      -------------
+ |
+ |      mean_vec = YWpcAR_obj.get_mean()
+ |
+ |  get_min_len_ts(self)
+ |      Get minimum length of time-series to satisfy parameters
+ |          of YW-PC AR model analysis
+ |
+ |      Inputs
+ |      ------
+ |
+ |      len_learn_window : int >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
+ |      ar_order_vec : pd.Series, index (ts_list), dtype: int
+ |          Autoregressive (AR) model orders applied to
+ |              individual observed time-series
+ |
+ |      num_pcs_vec : pd.Series, index (ts_list), dtype: int
+ |          Numbers of principal components (PCs) applied
+ |              to individual observed time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      min_len_ts : int
+ |          Minimum length of time-series for YW-PC AR analysis
+ |
+ |      Function call
+ |      -------------
+ |
+ |      min_len_ts = self.get_min_len_ts()
+ |
+ |      min_len_ts = YWpcAR_obj.get_min_len_ts()
+ |
+ |  get_param(self, param_name_list)
+ |      Get values of specified parameters
+ |
+ |      Arguments
+ |      ---------
+ |
  |      param_name_list : list [str]
  |          list of names of parameters
- |      
+ |
  |      Returns
  |      -------
- |      
- |      param_dict : dict {str: obj}
+ |
+ |      param_dict : dict, {str: obj}
  |          dict of name and value of specified parameters
- |      
+ |
  |      Function call
  |      -------------
- |      
+ |
  |      param_dict = YWpcAR_obj.get_param(param_name_list)
- |  
+ |
+ |  get_pca_stats(self)
+ |      return 1
+ |          new method
+ |
+ |              text
+ |
+ |              Returns
+ |              -------
+ |
+ |              pca_stats : dict, keys (
+ |                      'ts', 'ar_order', 'num_pcs',
+ |                      'hi_pev_ratio', 'avg_pev_ratio',
+ |                      'lo_pev_ratio', 'pc_var_ratio')
+ |                  dict-Type collection of summary statistics
+ |                      of principal components analysis (PCA)
+ |                      on variance-autocovariance (VAC) matrix
+ |                      for Yule-Walker equation of AR(p)
+ |                      processeses of individual univariate
+ |                      time-series
+ |                  ts : list, ts[i] : str
+ |                      Symnbol/label/name string of i-th time-
+ |                          series
+ |                  ar_order : list, ar_order[i] : int
+ |                      Order of AR(p) process of i-th times-
+ |                          series
+ |                  num_pcs : list, num_pcs[i]] : int
+ |                      Number of PCs of VAC matrix of i-th
+ |                          time-series
+ |                  hi_pev_ratio : list,
+ |                          hi_pev_ratio[i] : float
+ |                      High principal eigenvalue to {average
+ |                          variance) ratio of i-th time-series
+ |                  avg_pev_ratio : list,
+ |                          avg_pev_ratio[i] : float
+ |                      Average principal eigenvalue to {average
+ |                          variance} ratio of i-th time-series
+ |                  lo_pev_ratio : list
+ |                          lo_pev_ratio[i] : float
+ |                      Low principal eigenvalue to {average
+ |                          variance} ratio of i-th time-series
+ |                  pc_var_ratio : list,
+ |                          pc_var_ratio[i] : float
+ |                      {Sum of all principal eigenvalues} to
+ |                          {sum of all diagonal values of VAC
+ |                          matrix} ratio of i-th time-series
+ |
+ |              Function call
+ |              -------------
+ |
+ |              YWpcAR_obj.get_pca_stats()
+ |
+ |      return 1
+ |          new codes
+ |
  |  get_stdev(self)
  |      Get standard deviation of univariate time-series
- |      
+ |
  |      Returns
  |      -------
- |      
- |      stdev_vec.iloc[0] : float *
- |          Sample standard deviation of time-series of last
- |              len_learn_window data points
- |      
- |      stdev_vec : pandas.Series, size (num_ts) #
- |          Sample standard deviation of multiple time-series of last
- |              len_learn_window data points
- |      
- |      Note:
- |          * if model learned with fit(Y): data = Y
- |          # if model learned with fit(VTS): data = VTS
- |      
+ |
+ |      stdev_vec : pd.Series, index (ts_list)
+ |          Sample standard deviation vector of observed
+ |              multiple time-series of data points in last
+ |              learning window
+ |          stdev_vec.name: T, last time-stamp of data in
+ |              learning window
+ |
  |      Function call
  |      -------------
- |      
+ |
  |      stdev_vec = YWpcAR_obj.get_stdev()
- |  
+ |
  |  get_target_type_list(self)
  |      Get list of valid parameter target_type
- |      
+ |
  |      Returns
  |      -------
- |      
+ |
  |      target_type_list = [
  |          'original', 'Original', 'o', 'O',
  |          'zero-mean', 'Zero-mean', 'z', 'Z']
- |      
+ |
  |      Function call
  |      -------------
- |      
+ |
  |      target_type_list = YWpcAR_obj.get_target_type_list()
- |  
- |  get_unobs(self)
- |      Generate unobserved component(s) of (multiple) univariate
- |          time-series by (multiple) univariate AR model learning
- |          and for (multiple) univariate AR model inference
- |      
+ |
+ |  get_ts_variance(self)
+ |      Get forecasted variance vector, or value, of observed
+ |          multiple time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps,
+ |              in multi-step forecasts of variance, covariance
+ |              or autocovariance of vector time-series
+ |          Note: step = 0 for nowcast or estimate
+ |
  |      Returns
  |      -------
- |      
- |      ts_unobs : dict, keys ('Learning', 'Inference')
- |          ts_unobs[k] : pd.Series, size (len_unobs[k]) *
- |          Unobserved component of univariate time-series
- |      
- |      ts_unobs : dict, keys ('Learning', 'Inference')
- |          ts_unobs[k] : DataFrame, shape (num_ts, len_unobs[k]) #
- |          Unobserved components of multi time-series individually
- |      
+ |
+ |      ts_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance vector of
+ |              observed multiple time-series
+ |          Notes: ts_variance = udc_variance.add(
+ |              ts_residerr_var.loc[:, 0], axis='index')
+ |
+ |      Function call
+ |      -------------
+ |
+ |      ts_variance = YWpcAR_obj.get_ts_variance()
+ |
+ |  get_uar_coef(self)
+ |      Get (multiple) univariate autoregressive (AR) model
+ |          coefficients of unobserved dynamic component (UDC)
+ |          time-series and of observed time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      uar_coef : pd.DataFrame, index (ts_list),
+ |              columns (1, 2, ..., max_ar_order, 'asof')
+ |          Univariate autoregressive (AR) model coefficients
+ |              of multiple observed time-series and of
+ |              multiple unobserved dynamic component (UDC)
+ |              time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.get_uar_coef()
+ |
+ |      uar_coef = YWpcAR_obj.get_uar_coef()
+ |
+ |  get_udc_autocov(self)
+ |      Get forecasted variance and autocovariance of PC-based
+ |          unobserved dynamic component time-series of observed
+ |          time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps,
+ |              in multi-step forecasts of variance, covariance
+ |              or autocovariance of vector time-series
+ |          Note: step = 0 for nowcast or estimate
+ |
+ |      sample_lag_list : list, [0, 1, ..., max_ar_order]
+ |          List of sample lags of estimated and forecasted
+ |              autocovariance data
+ |
+ |      Returns
+ |      -------
+ |
+ |      udc_autocov : dict, keys (vcf_step_list + ['asof'])
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (sample_lag_list)
+ |          Forecasted autocovariance vector with time sample
+ |              lag of multiple unobserved dynamic component
+ |              (UDC) time-series of observed time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.get_udc_autocov()
+ |
+ |      udc_autocov = YWpcAR_obj.get_udc_autocov()
+ |
+ |  get_udc_filter(self)
+ |      Get coefficients of filter to generate unobserved dynamic
+ |          component (UDC) time-series associated with principal
+ |          components of observed time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      udc_filter : pd.DataFrame, index (ts_list),
+ |              columns (0, 1, 2, ..., max_ar_order, 'asof')
+ |          Coefficients of filters to generate multiple un-
+ |              observed dynamic components (UDCs) associated
+ |              with principal components (PCs) of correspondent
+ |              observed multiple univariate time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      udc_filter = YWpcAR_obj.get_udc_filter()
+ |
+ |  get_udc_prederr(self)
+ |      Get estimated variance vector of error vector time-
+ |          series in AR prediction of unobserved dynamic
+ |          component (UDC)
+ |
+ |      Returns
+ |      -------
+ |
+ |      udc_prederr : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              error vector time-series in autoregressive
+ |              prediction of unobserved dynamic component
+ |              (UDC)
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.get_udc_prederr()
+ |
+ |      udc_prederr = YWpcAR_obj.get_udc_prederr()
+ |
+ |  get_udc_serialcov(self)
+ |      Get estimated curent and past variance and autocovariance
+ |          of PC-based unobserved dynamic component time-series
+ |          of observed time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      time_lag_list : list, [(- max_ar_order), ..., -1, 0]
+ |          List of time lags of estimated variance and
+ |              autocovariance data
+ |
+ |      sample_lag_list : list, [0, 1, ..., max_ar_order]
+ |          List of sample lags of estimated and forecasted
+ |              autocovariance data
+ |
+ |      Returns
+ |      -------
+ |
+ |      udc_serialcov : dict, keys (time_lag_list + ['asof'])
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (sample_lag_list)
+ |          Estimated current (key = 0) and past (key <= -1)
+ |              autocovariance (series-covariance) vector with
+ |              sample lag of multiple unobserved dynamic
+ |              component (UDC) time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.get_udc_serialcov()
+ |
+ |      udc_serialcov = YWpcAR_obj.get_udc_serialcov()
+ |
+ |  get_unobsdync(self)
+ |      Get unobserved dynamic component(s) (UDCs) of (multiple)
+ |          univariate time-series by (multiple) univariate
+ |          Yule-Walker-PCA autoregressive (YWpcAR) model
+ |
+ |      Returns
+ |      -------
+ |
+ |      ts_unobsdync : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Multiple unobserved dynamic component (UDC) time-
+ |              series of correspondent observed multiple time-
+ |              series
+ |
  |      Note:
- |          * if model learned with fit(Y): data = Y, Y_infer
- |          # if model learned with fit(VTS): data = VTS, VTS_infer
- |          *,# len_unobs = len_ts (or len_ts_infer) - ar_order
- |      
+ |          len(asof_list) = len_ts - max_ar_order
+ |
  |      Function call
  |      -------------
- |      
- |      ts_unobs = YWpcAR_obj.get_unobs()
- |  
- |  min_ts_len(self)
- |      Get minimum length of time-series to satisfy parameters
- |          of YW-PC AR model analysis
- |      
+ |
+ |      self.get_unobsdync()
+ |
+ |      ts_unobsdync = YWpcAR_obj.get_unobsdync()
+ |
+ |  get_variance(self)
+ |      Get forecasted variance vector, or value, of multiple,
+ |          or sgingle, (1) unobserved dynamic component (UDC)
+ |          time-series, and (2) residual error time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps,
+ |              in multi-step forecasts of variance, covariance
+ |              or autocovariance of vector time-series
+ |          Note: step = 0 for nowcast or estimate
+ |
  |      Returns
  |      -------
- |      
- |      min_len_ts : int
- |          Minimum length of time-series for YW-PC AR analysis
- |      
+ |
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of variance
+ |              vectors of multiple unobserved dynamic
+ |              component (UDC) time-series of observed
+ |              time-series
+ |
+ |      ts_residerr_var : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              multiple residual error time-series of
+ |              observed time-series
+ |
  |      Function call
  |      -------------
- |      
- |      min_len_ts = YWpcAR_obj.min_ts_len()
- |  
- |  predict(self, target_type=None, fwd_cumsum=None)
- |      Make time-series forecasts by YWpcAR model
- |      
- |      Returns
+ |
+ |      udc_variance, ts_residerr_var = self.get_variance()
+ |
+ |      udc_variance, ts_residerr_var = YWpcAR_obj.get_variance()
+ |
+ |  predict(self)
+ |      Generate forecasts of multiple observed time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed (multiple)
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed (multiple) time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
+ |          Whether or not to make cum-sum forecast
+ |
+ |      tsf_step_list : list, [1, 2, ..., max_forecast_step]
+ |          List of time-series forecast steps, in multi-step
+ |              forecasts of vector time-series
+ |
+ |      Outputs
  |      -------
- |      
- |      ts_forecast = self.forecast()
- |      
- |      ts_forecast = self.forecast(
- |          target_type=target_type, fwd_cumsum=fwd_cumsum)
- |      
+ |
+ |      ts_forecast : pd.DataFrame, index (ts_list),
+ |              columns (tsf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of target_type
+ |              values of multiple univariate observed time-
+ |              series with, one additional specifications,
+ |              fwd_cumsum
+ |
  |      Function call
  |      -------------
- |      
- |      ts_forecast = YWpcAR_obj.predict()
- |      
- |      ts_forecast = YWpcAR_obj.predict(
- |          target_type=target_type, fwd_cumsum=fwd_cumsum)
- |  
- |  set_param(self, **kwargs)
+ |
+ |      YWpcAR_obj.predict()
+ |
+ |  set_data(self, ts_data)
+ |      Set, or reset, observed time-series data for YWpcAR
+ |          modeling
+ |
+ |      Arguments
+ |      ---------
+ |
+ |      ts_data : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed multiple time-series: vector time-series
+ |              VTS = ts_data
+ |
+ |      ts_data : pandas.Series,
+ |              index (asof_list), name (ts_label)
+ |          Observed univariate time-series: single time-series
+ |              Y = ts_data
+ |
+ |      Notes
+ |      -----
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data for YWpcAR
+ |              model learning and inference
+ |          Row time-series of column vector with first column
+ |              as oldest and last one as latest
+ |          Input of method set_data(VTS) for multiple univariate
+ |              AR model learning and inference
+ |
+ |      Y : pandas.Series,
+ |              index (asof_list), name (ts_label)
+ |          Observed single univariate time-series, as input data
+ |              for YWpcAR model learning and inference
+ |          First value as oldest and last one as latest
+ |          Input of method set_data(Y) for univariate AR model
+ |              learning and inference
+ |
+ |      ts_list : list
+ |          List of name/symbol/label strings of observed
+ |              time-series data, as list of index axis
+ |              of VTS DataFrame
+ |
+ |      asof_list : list
+ |          List of as-of time-stamps of observed (vector)
+ |              time-series data, as list of columns axis
+ |              of VTS DataFrame (or as list of index axis
+ |              of Y Series)
+ |
+ |      num_ts : int >= 1
+ |          Number of observed time-series
+ |              = len(ts_list)
+ |
+ |      len_ts : int > 1
+ |          Length of observed (vector) time-series
+ |              = len(asof_list)
+ |          len_ts >= len_learn_window + (2 ar_order)
+ |
+ |      Function call
+ |      -------------
+ |
+ |      YWpcAR_obj.set_data(VTS)
+ |
+ |      YWpcAR_obj.set_data(Y)
+ |
+ |  set_param(
+ |      self,
+ |      len_learn_window=None,
+ |      ar_order=None,
+ |      num_pcs=None,
+ |      alt_ar_order=None,
+ |      alt_num_pcs=None,
+ |      max_forecast_step=None,
+ |      target_type=None,
+ |      fwd_cumsum=None
+ |  )
  |      Set, update or reset value(s) of any, some or all parameter(s)
- |      
+ |
  |      Valid arguments
  |      ---------------
- |      
+ |
  |      len_learn_window : int >> 1
- |          Length of trailing time window for model learning
- |      
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
  |      ar_order : int >= 1
- |          Autoregressive (AR) model order, p, applied to all
- |              time-series other than those specified, if any,
- |              in alt_ar_order
- |      
+ |          Autoregressive (AR) order, q, applying to all time-
+ |              series other than those specified, if any, in
+ |              dict-type parameter alt_ar_order
+ |          Notes:
+ |              ar_order <= len_learn_window
+ |              len_ts >= len_learn_window + (2 ar_order)
+ |
  |      num_pcs : int >= 1
- |          Number of principal components (PCs), m, applied to
- |              all time-series other than those specified, if any,
- |              in alt_num_pcs
- |      
- |      alt_ar_order : dict {ts1id: p1, ts2id: p2, ...} or {}
- |          Autoregressive (AR) model order, p, applied to specified
- |              time-series ts1, ts2, ...
+ |          Number of principal components (PCs), m, applying
+ |              to all time-series other than those specified,
+ |              if any, in dict-type parameter alt_num_pcs
  |          Notes:
- |              ts1id, ts2id, ...: labels of time-series in VTS.index
- |      
- |      alt_num_pcs : dict {ts1id: m1, ts2id: m2, ...} or {}
- |          Number of principal components (PCs), m, applied to 
+ |              num_pcs < ar_order
+ |
+ |      alt_ar_order : dict, {ts1id: p1, ts2id: p2, ...} or {}
+ |          Autoregressive (AR) orders, p1, p2, ..., if any,
+ |              applying to specified time-series ts1, ts2, ...
+ |          Notes:
+ |              ts1id, ts2id, ...: in VTS.index, labels of
  |              specified time-series ts1, ts2, ...
+ |
+ |      alt_num_pcs : dict, {ts1id: m1, ts2id: m2, ...} or {}
+ |          Numbers of principal components (PCs), m1, m2,
+ |              ..., if any, applying to specified time-series
+ |              ts1, ts2, ...
  |          Notes:
- |              ts1id, ts2id, ...: labels of time-series in VTS.index
- |      
+ |              ts1id, ts2id, ...: in VTS.index, labels of
+ |              specified time-series ts1, ts2, ...
+ |
  |      max_forecast_step : int >= 1
- |          Maximum number of forward steps of time-series forecasts
- |      
- |      target_type : str {'zero-mean', 'z', 'Z', 'original', 'o', 'O'}
- |          Type of time-series data to be forecasted
- |      
- |      fwd_cumsum : bool {True, False}
+ |          Maximum number of forecasting steps of time-series
+ |              forecasts, and of volatility (variance) forecasts
+ |
+ |      target_type : str, in [
+ |              'z', 'Z', 'zero-mean', 'o', 'O', 'original']
+ |          Specified type of (multiple) time-series data on
+ |              which model inferences, predictions or forecasts
+ |              are made, and are evaluated
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed (multiple)
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed (multiple) time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
  |          Whether or not to make cum-sum forecast
- |      
+ |
  |      Function call
  |      -------------
- |      
- |      YWpcAR_obj.set_param(**kwargs)
- |      
+ |
  |      YWpcAR_obj.set_param(
  |          param_name=param_value)
- |      
+ |
  |      YWpcAR_obj.set_param(
  |          param1_name=param1_value,
  |          param2_name=param2_value, ...)
- |      
+ |
  |      YWpcAR_obj.set_param(
  |          len_learn_window=len_learn_window,
  |          ar_order=ar_order,
@@ -912,14 +1950,69 @@ class YWpcAR(builtins.object)
  |          max_forecast_step=max_forecast_step,
  |          target_type=target_type,
  |          fwd_cumsum=fwd_cumsum)
- |  
+ |
+ |  variance(self)
+ |      Forecast variance, and its components, of unobserved dynamic
+ |          component (UDC) time-series, of observed time-series, and
+ |          of residual error time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      vcf_step_list : list, [0, 1, ..., max_forecast_step]
+ |          List of variance or covariance forecast steps,
+ |              in multi-step forecasts of variance, covariance
+ |              or autocovariance of vector time-series
+ |          Note: step = 0 for nowcast or estimate
+ |
+ |      sample_lag_list : list, [0, 1, ..., max_ar_order]
+ |          List of sample lags of estimated and forecasted
+ |              autocovariance data
+ |
+ |      Outputs
+ |      -------
+ |
+ |      udc_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of variance
+ |              vectors of multiple unobserved dynamic
+ |              component (UDC) time-series of observed
+ |              time-series
+ |
+ |      udc_autocov : dict, keys (vcf_step_list + ['asof'])
+ |              obj[key] : pd.DataFrame, index (ts_list),
+ |                  columns (sample_lag_list)
+ |          Forecasted autocovariance vector with time sample
+ |              lag of multiple unobserved dynamic component
+ |              (UDC) time-series of observed time-series
+ |
+ |      ts_residerr_var : pd.DataFrame,
+ |              index (ts_list), columns (0, 'asof')
+ |          Estimated (as forecasted) variance vector of
+ |              multiple residual error time-series of
+ |              observed time-series
+ |
+ |      ts_variance : pd.DataFrame, index (ts_list),
+ |              columns (vcf_step_list + ['asof'])
+ |          Multi-step forecasts of variance vector of
+ |              observed multiple time-series
+ |          Notes: ts_variance = udc_variance.add(
+ |              ts_residerr_var.loc[:, 0], axis='index')
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.variance()
+ |
+ |      YWpcAR_obj.variance()
+ |
  |  ----------------------------------------------------------------------
  |  Data descriptors defined here:
- |  
+ |
  |  __dict__
- |      dictionary for instance variables (if defined)
- |  
+ |      dictionary for instance variables
+ |
  |  __weakref__
- |      list of weak references to the object (if defined)
+ |      list of weak references to the object
 
 >>>
