@@ -1,0 +1,2368 @@
+>>> help(dAeDFM)
+
+help(dAeDFM)
+Help on class dAeDFM in module dAeDFM:
+
+class dAeDFM(builtins.object)
+ |  dAeDFM(
+ |      len_learn_window=None,
+ |      var_order=None,
+ |      max_forecast_step=1,
+ |      target_type='Original',
+ |      fwd_cumsum=False
+ |  )
+ |
+ |  Nonlinear Dynamic Factor Model by Deep Autoencoder
+ |  (dAeDFM), or, Deep Autoencoder of Nonlinear Dynamic
+ |  Factor Model: Nonlinear dynamic factor model (DFM)
+ |  formulated as deep autoencoder (DAE) composed of
+ |  dense/causal nowcasting/forecasting sub-layers and
+ |  using robust squared-L1 loss criterion
+ |
+ |  Acronyms
+ |  --------
+ |
+ |  DFM : dynamic factor model of multiple (or vector)
+ |      time-series
+ |  AE : autoencoder (a structure of neural networks)
+ |  DAE : deep AE (with multiple latent layers)
+ |  dAeDFM : nonlinear dynamic factor model by deep
+ |      autoencoder, or, deep autoencoder of nonlinear
+ |      dynamic factor model
+ |
+ |  dAeDFM Modeling
+ |  ---------------
+ |
+ |  * By nonlinearization of well-established dynamic
+ |    factor models (DFM) on large sets of multiple
+ |    time-series, we introduce nonlinear DFM formulated
+ |    as deep autoencoders (DAE) composed of sub-layers
+ |    of dense nowcasting, dense forecasting, causal
+ |    nowcasting and causal forecasting.
+ |
+ |  * Different DAE configurations mixing the dense/
+ |    causal nowcasting/forecasting layers can make
+ |    the nonlinear DAE model serving as differently
+ |    as total nowcasting, predictive nowcasting,
+ |    one-step forecasting, enhanced forecasting
+ |    and total forecasting models.
+ |
+ |  * To resist outliers in input data (other than
+ |    those in output-target difference), we introduce
+ |    robust squared-L1 loss criterion. Our squared-L1
+ |    loss function having both outlier-resistant
+ |    robustness of L1 loss (mean absolute error)
+ |    and continuous differentiability of L2 loss
+ |    (mean squared error).
+ |
+ |  * In addition, separate validation and testing
+ |    datasets can be formed for nonlinear model
+ |    training and evaluation using our observation-
+ |    based input data sample variation approach.
+ |
+ |  Why deep autoencoder (DAE)
+ |  --------------------------
+ |
+ |  * neural networks introduce nonlinearity by applying
+ |    certain elementwise nonlinear activation functions
+ |    to linear combinations (weighted sums)
+ |
+ |  * multi-layered (deep) neural nets add more
+ |    nonlinearity by nested (elementwise) nonlinear
+ |    functions
+ |
+ |  * neural networks with latent layer of hidden
+ |    neurons are validated by proven and widely
+ |    accepted Universal Approximation Theorem
+ |
+ |  * autoencoders (a specific structure of neural nets)
+ |    were initially formulated as nonlinear extensions
+ |    of linear principal components analysis (PCA)
+ |
+ |  * both time-domain PCA and frequency-domain
+ |    (spectral) PCA are among core methods to
+ |    formulate linear DFM models (Ling, 2026)
+ |
+ |  * underlying the current AI boom worldwide, hugely
+ |    successful Large Language Models (LLMs) are made
+ |    of transformers (recently invented structures
+ |    of deep neural networks)
+ |
+ |  Linear DFM
+ |  ----------
+ |
+ |  Observed vector (i.e. multiple) time-series
+ |      y(t) : observed zero-mean time-series of n-by-1
+ |             column data vector y with time index t
+ |      n : number of individual time-series
+ |
+ |  Unobserved factor score time-series
+ |      f(t) : unobserved time-series of m-by-1 factor
+ |             score column vector f with time index t
+ |      m : number of factors: factor score time-series
+ |
+ |  Size of DFM
+ |      p : vector autoregressive (VAR) order of DFM,
+ |          p >= 1
+ |
+ |  Parameter values
+ |      t = 0, 1, 2, ..., T
+ |      T : last time-stamp
+ |      n >> 1
+ |      m >= 1
+ |      m < n or m << n
+ |
+ |  Measurement (observation) equation of linear DFM
+ |      y(t) = X(0) f(t) + X(1) f(t-1) + ... + X(p) f(t-p) + u(t)
+ |
+ |  State transition equation of linear DFM
+ |      f(t) = A(1) f(t-1) + A(2) f(t-2) + ... + A(p) f(t-p) + v(t)
+ |
+ |  Filter equation of linear DFM
+ |      f(t) = S(0) y(t) + S(1) y(t-1) + ... + S(p) y(t-p) + w(t)
+ |
+ |  Equivalent representations of linear DFM
+ |      (1) Classic representation: by
+ |          (1.1) measurement (observation) equation
+ |          (1.2) state transisiton equation
+ |      (2) An equivalent representation: by
+ |          (2.1) measurement equation
+ |          (2.2) filter equation
+ |
+ |  Estimated linear DFM coefficients
+ |      X(j) : n-by-m matrix of factor loadings
+ |      A(j) : m-by-m matrix of factor VAR coefficients
+ |      S(j) : m-by-n matrix of filter coefficients
+ |
+ |  Time-series of random vectors
+ |      u(t) : idiosyncratic component vector
+ |      v(t) : prediction error vector
+ |      w(t) : fiter error vector
+ |
+ |  Basic (neural network) autoencoder
+ |  ----------------------------------
+ |
+ |  Components of basic neural network feed-forward function
+ |          based on coding convention in PyTorch
+ |      x_obsvd : observed data ROW vector
+ |      y : unobserved hidden code ROW vector
+ |      W1 : linear weight matrix of len(y)-by-len(x)
+ |      b1 : bias row vector of len(y)
+ |      W2 : linear weight matrix of len(x)-by-len(y)
+ |      b2 : bias row vector of len(x)
+ |      x_recon : reconstructed data ROW vector
+ |      g(*) : element-wise nonlinear activation function
+ |
+ |  Baisc neural network autoencoder
+ |      encoder :  y = g( x_obsvd W1^T + b1 )
+ |      decoder :  x_recon = g( y W2^T + b2 )
+ |
+ |  Simplest AE of Nonlinear DFM
+ |  ----------------------------
+ |
+ |  Symmetric autoencoder (AE) of Nonlinear DFM
+ |      with single hidden layer of latent codes
+ |
+ |  Layer ID
+ |      data input/output layer ID: i = 0
+ |      latent code (factor) layer ID: i = 1
+ |
+ |  Data layer ROW vector: 1-by-(n*(p+1))
+ |      h(0) = [ h(0,0), h(0,1), ..., h(0,p) ]
+ |           = [ y(t)^T, y(t-1)^T, ..., y(t-p)^T ]
+ |
+ |  Segments of data layer row vector
+ |      h(0,k) = y(t-k)^T, k = 0, 1, ..., p
+ |
+ |  Latent layer ROW vector, 1-by-(m*(p+1))
+ |      h(1) = [ h(1,0), h(1,1), ..., h(1,p) ]
+ |           = [ f(t)^T, f(t-1)^T, ...,  f(t-p)^T ]
+ |
+ |  Segments of latent layer row vector
+ |      h(1,k) = f(t-k)^T, k = 0, 1, ..., p
+ |
+ |  Example of element-wise nonlinear activation function
+ |      g(x) = tanh(x)
+ |
+ |  Encoding layer function, based on DFM Filter equation
+ |      h(1,k) = g( h(0,k) W(1,0,k,k)^T +
+ |                + h(0,(k+1)) W(1,0,k,(k+1))^T +
+ |                + ... +
+ |                + h(0,p) W(1,0,k,p)^T )
+ |          k = 0, 1, ..., p
+ |
+ |  Decoding layer function, based on DFM Measurement equation
+ |      h(0,k)^ = g( h(1,k) W(0,1,k,k)^T +
+ |                 + h(1,(k+1)) W(0,1,k,(k+1))^T +
+ |                 + ... +
+ |                 + h(1,p) W(0,1,k,p)^T
+ |          k = 0, 1, ..., p
+ |
+ |  Causal layer: data availability Applied
+ |      encoding weight:  W(1,0,k,j) = 0  for  all j < k
+ |      decoding weight:  W(0,1,k,j) = 0  for  all j < k
+ |
+ |  Nowcasting layer:
+ |      encoding weight:  W(1,0,k,0) NOT= 0  for  k = 0
+ |      decoding weight:  W(0,1,k,0) NOT= 0  for  k = 0
+ |
+ |  Reconstructed data by AE
+ |  ------------------------
+ |
+ |  Reconstructed data output by Linear decoder
+ |      h(0,k)^ = h(1,k) W(0,1,k,k)^T +
+ |              + h(1,(k+1)) W(0,1,k,(k+1))^T +
+ |              + ... +
+ |              + h(1,p) W(0,1,k,p)^T
+ |          k = 0
+ |
+ |  Loss function (e.g. mean square error) for
+ |          autoencoder backpropagation gradient descent
+ |      y(t)^ = [h(0,0)^]^T
+ |      Loss = MSE( h(0,0)^, h(0,0) ) = MSE( y(t)^, y(t) )
+ |
+ |  Simple AE with sub-layers
+ |  -------------------------
+ |
+ |  Examples of asymmetric element-wise activation function
+ |          based on built-in ReLU(x) function in PyTorch
+ |      g(+)(x) = Max(0,x) = ReLU(x)
+ |      g(-)(x) = Min(0,x) = (x)-ReLU(x)
+ |
+ |  Causal encoding sub-layer with bias b(+) and ReLU(x)
+ |        h(+)(1,k) =
+ |      = g(+)( h(0,k) W(+)(1,0,k,k)^T +
+ |            + h(0,(k+1)) W(+)(1,0,k,(k+1))^T +
+ |            + ... +
+ |            + h(0,p) W(+)(1,0,k,p)^T + b(+)(1) )
+ |      k = 0, 1, ..., p
+ |
+ |  Causal encoding sub-layer with bias b(-) and (x)-ReLU(x)
+ |        h(-)(1,k)
+ |      = g(-)( h(0,k) W(-)(1,0,k,k)^T +
+ |            + h(0,(k+1)) W(-)(1,0,k,(k+1))^T +
+ |            + ... +
+ |            + h(0,p) W(-)(1,0,k,p)^T + b(-)(1) )
+ |      k = 0, 1, ..., p
+ |
+ |  Causal sub-layers: data availability Applied
+ |      W(+)(1,0,k,j) = 0  for  all j < k
+ |      W(-)(1,0,k,j) = 0  for  all j < k
+ |
+ |  Nowcasting sub-layers:
+ |      W(+)(1,0,k,0) NOT= 0  for  k = 0
+ |      W(-)(1,0,k,0) NOT= 0  for  k = 0
+ |
+ |  Causal encoding layer feed forward function
+ |      h(1,k) = h(+)(1,k) + h(-)(1,k)
+ |          k = 0, 1, ..., p
+ |
+ |  Entire output row vector on causal encoding layer
+ |      h(1) = [ h(1,0), h(1,1), ..., h(1,k), ..., h(1,p) ]
+ |
+ |  Causal decoding sub-layers
+ |      same fead-forward structure as causal encoding sub-layers
+ |
+ |  Dense (vs. causal) layer
+ |  ------------------------
+ |
+ |  Basic neural network feed-forward function
+ |      "Dense layer": Feeding forward ALL data points
+ |
+ |  Dense encoding sub-layer with bias b(+) and ReLU(x)
+ |        h(+)(1,k)
+ |      = g(+)( h(0,0) W(+)(1,0,k,0)^T +
+ |            + h(0,1) W(+)(1,0,k,1)^T +
+ |            + ... +
+ |            + h(0,p) W(+)(1,0,k,p)^T + b(+)(1) )
+ |      k = 0, 1, ..., p
+ |
+ |  Dense encoding sub-layer with bias b(-) and (x)-ReLU(x)
+ |        h(-)(1,k)
+ |      = g(-)( h(0,0) W(-)(1,0,k,0)^T +
+ |            + h(0,1) W(-)(1,0,k,1)^T +
+ |            + ... +
+ |            + h(0,p) W(-)(1,0,k,p)^T + b(-)(1) )
+ |      k = 0, 1, ..., p
+ |
+ |  Dense sub-laters: ignoreing causality of
+ |      data availability in time dimension
+ |
+ |  Nowcasting sub-layers:
+ |      W(+)(1,0,k,0) NOT= 0
+ |      W(-)(1,0,k,0) NOT= 0
+ |
+ |  Dense encoding layer feed forward function
+ |      h(1,k) = h(+)(1,k) + h(-)(1,k)
+ |          k = 0, 1, ..., p
+ |
+ |  Entire output row vector on dense encoding layer
+ |      h(1) = [ h(1,0), h(1,1), ..., h(1,k), ..., h(1,p) ]
+ |
+ |  Dense decoding sub-layers
+ |      same fead-forward structure as dense encoding sub-layers
+ |
+ |  Forecasting (vs. nowcating) layer
+ |  ---------------------------------
+ |
+ |  Data availability for 1-step forecast
+ |      W(+)(1,0,k,0) = 0
+ |      W(-)(1,0,k,0) = 0
+ |
+ |  Dense forecasting sub-layer with ReLU(x)
+ |      SET  W(+)(1,0,k,0) = 0  for  ALL k
+ |
+ |  Dense forecasting sub-layer with (x)-ReLU(x)
+ |      SET  W(-)(1,0,k,0) = 0  for  ALL k
+ |
+ |  Causal forecasting sub-layer with ReLU(x)
+ |      SET  W(+)(1,0,k,0) = 0  for  k = 0
+ |
+ |  Causal forecasting sub-layer with (x)-ReLU(x)
+ |      SET  W(-)(1,0,k,0) = 0  for  k = 0
+ |
+ |  Types of layers in AE of nonlinear DFM
+ |  --------------------------------------
+ |
+ |  Four types of encoding or decoding layers
+ |      (1) nonlinear nowcasting layer
+ |      (2) nonlinear forecasting layer
+ |      (3) dense linear nowcasting layer
+ |      (4) dense linear forecastign layer
+ |
+ |  Each nonlinear layer is composed of sub-layers
+ |
+ |  Eight types of nonlinear sub-layers
+ |      (a) dense or causal
+ |      (b) nowcasting or forecasting
+ |      (c) with ReLU(x) or (x)-ReLU(x)
+ |
+ |  Each nonlinear nowcasting layer aggregates four sub-layers
+ |      dense nowcasting with ReLU(x)
+ |      dense nowcasting with (x)-ReLU(x)
+ |      causal nowcasting with ReLU(x)
+ |      causal nowcasting with (x)-ReLU(x)
+ |
+ |  Each nonlinear forecasting layer aggregates four sub-layers
+ |      dense forecasting with ReLU(x)
+ |      dense forecasting with (x)-ReLU(x)
+ |      causal forecasting with ReLU(x)
+ |      causal forecasting with (x)-ReLU(x)
+ |
+ |  Deep AE of nonlinear DFM
+ |  ------------------------
+ |
+ |  Structure
+ |      (1) A symmetric deep autoencoder
+ |      (2) Generating hidden code by dense linear
+ |          layer as the last encoding layer
+ |      (3) Reconstructing observed data by dense
+ |          linear layer as the last decoding layer
+ |      (4) Having one or more nonlinear encoding layers
+ |      (5) Having one or more nonlinear decoding layers
+ |
+ |  Number of latent layers
+ |      Two or more latent encoding layers
+ |      Two or more latent decoding layers
+ |
+ |  Example of deep AE of nonlinear DFM
+ |  -----------------------------------
+ |
+ |  Number of layers
+ |      Three latent encoding layers
+ |      Three latent decoding layers
+ |
+ |  Layer IDs of this Symmetric DAE of nonlinear DFM
+ |      Data layer:
+ |          ID = 0
+ |      Latent layers:
+ |          ID = 1  for  first encoding and last decoding layers
+ |          ID = 2  for  middle encoding and middle decoding layers
+ |          ID = 3  for  last encoding and first decoding layers
+ |
+ |  Number of observed data time-series
+ |      n = m(0)
+ |
+ |  Number of latent variable time-series
+ |      m(0) > m(1) > m(2) > m(3)
+ |
+ |  Number of hidden code (unobserved factor) time-series
+ |      m = m(3)
+ |
+ |  Dimension (size) of row vector on each layer (ID = i)
+ |      d(i) = m(i) * (p + 1)
+ |          i = 0, 1, 2, 3
+ |
+ |  Three pairs of encoding layers
+ |          (using coding convention in PyTorch)
+ |      from d(0) to d(1) : observed data input
+ |      from d(1) to d(2)
+ |      form d(2) to d(3) : hidden code output
+ |
+ |  Three pairs of decoding layers
+ |      from d(3) to d(2)
+ |      from d(2) to d(1)
+ |      from d(1) to d(0) : reconstructed data output
+ |
+ |  Four pairs of nonlinear layers
+ |      from d(0) to d(1) : encoding
+ |      from d(1) to d(2) : encoding
+ |      from d(3) to d(2) : decoding
+ |      from d(2) to d(1) : decoding
+ |
+ |  Two paris of dense linear layers
+ |      form d(2) to d(3) : generating hidden code
+ |      from d(1) to d(0) : generating reconstructed data
+ |
+ |  Nowcasting/forecasting models
+ |  -----------------------------
+ |
+ |  Total nowcasting model
+ |      All (en- & de-coding) layers: Nowcasting Only
+ |
+ |  Predictive nowcasting model
+ |      First (data input) encoding layer: Nowcasting
+ |      At least one other layer: Forecasting
+ |
+ |  One-step forecasting model
+ |      First (data input) encoding layer: Forecasting
+ |      All other layers: Nowcasting Only
+ |
+ |  Enhanced forecasting model
+ |      First encoding layer: Forecasting
+ |      One or more other layer: Nowcasting
+ |      One or more other layer: Forecasting
+ |
+ |  Total forecasting model
+ |      All (en- & de-coding) layers: Forecasting Only
+ |
+ |  Choice of Loss Criterion
+ |  ------------------------
+ |
+ |  Following are available options of loss functions
+ |      having smooth backpropagation gradients
+ |
+ |  MSE (L2) Loss
+ |      the most utilized loss criterion
+ |      built-in in PyTorch
+ |
+ |  Smooth L1 Loss
+ |      resisting outliers of large output-target difference
+ |      built-in in PyTorch
+ |
+ |  Huber Loss
+ |      resisting outliers of large output-target difference
+ |      built-in in PyTorch
+ |
+ |  Squared-L1 Loss
+ |      resisting outliers of extreme input data value
+ |      developed for DAE of nonlinear DFM
+ |
+ |  Evaluation datasets
+ |  -------------------
+ |
+ |  Traditional datasets for model validation/test
+ |      A portion of vector time-series set aside,
+ |          i.e. NOT used in model training
+ |
+ |  Evaluating NON-linear models (e.g. dAeDFM)
+ |      Constructing evaluation or test vector
+ |          time-series z(t) BASED on input vector
+ |          time-series y(t)
+ |
+ |  Validation or test vector time-series
+ |      z(t) = y(t) + a y(t1) + [-a/(1+a)] y(t2)
+ |
+ |  Time-stamps t1 and t2
+ |      Different from t and from each other
+ |      Chosen randomly
+ |
+ |  "Input data sample variation rate"
+ |      Coefficient a (> 0)
+ |
+ |  Examples
+ |      a = 0.20 for validation dataset
+ |      a = 0.25 for test dataset
+ |
+ |  References
+ |  ----------
+ |
+ |  C. Doz, and P. Fuleky (2020). "Chapter 2. Dynamic
+ |      Factor Models". Macroeconomic Forecasting in
+ |      the Era of Big Data: Theory and Practice, Editors:
+ |      P. Fuleky,  pp. 27-64. Springer Nature, 2020.
+ |      https://www.springer.com/gp/book/9783030311490.
+ |
+ |  H.F. Ling (2025). "Introduction to Non-Stationary
+ |      Dynamic Factor Models Estimated by Spectral
+ |      PCA with Conjugate 2D-DFT". SSRN, December 2025.
+ |      https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5972614.
+ |
+ |  H.F. Ling (2026). "Nonlinear DFM by Deep Autoencoder
+ |      with Dense/Causal Nowcasting/Forecasting Layers
+ |      and Squared-L1 Loss Criterion". To be published.
+ |
+ |  Data (observed vector time-series)
+ |  ----------------------------------
+ |
+ |  VTS : pandas.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Observed vector time-series, as input data
+ |          for dAeDFM model learning and inference
+ |      Row time-series of column vector with first
+ |          column as oldest and last one as latest
+ |
+ |  ts_list : list
+ |      List of name/symbol/label strings of
+ |          observed time-series, as list of
+ |          index axis of VTS DataFrame
+ |
+ |  asof_list : list
+ |      List of as-of time-stamps, here, of
+ |          observed vector time-series data,
+ |          as list of columns axis of VTS
+ |          DataFrame
+ |
+ |  num_ts : int >= 1
+ |      Number of observed time-series
+ |          = len(ts_list)
+ |
+ |  len_ts : int > 1
+ |      Length of observed vector time-series
+ |          = len(asof_list)
+ |      Note: len_ts >= len_learn_window + (2 var_order)
+ |
+ |  Parameters (dynamic factor model)
+ |  ---------------------------------
+ |
+ |  len_learn_window : int, >> 1
+ |      Length of trailing time window of data points
+ |          for model learning
+ |
+ |  var_order : int, >= 1
+ |      Vector autoregressive (VAR) order, p, of dynamic
+ |          factor model of vector time-series
+ |      Notes:
+ |          var_order <= len_learn_window
+ |          len_ts >= len_learn_window + (2 var_order)
+ |
+ |  max_forecast_step : int >= 1
+ |      Maximum number of forecasting steps of time-series
+ |          forecasts
+ |
+ |  target_type_list : list, ['s', 'S', 'standardized',
+ |          'b', 'B', 'base-case', 'z', 'Z', 'zero-mean',
+ |          'o', 'O', 'original']
+ |      List of valid values of target_type
+ |
+ |  target_type : str, (in target_type_list)
+ |      Specified type of vector, or multiple, time-series
+ |          data on which model inferences, predictions or
+ |          forecasts are made, and are evaluated
+ |      Type 's', 'S', 'standardized', 'b', 'B', 'base-case':
+ |          Inferences/forecasts are made/evaluated on
+ |          standardized, or base-case, values of observed
+ |          vector time-series
+ |      Type 'z', 'Z', 'zero-mean':
+ |          Inferences/forecasts are made/evaluated on zero-
+ |          mean, or de-meaned, values of observed vector
+ |          time-series
+ |      Type 'o', 'O', 'original':
+ |          Inferences/forecasts are made/evaluated on values
+ |          of original/observed vector time-series
+ |
+ |  fwd_cumsum : bool (True, or False)
+ |      Whether or not to make cum-sum forecast
+ |      Notes: for base-case, fwd_cumsum = False
+ |
+ |  Parameters (deep autoencoder)
+ |  -----------------------------
+ |
+ |  num_ts_input : int, num_ts
+ |      Number of time-series in observed vector
+ |      time-series
+ |
+ |  data_layer_id : int = 0
+ |      ID label of layer containing input data vector
+ |          of deep autoencoder
+ |
+ |  num_latent_layer : int >= 2
+ |      Number of latent layers in deep autoencoder
+ |          for nonlinear dynamic factor model
+ |
+ |  dae_layer_list : int,
+ |          [0, 1, 2, ..., num_latent_layer]
+ |      List of ID labels of data and latent layers for
+ |          encoding, decoding and output
+ |
+ |  num_ts_dict : dict, keys (dae_layer_list)
+ |          obj[key] : int
+ |      Number of (observed or letant) time-seres
+ |          at specified layers in deep autoencoder
+ |      Notes: num_ts_input = num_ts_dict[0]
+ |          > num_ts_dict[1] > num_ts_dict[2] > ...
+ |          > num_ts_dict[num_latent_layer]
+ |
+ |  num_ts_latent : int >= 1,
+ |          = num_ts_dict[num_latent_layer]
+ |      Number of latent time-series at hidden
+ |          bottleneck layer
+ |
+ |  num_ts_output : int, num_ts
+ |      Number of time-series in observed vector
+ |      time-series
+ |
+ |  encoding_layer_list : list, [...,
+ |          '(num_ts_dict[i],num_ts_dict[i+1])', ...]
+ |      List of ID strings of encoding layers
+ |      Notes: of specified encoding layer,
+ |          in_featurs = num_ts_dict[i] * var_order
+ |          out_featurs = num_ts_dict[i+1] * var_order
+ |      Notes: i = 0, 1, ..., (num_latent_layer - 1)
+ |
+ |  decoding_layer_list : list, [...,
+ |          '(num_ts_dict[i],num_ts_dict[i-1])', ...]
+ |      List of ID strings of decoding layers
+ |      Notes: of specified decoding layer,
+ |          in_featurs = num_ts_dict[i] * var_order
+ |          out_featurs = num_ts_dict[i-1] * var_order
+ |      Notes: i = num_latent_layer, (num_latent_layer - 1),
+ |          ..., 2
+ |
+ |  dae_layer_spec : dict, keys (
+ |              encoding_layer_list + decoding_layer_list)
+ |          obj[key] : str, in ['nowcast',
+ |              'n', 'N', 'forecast', 'f', F']
+ |      Nowcasting/forecasting specification
+ |          of each of all encoding and decoding
+ |          layers of deep autoencoder
+ |      Notes on models
+ |          (1) Total nowcasting
+ |              all encoding/decoding layers 'N'
+ |          (2) Predictive nowcasting
+ |              first encoding layer 'N', some other 'F'
+ |          (3) One-step forecasting
+ |              first encoding layer 'F', all others 'N'
+ |          (4) Enhanced forecasting
+ |              first encoding layer 'F', others 'F'/'N'
+ |          (5) Total forecasting
+ |              all encoding/decoding layers 'F'
+ |
+ |  causal_layer_ratio : float, 0 <= ratio <= 1
+ |      Weight of causal (nowcasting/forecasting) sub-
+ |          layer output in total nonlinear layer output
+ |          (from all causal and dense sub-layers)
+ |      Notes: bottlelneck encoding and output
+ |          decoding layer, always dense linear
+ |      Notes: this ratio to be treated
+ |          as 0 if < 0.05, and as 1 if > 0.95
+ |
+ |  init_pcwt_ratio : float, 0 <= ratio <= 1
+ |      Portion of PCA-based initial weight values
+ |          in total initial random weight values
+ |          of linear layers of deep autoencoder
+ |
+ |  Parameters (model training)
+ |  ---------------------------
+ |
+ |  num_epoch : int
+ |      Number of iterations taking entire input
+ |          datasets to train deep autoencoder
+ |
+ |  patience : int > 1
+ |      Number of training epochs to run without
+ |          validation metric improvement before
+ |          early stopping
+ |
+ |  batch_size : int, < len_learn_window
+ |      Size of mini-batches for mini-batch
+ |          gradient descent
+ |
+ |  train_criterion : dict, keys ('grad', 'stats')
+ |          obj['grad'] : str, in [
+ |              'SquaredL1Loss', 'SmoothL1Loss',
+ |              'HuberLoss', 'MSELoss']
+ |          obj['stats'] : str,
+ |              in ['L1Loss', 'MSELoss']
+ |      Loss function for backprop gradient descent
+ |          ('grad') and for performance statistics
+ |          ('stats', for validation, testing and
+ |          reporting) in deep autoencoder model
+ |          training process
+ |
+ |  learning_rate : float, > 0 and << 1
+ |      Step size of gradient descent
+ |
+ |  input_variation_rate : dict, keys (
+ |              'Validation', 'Testing'),
+ |          obj[key] : float, 0 < rate <= 1
+ |      Input data sample variation rate in setting
+ |          up validation and testing datasets for
+ |          nonlinear model training and evaluation
+ |
+ |  dae_state_file : str
+ |      Name of .pt or .pth data file containing
+ |          state_dict dataset of deep autoencoder
+ |
+ |  Notes:
+ |      Re-setting any learning parameters makes the
+ |          object as a NEW object, which need fit()
+ |          again
+ |
+ |  Attributes (vector time-series)
+ |  -------------------------------
+ |
+ |  asof : time-stamp object
+ |      Last time-stamp of observed vector time-series data
+ |          utilized in estimation of values in object obj
+ |      Examples:
+ |          obj['asof'] = asof
+ |              when isinstance(obj, type(dict()))
+ |          obj.loc['asof'] = asof
+ |              when isinstance(obj, type(pd.Series()))
+ |          obj.loc[:, 'asof'] = asof
+ |              when isinstance(obj, type(pd.DataFrame()))
+ |          obj.name = asof
+ |              when isinstance(obj, type(pd.Series()))
+ |
+ |  mean_vec : pandas.Series, index (ts_list)
+ |      Sample mean vector of observed vector time-series
+ |          of data points in last learning window
+ |      mean_vec.name = asof
+ |      Mean value vector c in model expression
+ |
+ |  stdev_vec : pandas.Series, index (ts_list)
+ |      Sample standard deviation vector of observed
+ |          vector time-series of data points in last
+ |          learning window
+ |      stdev_vec.name = asof
+ |
+ |  vts_basecase_input : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Standardized, base-case, time-series of observed
+ |          vector time-series for dAeDFM model learning
+ |          and inference
+ |
+ |  vts_basecase_output : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Output from deep autoencoder serving as modeled
+ |          components of standardized, base-case, time-
+ |          series of observed vector time-series
+ |
+ |  vts_basecase_error : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Part of data values not modeled by deep auto-
+ |          encoder, or residual component of base-case
+ |          time-series of observed vector time-series
+ |      Note: vts_basecase_error =
+ |          vts_basecase_input.sub(vts_basecase_output)
+ |
+ |  vts_input : pandas.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Exact copy of VTS: observed vector time-series,
+ |          as input data for dAeDFM model learning
+ |          and inference
+ |
+ |  vts_output : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Linear transform of output of deep autoencoder
+ |          serving as modeled components of original
+ |          time-series of observed vector time-series
+ |
+ |  vts_error : pd.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |      Part of data values not modeled by deep auto-
+ |          encoder, or residual component of observed
+ |          vector time-series
+ |      Note: vts_error = vts_input.sub(vts_output)
+ |
+ |  Attributes (DAE data)
+ |  ---------------------
+ |
+ |  dae_state_dict : collections.OrderedDict,
+ |          obj[key] : torch.Tensor
+ |      dict-Type collection of references to whole
+ |          state of torch.nn.Module, including both
+ |          parameters and persistent buffers, dict
+ |          keys containing parameter and buffer names
+ |      Note: state_dict to be obtained by method
+ |          state_dict = torch.nn.Module.state_dict()
+ |      Note: parameters and buffers set as None or
+ |          'none' not included in state_dict
+ |
+ |  dae_input_tensor : torch.Tensor, size [
+ |          len_learn_window,
+ |          num_ts_input * (var_order + 1)]
+ |      Entire batch of all time-lag input data
+ |          vectors for deep autoencoder serving
+ |          as nonlinear dynamic factor model
+ |
+ |  dae_output_tensor : torch.Tensor, size [
+ |          len_learn_window, num_ts_output]
+ |      Entire batch of (zero time-lag only) final
+ |          output data vectors of deep autoencoder
+ |
+ |  dae_error_tensor : torch.Tensor, size [
+ |          len_learn_window, num_ts_output]
+ |      Entire batch of error data vectors of deep
+ |          autoencoder
+ |      Notes: error data vector is difference of zero-
+ |          lag segment of input data vector minus final
+ |          output data vector
+ |
+ |  dae_latent_code : torch.Tensor, size [
+ |          len_learn_window,
+ |          num_ts_latent * (var_order + 1)]
+ |      Latent representation code vector encoded
+ |          at bottlenick layer of deep autoencoder
+ |          for nonlinear dynamic factor model
+ |
+ |  dae_loss_curve : torch.Tensor
+ |          obj[0,:] : training epoch ID number
+ |          obj[1,:] : total training loss
+ |          obj[2,:] : total training score
+ |          obj[3,:] : total validation loss
+ |          obj[4,:] : total validation score
+ |      History of training loss and vailidation
+ |          loss in training deep autoencoder
+ |          for nonliear dynamic factor model
+ |
+ |  dae_training_loss : torch.Tensor, size [
+ |          (max_forecast_step + 1), num_ts_input]
+ |      Training loss vector and in-sample forecasting
+ |          loss vectors of deep autoencoder measured
+ |          by specified loss criterion
+ |
+ |  dae_validation_loss : torch.Tensor,
+ |          size [num_ts_input]
+ |      Validation loss vector of deep autoencoder
+ |          model validation measured by specified
+ |          loss criterion
+ |
+ |  dae_testing_loss : torch.Tensor,
+ |          size [num_ts_input]
+ |      Final testing loss vector of deep auto-
+ |          encoder final model testing measured
+ |          by specified loss criterion
+ |
+ |  dae_training_score : torch.Tensor, size [
+ |          (max_forecast_step + 1), num_ts_input]
+ |      Training score vector and in-sample forecasting
+ |          score vectors of deep autoencoder measured
+ |          by orrelation coefficients
+ |
+ |  dae_validation_score : torch.Tensor,
+ |          size [num_ts_input]
+ |      Validation score vector of deep autoencoder
+ |          model validation measured by correlation
+ |          coefficients
+ |
+ |  dae_testing_score : torch.Tensor,
+ |          size [num_ts_input]
+ |      Final testing score vector of deep auto-
+ |          encoder final model testing measured
+ |          by orrelation coefficients
+ |
+ |  Attributes (base-case modeling)
+ |  -------------------------------
+ |
+ |  forecast_step_list : list, [
+ |          0, 1, 2, ..., max_forecast_step]
+ |      List of forecast steps in multi-step forecasts
+ |          (a) of vector time-series (VTS), and
+ |          (b) of variance / (auto)covariance of VTS
+ |      Note on value at forecast_step = 0:
+ |          float('nan'), in time-series forecasts
+ |          nowcast or estimate, in variance forecasts
+ |
+ |  basecase_train_loss : pd.DataFrame,
+ |          index (ts_list),
+ |          columns (0, forecast_step_list)
+ |      Training loss and in-sample forecasting loss
+ |          based on base-case time-series generated
+ |          by deep autoencoder and measured by
+ |          specified loss criterion
+ |
+ |  basecase_valid_loss : pd.Series, index (ts_list)
+ |      Validation loss based on base-case time-series
+ |          generated by deep autoencoder and measured
+ |          by specified loss criterion
+ |
+ |  basecase_test_loss : pd.Series, index (ts_list)
+ |      Final testing loss based on base-case time-
+ |          series generated by deep autoencoder
+ |          and measured by specified loss criterion
+ |
+ |  basecase_train_score : pd.DataFrame,
+ |          index (ts_list),
+ |          columns (0, forecast_step_list)
+ |      Training score and in-sample forecasting score
+ |          based on base-case time-series generated
+ |          by deep autoencoder and measured by
+ |          orrelation coefficients
+ |
+ |  basecase_valid_score : pd.Series, index (ts_list)
+ |      Validation score based on base-case time-series
+ |          generated by deep autoencoder and measured
+ |          by orrelation coefficients
+ |
+ |  basecase_test_score : pd.Series, index (ts_list)
+ |      Final testing score based on base-case time-
+ |          series generated by deep autoencoder and
+ |          measured by orrelation coefficients
+ |
+ |  Attributes (time-series forecasts)
+ |  ----------------------------------
+ |
+ |  dae_forecast_tensor : torch.Tensor, size [
+ |          (max_forecast_step + 1), num_ts_output]
+ |      Out-of-sample multi-step forecasts of zero-lag
+ |          segment of final output of deep autoencoder
+ |
+ |  vts_basecase_forecast : pd.DataFrame, index (ts_list)
+ |          columns (forecast_step_list + ['asof'])
+ |      Out-of-sample multi-step forecasts of base-case
+ |          time-series of observed vector time-series
+ |
+ |  vts_forecast : pd.DataFrame, index (ts_list)
+ |          columns (forecast_step_list + ['asof'])
+ |      Out-of-sample multi-step forecasts of
+ |          target_type time-series of observed
+ |          vector time-series, with additional
+ |          specification, fwd_cumsum
+ |
+ |  Methods
+ |  -------
+ |
+ |  For model initiation
+ |      dAeDFM()
+ |      dAeDFM(len_learn_window, var_order,
+ |          max_forecast_step, target_type, fwd_cumsum)
+ |      dAeDFM_obj.set_dfm_param(len_learn_window,
+ |          var_order, max_forecast_step, target_type,
+ |          fwd_cumsum)
+ |      dAeDFM_obj.set_dae_hyper_param(num_ts_dict,
+ |          dae_layer_spec, causal_layer_ratio,
+ |          init_pcwt_ratio, num_epoch, patience,
+ |          batch_size, train_criterion, learning_rate,
+ |          input_variation_rate, dae_state_file)
+ |      dAeDFM_obj.set_data(VTS)
+ |      dAeDFM_obj.get_param(param_name_list)
+ |      dAeDFM_obj.get_target_type_list()
+ |      dAeDFM_obj.get_min_len_ts()
+ |      dAeDFM_obj.get_data_info()
+ |
+ |  For deep autoencoder initiation
+ |      dAeDFM_obj.set_dae()
+ |      dAeDFM_obj.print_dae()
+ |      dAeDFM_obj.get_dae_state()
+ |      dAeDFM_obj.save_dae_state()
+ |      dAeDFM_obj.load_dae_state()
+ |      dAeDFM_obj.apply_dae_state()
+ |
+ |  For base-case learning
+ |      dAeDFM_obj.fit()
+ |      dAeDFM_obj.fit(show_learning_stats=False)
+ |      dAeDFM_obj.get_mean()
+ |      dAeDFM_obj.get_stdev()
+ |      dAeDFM_obj.get_vts_basecase()
+ |      dAeDFM_obj.get_dae_data_tensor(dae_data_label)
+ |      dAeDFM_obj.get_dae_loss_curve()
+ |      dAeDFM_obj.get_dae_latent_code()
+ |      dAeDFM_obj.get_dae_training_metric()
+ |      dAeDFM_obj.get_basecase_train_metric()
+ |
+ |  For model learning
+ |      dAeDFM_obj.get_vts()
+ |
+ |  For base-case inference
+ |      dAeDFM_obj.forecast()
+ |      dAeDFM_obj.get_dae_forecast_tensor()
+ |      dAeDFM_obj.get_basecase_forecast()
+ |
+ |  For model inference
+ |      dAeDFM_obj.get_forecast(target_type, fwd_cumsum)
+ |
+ |  For model info
+ |      dAeDFM_obj.get_asof()
+ |
+ |  Notes on data
+ |  -------------
+ |
+ |  * VTS, for learning and for inference,
+ |    input of method set_data(VTS)
+ |
+ |  Methods defined here:
+ |
+ |  __data_holder__(self)
+ |      Initialize or reset data objects
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__data_holder__()
+ |
+ |  __have_data__(self)
+ |      Check availability of observed vector time-series
+ |          (VTS) data
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__have_data__()
+ |
+ |  __init__(
+ |      self,
+ |      len_learn_window=None,
+ |      var_order=None,
+ |      max_forecast_step=1,
+ |      target_type='Original',
+ |      fwd_cumsum=False
+ |  )
+ |      Initializing dAeDFM instance
+ |
+ |      Parameters (DFM)
+ |      ----------------
+ |
+ |      len_learn_window : int, >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
+ |      var_order : int, >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic
+ |              factor model of vector time-series
+ |          Notes:
+ |              var_order <= len_learn_window
+ |              len_ts >= len_learn_window + (2 var_order)
+ |
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forecasting steps of time-series
+ |              forecasts
+ |
+ |      target_type_list : list, ['s', 'S', 'standardized',
+ |              'b', 'B', 'base-case', 'z', 'Z', 'zero-mean',
+ |              'o', 'O', 'original']
+ |          List of valid values of target_type
+ |
+ |      target_type : str, (in target_type_list)
+ |          Specified type of vector, or multiple, time-series
+ |              data on which model inferences, predictions or
+ |              forecasts are made, and are evaluated
+ |          Type 's', 'S', 'standardized', 'b', 'B', 'base-case':
+ |              Inferences/forecasts are made/evaluated on
+ |              standardized, or base-case, values of observed
+ |              vector time-series
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed vector
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed vector time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
+ |          Whether or not to make cum-sum forecast
+ |          Notes: for base-case, fwd_cumsum = False
+ |
+ |      Returns
+ |      -------
+ |
+ |      self : object
+ |          Class instance itself
+ |
+ |      Instance initialization call
+ |      ----------------------------
+ |
+ |      dAeDFM_obj = dAeDFM()
+ |
+ |      dAeDFM_obj = dAeDFM(param_name=param_value)
+ |
+ |      dAeDFM_obj = dAeDFM(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |
+ |      dAeDFM_obj = dAeDFM(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          max_forecast_step=max_forecast_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |
+ |  __is_fit__(self)
+ |      Check whether dAeDFM model is estimated with method
+ |          self.fit()
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__is_fit__()
+ |
+ |  __param_validate__(self)
+ |      Validate input parameters
+ |
+ |      DFM Parameters
+ |      --------------
+ |
+ |      len_learn_window : int
+ |      var_order : int
+ |
+ |      max_forecast_step : int
+ |      target_type : str
+ |      fwd_cumsum : bool
+ |
+ |      DAE Parameters
+ |      --------------
+ |
+ |      num_ts_dict : dict
+ |      dae_layer_spec : dict
+ |
+ |      causal_layer_ratio : float
+ |      init_pcwt_ratio : float
+ |
+ |      Parameters (DAE)
+ |      ----------------
+ |
+ |      num_epoch : int
+ |      patience : int
+ |      batch_size : int
+ |
+ |      train_criterion : dict
+ |      learning_rate : float
+ |      input_variation_rate : dict
+ |
+ |      dae_state_file : str
+ |
+ |      Data Parameters
+ |      ---------------
+ |
+ |      num_ts : int
+ |      len_ts : int
+ |
+ |      num_ts_input : int
+ |      num_ts_output : int
+ |
+ |      Raises
+ |      ------
+ |
+ |      TypeError
+ |          If data type of a parameter not as specified
+ |
+ |      ValueError
+ |          If value of integer parameters not positive
+ |          If var_order > len_learn_window
+ |          If len_ts < len_learn_window + var_order
+ |          If value of string parameters not valid
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__param_validate__()
+ |
+ |  __take_data__(self, VTS)
+ |      Inspect, and take valid portion of, input data: observed
+ |          vector time-series (VTS) data
+ |
+ |      Arguments
+ |      ---------
+ |
+ |      VTS : pandas.DataFrame,
+ |
+ |      Outputs
+ |      -------
+ |
+ |      ts_list_raw : list
+ |
+ |      asof_list_raw : list
+ |
+ |      num_ts_raw : int >= 1
+ |
+ |      len_ts_raw : int > 1
+ |
+ |      VTS : pandas.DataFrame,
+ |
+ |      ts_list : list
+ |
+ |      asof_list : list
+ |
+ |      num_ts : int >= 1
+ |
+ |      len_ts : int > 1
+ |
+ |      num_ts_input : int, num_ts
+ |
+ |      num_ts_output : int, num_ts
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__take_data__(VTS)
+ |
+ |  __take_param__(
+ |      self,
+ |      len_learn_window=None,
+ |      var_order=None,
+ |      max_forecast_step=None,
+ |      target_type=None,
+ |      fwd_cumsum=None,
+ |      num_ts_dict=None,
+ |      dae_layer_spec=None,
+ |      causal_layer_ratio=None,
+ |      init_pcwt_ratio=None,
+ |      num_epoch=None,
+ |      patience=None,
+ |      batch_size=None,
+ |      train_criterion=None,
+ |      learning_rate=None,
+ |      input_variation_rate=None,
+ |      dae_state_file=None
+ |  )
+ |      Take prameter values
+ |
+ |      Parameters (DFM)
+ |      ----------------
+ |
+ |      len_learn_window : int
+ |      var_order : int
+ |      max_forecast_step : int
+ |      target_type : str
+ |      fwd_cumsum : bool
+ |
+ |      Parameters (DAE)
+ |      ----------------
+ |
+ |      num_ts_dict : dict
+ |      dae_layer_spec : dict
+ |      causal_layer_ratio : float
+ |      init_pcwt_ratio : float
+ |
+ |      Parameters (training)
+ |      ---------------------
+ |
+ |      num_epoch : int
+ |      patience : int
+ |      batch_size : int
+ |      train_criterion : dict
+ |      learning_rate : float
+ |      input_variation_rate : dict
+ |      dae_state_file : str
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__take_param__(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          max_forecast_step=max_forecast_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum,
+ |          num_ts_dict=num_ts_dict,
+ |          dae_layer_spec=dae_layer_spec,
+ |          causal_layer_ratio=causal_layer_ratio,
+ |          init_pcwt_ratio=init_pcwt_ratio,
+ |          num_epoch=num_epoch,
+ |          patience=patience,
+ |          batch_size=batch_size,
+ |          train_criterion=train_criterion,
+ |          learning_rate=learning_rate,
+ |          input_variation_rate=input_variation_rate,
+ |          dae_state_file=dae_state_file)
+ |
+ |  __vts_forecast__(self)
+ |      Generate out-of-sample multi-step forecasts of
+ |          target_type time-series of observed vector
+ |          time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      target_type : str
+ |
+ |      fwd_cumsum : bool
+ |
+ |      mean_vec : pd.Series
+ |
+ |      stdev_vec : pd.Series
+ |
+ |      vts_basecase_forecast : pd.DataFrame
+ |
+ |      Outputs
+ |      -------
+ |
+ |      vts_forecast : pd.DataFrame
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.__vts_forecast__()
+ |
+ |  apply_dae_state(self)
+ |      Apply loaded existing deep autoencoder state
+ |          dict to make deep autoencoder as fully
+ |          trained
+ |
+ |      Inputs
+ |      ------
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data
+ |              for dAeDFM model learning and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
+ |
+ |      dae_state_dict : collections.OrderedDict,
+ |              obj[key] : torch.Tensor
+ |          dict-Type collection of references to whole
+ |              state of torch.nn.Module, including both
+ |              parameters and persistent buffers, dict
+ |              keys containing parameter and buffer names
+ |          Note: state_dict to be obtained by method
+ |              state_dict = torch.nn.Module.state_dict()
+ |          Note: parameters and buffers set as None or
+ |              'none' not included in state_dict
+ |
+ |      Outputs
+ |      -------
+ |
+ |      DCLAE : CausalLayerAutoencoder
+ |          Instance of deep causal-layer autoencoder
+ |              for nonlinear dynamic factor model
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.apply_dae_state()
+ |
+ |      dAeDFM_obj.apply_dae_state()
+ |
+ |  fit(self, show_learning_stats=True)
+ |      Fit dAeDFM model with learning parameters and
+ |          observed vector time-series (VTS) data
+ |
+ |      Arguments
+ |      ---------
+ |
+ |      show_learning_stats : bool, default = True
+ |          Whether, or not, to display deep autoencoder
+ |              training progress statistics for each
+ |              epoch
+ |
+ |      Inputs
+ |      ------
+ |
+ |      len_learn_window : int, >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
+ |      var_order : int, >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic
+ |              factor model of vector time-series
+ |          Notes:
+ |              var_order <= len_learn_window
+ |              len_ts >= len_learn_window + (2 var_order)
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data
+ |              for dAeDFM model learning and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
+ |
+ |      ts_list : list
+ |          List of name/symbol/label strings of
+ |              observed time-series, as list of
+ |              index axis of VTS DataFrame
+ |
+ |      asof_list : list
+ |          List of as-of time-stamps, here, of
+ |              observed vector time-series data,
+ |              as list of columns axis of VTS
+ |              DataFrame
+ |
+ |      num_ts : int >= 1
+ |          Number of observed time-series
+ |              = len(ts_list)
+ |
+ |      len_ts : int > 1
+ |          Length of observed vector time-series
+ |              = len(asof_list)
+ |          Note: len_ts >= len_learn_window + (2 var_order)
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dAeDFM_obj.fit()
+ |
+ |      dAeDFM_obj.fit(
+ |          show_learning_stats=bool(False))
+ |
+ |  forecast(self)
+ |      Generate base-case forecasts of dynamic factor
+ |          score time-series and of base-case time-
+ |          series of observed vector time-series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      forecast_step_list : list, [
+ |              0, 1, 2, ..., max_forecast_step]
+ |          List of forecast steps in multi-step forecasts
+ |              (a) of vector time-series (VTS), and
+ |              (b) of variance / (auto)covariance of VTS
+ |          Note on value at forecast_step = 0:
+ |              float('nan'), in time-series forecasts
+ |              nowcast or estimate, in variance forecasts
+ |
+ |      Outputs
+ |      -------
+ |
+ |      vts_basecase_forecast : pd.DataFrame, index (ts_list)
+ |              columns (forecast_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of base-case
+ |              time-series of observed vector time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.forecast()
+ |
+ |      dAeDFM_obj.forecast()
+ |
+ |  get_asof(self)
+ |      Get as-of times of estimates
+ |          by model learning and for model inference
+ |
+ |      Returns
+ |      -------
+ |
+ |      asof : time-stamp object
+ |          Last time-stamp of observed vector time-series data
+ |              utilized in estimation of values in object obj
+ |          Examples:
+ |              obj['asof'] = asof
+ |                  when isinstance(obj, type(dict()))
+ |              obj.loc['asof'] = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |              obj.loc[:, 'asof'] = asof
+ |                  when isinstance(obj, type(pd.DataFrame()))
+ |              obj.name = asof
+ |                  when isinstance(obj, type(pd.Series()))
+ |
+ |      Function call
+ |      -------------
+ |
+ |      asof = dAeDFM_obj.get_asof()
+ |
+ |  get_basecase_forecast(self)
+ |      Get out-of-sample multi-step base-case forecasts of
+ |          base-case time-series of observed vector time-
+ |          series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      forecast_step_list : list, [
+ |              0, 1, 2, ..., max_forecast_step]
+ |          List of forecast steps in multi-step forecasts
+ |              (a) of vector time-series (VTS), and
+ |              (b) of variance / (auto)covariance of VTS
+ |          Note on value at forecast_step = 0:
+ |              float('nan'), in time-series forecasts
+ |              nowcast or estimate, in variance forecasts
+ |
+ |      Returns
+ |      -------
+ |
+ |      vts_basecase_forecast : pd.DataFrame, index (ts_list)
+ |              columns (forecast_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of base-case
+ |              time-series of observed vector time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      vts_basecase_forecast = (
+ |          self.get_basecase_forecast())
+ |
+ |      vts_basecase_forecast = (
+ |          dAeDFM_obj.get_basecase_forecast())
+ |
+ |  get_basecase_train_metric(self)
+ |      Get base-case model training evaluation metrics
+ |
+ |      Returns
+ |      -------
+ |
+ |      basecase_train_loss : pd.DataFrame,
+ |              index (ts_list),
+ |              columns (0, forecast_step_list)
+ |          Training loss and in-sample forecasting loss
+ |              based on base-case time-series generated
+ |              by deep autoencoder and measured by
+ |              specified loss criterion
+ |
+ |      basecase_valid_loss : pd.Series, index (ts_list)
+ |          Validation loss based on base-case time-series
+ |              generated by deep autoencoder and measured
+ |              by specified loss criterion
+ |
+ |      basecase_test_loss : pd.Series, index (ts_list)
+ |          Final testing loss based on base-case time-
+ |              series generated by deep autoencoder
+ |              and measured by specified loss criterion
+ |
+ |      basecase_train_score : pd.DataFrame,
+ |              index (ts_list),
+ |              columns (0, forecast_step_list)
+ |          Training score and in-sample forecasting score
+ |              based on base-case time-series generated
+ |              by deep autoencoder and measured by
+ |              orrelation coefficients
+ |
+ |      basecase_valid_score : pd.Series, index (ts_list)
+ |          Validation score based on base-case time-series
+ |              generated by deep autoencoder and measured
+ |              by orrelation coefficients
+ |
+ |      basecase_test_score : pd.Series, index (ts_list)
+ |          Final testing score based on base-case time-
+ |              series generated by deep autoencoder and
+ |              measured by orrelation coefficients
+ |
+ |      Function call
+ |      -------------
+ |
+ |      (basecase_train_loss, basecase_valid_loss,
+ |          basecase_test_loss, basecase_train_score,
+ |          basecase_valid_score, basecase_test_score
+ |      ) = dAeDFM_obj.get_basecase_train_metric()
+ |
+ |  get_dae_data_tensor(self, dae_data_label=None)
+ |      Get input, output or error data tensor of
+ |          deep autoencoder, specfiied by argument
+ |          dae_data_label
+ |
+ |      Argument
+ |      --------
+ |
+ |      dae_data_label : str, in [
+ |              'input', 'output', 'error']
+ |          Name string of data tensor input into
+ |              or output from deep autoencoder
+ |              for nonlinear dynamic factor model
+ |
+ |      Returns
+ |      -------
+ |
+ |      dae_input_tensor : torch.Tensor, size [
+ |              len_learn_window,
+ |              num_ts_input * (var_order + 1)]
+ |          Entire batch of all time-lag input data
+ |              vectors for deep autoencoder serving
+ |              as nonlinear dynamic factor model
+ |
+ |      dae_output_tensor : torch.Tensor, size [
+ |              len_learn_window, num_ts_output]
+ |          Entire batch of (zero time-lag only) final
+ |              output data vectors of deep autoencoder
+ |
+ |      dae_error_tensor : torch.Tensor, size [
+ |              len_learn_window, num_ts_output]
+ |          Entire batch of error data vectors of deep
+ |              autoencoder
+ |          Notes: error data vector is difference of zero-
+ |              lag segment of input data vector minus final
+ |              output data vector
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dae_input_tensor = (
+ |          dAeDFM_obj.get_dae_data_tensor(
+ |          dae_data_label='input'))
+ |
+ |      dae_output_tensor = (
+ |          dAeDFM_obj.get_dae_data_tensor(
+ |          dae_data_label='output'))
+ |
+ |      dae_error_tensor = (
+ |          dAeDFM_obj.get_dae_data_tensor(
+ |          dae_data_label='error'))
+ |
+ |  get_dae_forecast_tensor(self)
+ |      Get out-of-sample multi-step forecasts of zero-lag
+ |          segment of final output of deep autoencoder
+ |
+ |      Returns
+ |      -------
+ |
+ |      dae_forecast_tensor : torch.Tensor, size [
+ |              (max_forecast_step + 1), num_ts_output]
+ |          Out-of-sample multi-step forecasts of zero-lag
+ |              segment of final output of deep autoencoder
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dae_forecast_tensor = (
+ |          dAeDFM_obj.get_dae_forecast_tensor())
+ |
+ |  get_dae_latent_code(self)
+ |      Get latent representation code vector encoded
+ |          at bottlenick layer of deep autoencoder
+ |          for nonlinear dynamic factor model
+ |
+ |      Returns
+ |      -------
+ |
+ |      dae_latent_code : torch.Tensor, size [
+ |              len_learn_window,
+ |              num_ts_latent * (var_order + 1)]
+ |          Latent representation code vector encoded
+ |              at bottlenick layer of deep autoencoder
+ |              for nonlinear dynamic factor model
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dae_latent_code = (
+ |          dAeDFM_obj.get_dae_latent_code())
+ |
+ |  get_dae_loss_curve(self)
+ |      Get history of training loss, vailidation loss
+ |          and typical non-zero weight of deep auto-
+ |          encoder for nonliear dynamic factor model
+ |
+ |      Returns
+ |      -------
+ |
+ |      dae_loss_curve : torch.Tensor
+ |              obj[0,:] : training epoch ID number
+ |              obj[1,:] : total training loss
+ |              obj[2,:] : total training score
+ |              obj[3,:] : total validation loss
+ |              obj[4,:] : total validation score
+ |          History of training loss and vailidation
+ |              loss in training deep autoencoder
+ |              for nonliear dynamic factor model
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dae_loss_curve = (
+ |          dAeDFM_obj.get_dae_loss_curve())
+ |
+ |  get_dae_state(self)
+ |      Get deep autoencoder state dict
+ |
+ |      Returns
+ |      -------
+ |
+ |      dae_state_dict : collections.OrderedDict,
+ |              obj[key] : torch.Tensor
+ |          dict-Type collection of references to whole
+ |              state of torch.nn.Module, including both
+ |              parameters and persistent buffers, dict
+ |              keys containing parameter and buffer names
+ |          Note: state_dict to be obtained by method
+ |              state_dict = torch.nn.Module.state_dict()
+ |          Note: parameters and buffers set as None or
+ |              'none' not included in state_dict
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dae_state_dict = dAeDFM_obj.get_dae_state()
+ |
+ |  get_dae_training_metric(self)
+ |      Get training metrics of deep autoencoder
+ |          for nonlinear dynamic factor model
+ |
+ |      Returns
+ |      -------
+ |
+ |      dae_training_loss : torch.Tensor, size [
+ |              (max_forecast_step + 1), num_ts_input]
+ |          Training loss vector and in-sample forecasting
+ |              loss vectors of deep autoencoder measured
+ |              by specified loss criterion
+ |
+ |      dae_validation_loss : torch.Tensor,
+ |              size [num_ts_input]
+ |          Validation loss vector of deep autoencoder
+ |              model validation measured by specified
+ |              loss criterion
+ |
+ |      dae_testing_loss : torch.Tensor,
+ |              size [num_ts_input]
+ |          Final testing loss vector of deep auto-
+ |              encoder final model testing measured
+ |              by specified loss criterion
+ |
+ |      dae_training_score : torch.Tensor, size [
+ |              (max_forecast_step + 1), num_ts_input]
+ |          Training score vector and in-sample forecasting
+ |              score vectors of deep autoencoder measured
+ |              by orrelation coefficients
+ |
+ |      dae_validation_score : torch.Tensor,
+ |              size [num_ts_input]
+ |          Validation score vector of deep autoencoder
+ |              model validation measured by correlation
+ |              coefficients
+ |
+ |      dae_testing_score : torch.Tensor,
+ |              size [num_ts_input]
+ |          Final testing score vector of deep auto-
+ |              encoder final model testing measured
+ |              by orrelation coefficients
+ |
+ |      Function call
+ |      -------------
+ |
+ |      (dae_training_loss, dae_validation_loss,
+ |          dae_testing_loss, dae_training_score,
+ |          dae_validation_score, dae_testing_score
+ |      ) = dAeDFM_obj.get_dae_training_metric()
+ |
+ |  get_data_info(self)
+ |      Generate summary descriptions of observed vector
+ |          time-series (VTS) data
+ |
+ |      Returns
+ |      -------
+ |
+ |      ts_list_raw : list
+ |
+ |      asof_list_raw : list
+ |
+ |      num_ts_raw : int >= 1
+ |
+ |      len_ts_raw : int > 1
+ |
+ |      ts_list : list
+ |          List of name/symbol/label strings of
+ |              observed time-series, as list of
+ |              index axis of VTS DataFrame
+ |
+ |      asof_list : list
+ |          List of as-of time-stamps, here, of
+ |              observed vector time-series data,
+ |              as list of columns axis of VTS
+ |              DataFrame
+ |
+ |      num_ts : int >= 1
+ |          Number of observed time-series
+ |              = len(ts_list)
+ |
+ |      len_ts : int > 1
+ |          Length of observed vector time-series
+ |              = len(asof_list)
+ |          Note: len_ts >= len_learn_window + (2 var_order)
+ |
+ |      data_info_dict : dict
+ |          Summary description of dict type of observed
+ |          vector time-series (VTS) data
+ |
+ |      Function call
+ |      -------------
+ |
+ |      (ts_list_raw, asof_list_raw, num_ts_raw,
+ |          len_ts_raw, ts_list, asof_list, num_ts, len_ts,
+ |          data_info_dict) = dAeDFM_obj.get_data_info()
+ |
+ |  get_forecast(self, target_type=None, fwd_cumsum=None)
+ |      Get out-of-sample multi-step forecasts of target_type
+ |          time-series of observed vector time-series
+ |
+ |      Arguments
+ |      ---------
+ |
+ |      target_type : str, (in target_type_list)
+ |          Specified type of vector, or multiple, time-series
+ |              data on which model inferences, predictions or
+ |              forecasts are made, and are evaluated
+ |          Type 's', 'S', 'standardized', 'b', 'B', 'base-case':
+ |              Inferences/forecasts are made/evaluated on
+ |              standardized, or base-case, values of observed
+ |              vector time-series
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed vector
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed vector time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
+ |          Whether or not to make cum-sum forecast
+ |          Notes: for base-case, fwd_cumsum = False
+ |
+ |      Inputs
+ |      ------
+ |
+ |      target_type_list : list, ['s', 'S', 'standardized',
+ |              'b', 'B', 'base-case', 'z', 'Z', 'zero-mean',
+ |              'o', 'O', 'original']
+ |          List of valid values of target_type
+ |
+ |      forecast_step_list : list, [
+ |              0, 1, 2, ..., max_forecast_step]
+ |          List of forecast steps in multi-step forecasts
+ |              (a) of vector time-series (VTS), and
+ |              (b) of variance / (auto)covariance of VTS
+ |          Note on value at forecast_step = 0:
+ |              float('nan'), in time-series forecasts
+ |              nowcast or estimate, in variance forecasts
+ |
+ |      Returns
+ |      -------
+ |
+ |      vts_forecast : pd.DataFrame, index (ts_list)
+ |              columns (forecast_step_list + ['asof'])
+ |          Out-of-sample multi-step forecasts of
+ |              target_type time-series of observed
+ |              vector time-series, with additional
+ |              specification, fwd_cumsum
+ |
+ |      Function call
+ |      -------------
+ |
+ |      vts_forecast = dAeDFM_obj.get_forecast()
+ |
+ |      vts_forecast = dAeDFM_obj.get_forecast(
+ |          target_type=target_type, fwd_cumsum=fwd_cumsum)
+ |
+ |  get_mean(self)
+ |      Get sample mean vector of vector time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      mean_vec : pandas.Series, index (ts_list)
+ |          Sample mean vector of observed vector time-series
+ |              of data points in last learning window
+ |          mean_vec.name = asof
+ |          Mean value vector c in model expression
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.get_mean()
+ |
+ |      mean_vec = dAeDFM_obj.get_mean()
+ |
+ |  get_min_len_ts(self)
+ |      Get minimum length of time-series to satisfy parameters
+ |          of dynamic factor model analysis
+ |
+ |      Returns
+ |      -------
+ |
+ |      min_len_ts : int
+ |          Minimum length of time-series for DFM analysis
+ |
+ |      Function call
+ |      -------------
+ |
+ |      min_len_ts = self.get_min_len_ts()
+ |
+ |      min_len_ts = dAeDFM_obj.get_min_len_ts()
+ |
+ |  get_param(self, param_name_list)
+ |      Get names and values of specified parameters
+ |
+ |      Arguments
+ |      ---------
+ |
+ |      param_name_list : list [str]
+ |          List of names of parameters
+ |
+ |      Notes
+ |      -----
+ |
+ |      param_name_list : sub-list of [
+ |          'len_learn_window', 'var_order',
+ |          'max_forecast_step', 'target_type',
+ |          'fwd_cumsum', 'num_ts_dict',
+ |          'dae_layer_spec', 'causal_layer_ratio',
+ |          'init_pcwt_ratio', 'num_epoch', 'patience',
+ |          'batch_size', 'train_criterion',
+ |          'learning_rate', 'input_variation_rate',
+ |          'dae_state_file']
+ |
+ |      Returns
+ |      -------
+ |
+ |      param_dict : dict, {str: obj}
+ |          dict-Type collection of names and
+ |              values of specified parameters
+ |
+ |      Function call
+ |      -------------
+ |
+ |      param_dict = dAeDFM_obj.get_param(
+ |          param_name_list)
+ |
+ |  get_stdev(self)
+ |      Get sample standard deviation vector of vector time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      stdev_vec : pandas.Series, index (ts_list)
+ |          Sample standard deviation vector of observed
+ |              vector time-series of data points in last
+ |              learning window
+ |          stdev_vec.name = asof
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.get_stdev()
+ |
+ |      stdev_vec = dAeDFM_obj.get_stdev()
+ |
+ |  get_target_type_list(self)
+ |      Get list of valid parameter target_type
+ |
+ |      Returns
+ |      -------
+ |
+ |      target_type_list : list, ['s', 'S', 'standardized',
+ |              'b', 'B', 'base-case', 'z', 'Z', 'zero-mean',
+ |              'o', 'O', 'original']
+ |          List of valid values of target_type
+ |
+ |      Function call
+ |      -------------
+ |
+ |      target_type_list = dAeDFM_obj.get_target_type_list()
+ |
+ |  get_vts(self)
+ |      Get (1) Observed vector time-series. (2) linear
+ |          transform of output of deep autoencoder serving
+ |          as modeled components of original time-series
+ |          of observed vector time-series. (3) Part of
+ |          data values not modeled by deep autoencoder,
+ |          or residual component of observed vector time-
+ |          series
+ |
+ |      Inputs
+ |      ------
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data
+ |              for dAeDFM model learning and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
+ |
+ |      mean_vec : pandas.Series, index (ts_list)
+ |          Sample mean vector of observed vector time-series
+ |              of data points in last learning window
+ |
+ |      stdev_vec : pandas.Series, index (ts_list)
+ |          Sample standard deviation vector of observed
+ |              vector time-series of data points in last
+ |              learning window
+ |
+ |      vts_basecase_output : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Output from deep autoencoder serving as modeled
+ |              components of standardized, base-case, time-
+ |              series of observed vector time-series
+ |
+ |      Returns
+ |      -------
+ |
+ |      vts_input : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Exact copy of VTS: observed vector time-series,
+ |              as input data for dAeDFM model learning
+ |              and inference
+ |
+ |      vts_output : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Linear transform of output of deep autoencoder
+ |              serving as modeled components of original
+ |              time-series of observed vector time-series
+ |
+ |      vts_error : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Part of data values not modeled by deep auto-
+ |              encoder, or residual component of observed
+ |              vector time-series
+ |          Note: vts_error = vts_input.sub(vts_output)
+ |
+ |      Function call
+ |      -------------
+ |
+ |      vts_input, vts_output, vts_error = (
+ |          dAeDFM_obj.get_vts())
+ |
+ |  get_vts_basecase(self)
+ |      Get base-case time-series of input into, output from
+ |          and loss by deep autoencoder for nonlinear dynamic
+ |          factor model
+ |
+ |      Returns
+ |      -------
+ |
+ |      vts_basecase_input : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Standardized, base-case, time-series of observed
+ |              vector time-series for dAeDFM model learning
+ |              and inference
+ |
+ |      vts_basecase_output : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Output from deep autoencoder serving as modeled
+ |              components of standardized, base-case, time-
+ |              series of observed vector time-series
+ |
+ |      vts_basecase_error : pd.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Part of data values not modeled by deep auto-
+ |              encoder, or residual component of base-case
+ |              time-series of observed vector time-series
+ |          Note: vts_basecase_error =
+ |              vts_basecase_input.sub(vts_basecase_output)
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.get_vts_basecase()
+ |
+ |      (vts_basecase_input, vts_basecase_output,
+ |          vts_basecase_error
+ |      ) = dAeDFM_obj.get_vts_basecase()
+ |
+ |  load_dae_state(self)
+ |      Load deep autoencoder state dict from file
+ |
+ |      Inputs
+ |      ------
+ |
+ |      dae_state_file : str
+ |          Name of .pt or .pth data file containing
+ |              state_dict dataset of deep autoencoder
+ |
+ |      Outputs
+ |      -------
+ |
+ |      dae_state_dict : collections.OrderedDict,
+ |              obj[key] : torch.Tensor
+ |          dict-Type collection of references to whole
+ |              state of torch.nn.Module, including both
+ |              parameters and persistent buffers, dict
+ |              keys containing parameter and buffer names
+ |          Note: state_dict to be obtained by method
+ |              state_dict = torch.nn.Module.state_dict()
+ |          Note: parameters and buffers set as None or
+ |              'none' not included in state_dict
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dAeDFM_obj.load_dae_state()
+ |
+ |  print_dae(self)
+ |      Display information about deep autoencoder
+ |          for nonlinear dynamic factor model
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dAeDFM_obj.print_dae()
+ |
+ |  save_dae_state(self)
+ |      Save deep autoencoder state dict into file
+ |
+ |      Inputs
+ |      ------
+ |
+ |      dae_state_file : str
+ |          Name of .pt or .pth data file containing
+ |              state_dict dataset of deep autoencoder
+ |
+ |      Outputs
+ |      -------
+ |
+ |      dae_state_dict : collections.OrderedDict,
+ |              obj[key] : torch.Tensor
+ |          dict-Type collection of references to whole
+ |              state of torch.nn.Module, including both
+ |              parameters and persistent buffers, dict
+ |              keys containing parameter and buffer names
+ |          Note: state_dict to be obtained by method
+ |              state_dict = torch.nn.Module.state_dict()
+ |          Note: parameters and buffers set as None or
+ |              'none' not included in state_dict
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dAeDFM_obj.save_dae_state()
+ |
+ |  set_dae(self)
+ |      Instantiate and initialize deep autoencoder,
+ |          CausalLayerAutoencoder instance, for
+ |          nonlinear dynamic factor model analysis
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.set_dae()
+ |
+ |      dAeDFM_obj.set_dae()
+ |
+ |  set_dae_hyper_param(
+ |      self,
+ |      num_ts_dict=None,
+ |      dae_layer_spec=None,
+ |      causal_layer_ratio=None,
+ |      init_pcwt_ratio=None,
+ |      num_epoch=None,
+ |      patience=None,
+ |      batch_size=None,
+ |      train_criterion=None,
+ |      learning_rate=None,
+ |      input_variation_rate=None,
+ |      dae_state_file=None
+ |  )
+ |      Set, update or reset values of any, some or all
+ |          of hyper parameters of deep autoencoder for
+ |          nonlinear dynamic factor model
+ |
+ |      Parameters (DAE)
+ |      ----------------
+ |
+ |      num_ts_dict : dict, keys (dae_layer_list)
+ |              obj[key] : int
+ |          Number of (observed or letant) time-seres
+ |              at specified layers in deep autoencoder
+ |          Notes: num_ts_input = num_ts_dict[0]
+ |              > num_ts_dict[1] > num_ts_dict[2] > ...
+ |              > num_ts_dict[num_latent_layer]
+ |
+ |      dae_layer_spec : dict, keys (
+ |                  encoding_layer_list + decoding_layer_list)
+ |              obj[key] : str, in ['nowcast',
+ |                  'n', 'N', 'forecast', 'f', F']
+ |          Nowcasting/forecasting specification
+ |              of each of all encoding and decoding
+ |              layers of deep autoencoder
+ |
+ |      causal_layer_ratio : float, 0 <= ratio <= 1
+ |          Weight of causal (nowcasting/forecasting) sub-
+ |              layer output in total nonlinear layer output
+ |              (from all causal and dense sub-layers)
+ |          Notes: bottlelneck encoding and output
+ |              decoding layer, always dense linear
+ |          Notes: this ratio to be treated
+ |              as 0 if < 0.05, and as 1 if > 0.95
+ |
+ |      init_pcwt_ratio : float, 0 <= ratio <= 1
+ |          Portion of PCA-based initial weight values
+ |              in total initial random weight values
+ |              of linear layers of deep autoencoder
+ |
+ |      Parameters (training)
+ |      ---------------------
+ |
+ |      num_epoch : int
+ |          Number of iterations taking entire input
+ |              datasets to train deep autoencoder
+ |
+ |      patience : int > 1
+ |          Number of training epochs to run without
+ |              validation metric improvement before
+ |              early stopping
+ |
+ |      batch_size : int, < len_learn_window
+ |          Size of mini-batches for mini-batch
+ |              gradient descent
+ |
+ |      train_criterion : dict, keys ('grad', 'stats')
+ |              obj['grad'] : str, in [
+ |                  'SquaredL1Loss', 'SmoothL1Loss',
+ |                  'HuberLoss', 'MSELoss']
+ |              obj['stats'] : str,
+ |                  in ['L1Loss', 'MSELoss']
+ |          Loss function for backprop gradient descent
+ |              ('grad') and for performance statistics
+ |              ('stats', for validation, testing and
+ |              reporting) in deep autoencoder model
+ |              training process
+ |
+ |      learning_rate : float, > 0 and << 1
+ |          Step size of gradient descent
+ |
+ |      input_variation_rate : dict, keys (
+ |                  'Validation', 'Testing'),
+ |              obj[key] : float, 0 < rate <= 1
+ |          Input data sample variation rate in setting
+ |              up validation and testing datasets for
+ |              nonlinear model training and evaluation
+ |
+ |      dae_state_file : str
+ |          Name of .pt or .pth data file containing
+ |              state_dict dataset of deep autoencoder
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dAeDFM_obj.set_dae_hyper_param(
+ |          num_ts_dict=num_ts_dict,
+ |          dae_layer_spec=dae_layer_spec,
+ |          causal_layer_ratio=causal_layer_ratio,
+ |          init_pcwt_ratio=init_pcwt_ratio,
+ |          num_epoch=num_epoch,
+ |          patience=patience,
+ |          batch_size=batch_size,
+ |          train_criterion=train_criterion,
+ |          learning_rate=learning_rate,
+ |          input_variation_rate=input_variation_rate,
+ |          dae_state_file=dae_state_file)
+ |
+ |  set_data(self, VTS)
+ |      Set, or reset, observed vector time-series (VTS) data
+ |
+ |      Arguments
+ |      ---------
+ |
+ |      VTS : pandas.DataFrame,
+ |              index (ts_list), columns (asof_list)
+ |          Observed vector time-series, as input data
+ |              for dAeDFM model learning and inference
+ |          Row time-series of column vector with first
+ |              column as oldest and last one as latest
+ |
+ |      Outputs
+ |      -------
+ |
+ |      VTS : pandas.DataFrame,
+ |          index (ts_list), columns (asof_list)
+ |
+ |      ts_list : list
+ |          List of name/symbol/label strings of
+ |              observed time-series, as list of
+ |              index axis of VTS DataFrame
+ |
+ |      asof_list : list
+ |          List of as-of time-stamps, here, of
+ |              observed vector time-series data,
+ |              as list of columns axis of VTS
+ |              DataFrame
+ |
+ |      num_ts : int >= 1
+ |          Number of observed time-series
+ |              = len(ts_list)
+ |
+ |      len_ts : int > 1
+ |          Length of observed vector time-series
+ |              = len(asof_list)
+ |          Note: len_ts >= len_learn_window + (2 var_order)
+ |
+ |      num_ts_input : int, num_ts
+ |          Number of time-series in observed vector
+ |          time-series
+ |
+ |      num_ts_output : int, num_ts
+ |          Number of time-series in observed vector
+ |          time-series
+ |
+ |      Function call
+ |      -------------
+ |
+ |      dAeDFM_obj.set_data(VTS)
+ |
+ |  set_dfm_param(
+ |      self,
+ |      len_learn_window=None,
+ |      var_order=None,
+ |      max_forecast_step=None,
+ |      target_type=None,
+ |      fwd_cumsum=None
+ |  )
+ |      Set, update or reset values of any, some or
+ |          all of dynamic factor model parameters
+ |
+ |      Parameters (DFM)
+ |      ----------------
+ |
+ |      len_learn_window : int, >> 1
+ |          Length of trailing time window of data points
+ |              for model learning
+ |
+ |      var_order : int, >= 1
+ |          Vector autoregressive (VAR) order, p, of dynamic
+ |              factor model of vector time-series
+ |          Notes:
+ |              var_order <= len_learn_window
+ |              len_ts >= len_learn_window + (2 var_order)
+ |
+ |      max_forecast_step : int >= 1
+ |          Maximum number of forecasting steps of time-series
+ |              forecasts
+ |
+ |      target_type_list : list, ['s', 'S', 'standardized',
+ |              'b', 'B', 'base-case', 'z', 'Z', 'zero-mean',
+ |              'o', 'O', 'original']
+ |          List of valid values of target_type
+ |
+ |      target_type : str, (in target_type_list)
+ |          Specified type of vector, or multiple, time-series
+ |              data on which model inferences, predictions or
+ |              forecasts are made, and are evaluated
+ |          Type 's', 'S', 'standardized', 'b', 'B', 'base-case':
+ |              Inferences/forecasts are made/evaluated on
+ |              standardized, or base-case, values of observed
+ |              vector time-series
+ |          Type 'z', 'Z', 'zero-mean':
+ |              Inferences/forecasts are made/evaluated on zero-
+ |              mean, or de-meaned, values of observed vector
+ |              time-series
+ |          Type 'o', 'O', 'original':
+ |              Inferences/forecasts are made/evaluated on values
+ |              of original/observed vector time-series
+ |
+ |      fwd_cumsum : bool (True, or False)
+ |          Whether or not to make cum-sum forecast
+ |          Notes: for base-case, fwd_cumsum = False
+ |
+ |      Function call
+ |      -------------
+ |
+ |      self.set_dfm_param(
+ |          param_name=param_value)
+ |
+ |      self.set_dfm_param(
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |
+ |      dAeDFM_obj.set_dfm_param(
+ |          param_name=param_value)
+ |
+ |      dAeDFM_obj.set_dfm_param(
+ |          param1_name=param1_value,
+ |          param2_name=param2_value, ...)
+ |
+ |      dAeDFM_obj.set_dfm_param(
+ |          len_learn_window=len_learn_window,
+ |          var_order=var_order,
+ |          max_forecast_step=max_forecast_step,
+ |          target_type=target_type,
+ |          fwd_cumsum=fwd_cumsum)
+ |
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |
+ |  __dict__
+ |      dictionary for instance variables
+ |
+ |  __weakref__
+ |      list of weak references to the object
+
+>>>
